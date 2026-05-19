@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.5.0]
+- Added Docker containerization (Dockerfile and docker-compose.yml) for reliable, one-click deployments.
+
 ## [0.4.0]
 - Enhanced log viewing in the UI with dynamic text colors to differentiate errors, warnings, successes, and skips.
 

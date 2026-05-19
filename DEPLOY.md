@@ -1,6 +1,11 @@
 # Deployment
 
-## Setup Instructions
+## Setup Instructions (Docker - Recommended)
+1. Copy `.env.example` to `.env` and configure any required secrets.
+2. Run `docker compose up -d --build`.
+3. The application will be available at http://localhost:8000. Data and downloads will map to the `./data` and `./downloads` folders in your current directory.
+
+## Setup Instructions (Manual)
 1. Copy `.env.example` to `.env` and fill in any secrets.
 2. Install python dependencies: `pip install -r discography_webapp/requirements.txt`
 3. Run the application: `python discography_webapp/main.py`
