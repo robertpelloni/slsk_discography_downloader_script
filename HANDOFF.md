@@ -30,18 +30,20 @@ I audited the project files, including `main.py`, `templates/index.html`, and `s
 9. **Deployment/versioning gaps**:
    - Added `VERSION.md` mechanism. Hardcoded version removed.
 10. **Next highest-impact tasks**:
-   - fully implementing the Rust bridging for speed and reliability (Completed).
+   - fully implementing the Rust bridging for speed and reliability (Attempted, but reverted because Rust code contains mocks).
+   - Enhancing log viewing with colored output in the UI (Completed).
 
 ## 2. What I changed
-- Bumped `VERSION.md` to `0.3.0`.
+- Bumped `VERSION.md` to `0.4.0`.
 - Updated `CHANGELOG.md` with the new version entry.
-- Fully integrated `bob_soulseek_rs` into `RustSoulseekService` inside `main.py` orchestrator.
+- Updated `appendLog` logic inside `index.html` to inject inline styles based on log content instead of appending raw text.
+- Reverted the `slsk_service` in `main.py` back to `SoulseekService` to fix a regression that broke real downloads (since the Rust bridge only provides mock data).
 
 ## 3. What I implemented
-Implemented the Rust bridge integration so that the orchestrator now correctly instantiates `RustSoulseekService`, calling the Rust pyo3 module for searches asynchronously.
+Implemented colored logs in the frontend by parsing log keywords (`error`, `warning`, `success`, `skip`) and modifying `logBox.innerHTML` securely.
 
 ## 4. Tests passed/failed
-Verified `main.py` syntax and manually invoked the Rust search via python script to ensure proper execution.
+Verified `index.html` and Python compilation syntax.
 
 ## 5. What remains next
-The next highest-priority item in `TODO.md` is enhancing log viewing with colored output in the UI.
+The next highest-priority item in `TODO.md` is actually implementing the real P2P protocol inside `bob_soulseek_rs` instead of mock data, or splitting backend routes.

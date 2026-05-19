@@ -80,8 +80,9 @@ def get_orchestrator(user_id: int = USER_ID):
         user_logger = get_logger(event_bus, user_id)
         mb_service = MusicBrainzService()
         config_service = ConfigService(user_id)
-        # Initialize the Rust Soulseek Service using config
-        slsk_service = RustSoulseekService(username=config_service.get('slsk_user', ''), password=config_service.get('slsk_pass', ''))
+        # Restore real SoulseekService to preserve core functionality
+        # The RustSoulseekService is currently a mock and breaks real downloads.
+        slsk_service = SoulseekService()
         post_processor = PostProcessor(mb_service, config_service, user_logger)
         queue_service = QueueService(user_id)
         orchestrators[user_id] = Orchestrator(
