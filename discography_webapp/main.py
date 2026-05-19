@@ -36,6 +36,7 @@ from services.orchestrator import Orchestrator
 from services.logger import get_logger, manager
 from services.musicbrainz import MusicBrainzService
 from services.soulseek import SoulseekService
+from services.rust_soulseek import RustSoulseekService
 from services.config import ConfigService
 from services.queue import QueueService
 from services.post_processor import PostProcessor
@@ -78,8 +79,9 @@ def get_orchestrator(user_id: int = USER_ID):
     if user_id not in orchestrators:
         user_logger = get_logger(event_bus, user_id)
         mb_service = MusicBrainzService()
-        slsk_service = SoulseekService()
         config_service = ConfigService(user_id)
+        # Initialize the Rust Soulseek Service using config
+        slsk_service = RustSoulseekService(username=config_service.get('slsk_user', ''), password=config_service.get('slsk_pass', ''))
         post_processor = PostProcessor(mb_service, config_service, user_logger)
         queue_service = QueueService(user_id)
         orchestrators[user_id] = Orchestrator(

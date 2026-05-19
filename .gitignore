@@ -9,3 +9,5 @@ bin/
 *.pyc
 *.exe
 *.dll
+target/
+discography_webapp/rust_bridge/target/

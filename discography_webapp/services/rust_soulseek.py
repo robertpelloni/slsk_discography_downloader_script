@@ -3,7 +3,7 @@ import logging
 
 try:
     # Attempt to load the compiled Rust module
-    from discography_webapp.rust_bridge.bob_soulseek_rs import bob_soulseek_rs
+    import bob_soulseek_rs
     RUST_AVAILABLE = True
 except ImportError:
     RUST_AVAILABLE = False
