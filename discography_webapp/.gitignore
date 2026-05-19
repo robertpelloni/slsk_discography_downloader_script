@@ -1,0 +1,8 @@
+downloads/
+__pycache__/
+venv/
+*.db
+*.log
+.pi/
+.pi-lens/
+bin/

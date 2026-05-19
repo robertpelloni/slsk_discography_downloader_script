@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+jinja2
+python-multipart
+aioslsk
+musicbrainzngs
+aiofiles
+requests
+mutagen
+websockets
+pyacoustid
+pyjwt
+bcrypt==4.0.1
+beautifulsoup4
