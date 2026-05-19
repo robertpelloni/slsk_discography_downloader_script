@@ -13,6 +13,12 @@ import shutil
 import time
 from typing import List, Optional
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 # Ensure UTF-8 on Windows console
 if sys.platform == 'win32':
     try:
@@ -116,7 +122,15 @@ class ConfigUpdateRequest(BaseModel):
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    version = "Unknown"
+    version_path = os.path.join(os.path.dirname(BASE_DIR), "VERSION.md")
+    if os.path.exists(version_path):
+        try:
+            with open(version_path, "r", encoding="utf-8") as f:
+                version = f.read().strip()
+        except Exception:
+            pass
+    return templates.TemplateResponse("index.html", {"request": request, "version": version})
 
 @app.get("/api/config")
 async def get_config():
