@@ -14,3 +14,8 @@ bcrypt==4.0.1
 beautifulsoup4
 
 python-dotenv
+
+pytest
+pytest-asyncio
+pytest-cov
+httpx

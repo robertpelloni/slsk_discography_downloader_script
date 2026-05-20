@@ -31,19 +31,19 @@ I audited the project files, including `main.py`, `templates/index.html`, and `s
    - Added `VERSION.md` mechanism. Hardcoded version removed.
 10. **Next highest-impact tasks**:
    - fully implementing the Rust bridging for speed and reliability.
-   - Refactor backend routes into separate files. (Completed)
+   - Build a comprehensive `pytest` testing suite. (Completed)
 
 ## 2. What I changed
-- Bumped `VERSION.md` to `0.6.0`.
+- Bumped `VERSION.md` to `0.7.0`.
 - Updated `CHANGELOG.md` with the new version entry.
-- Created `routers/` directory, moving endpoints into `core.py` and `library.py`.
-- Removed the finished task from `TODO.md`.
+- Appended `pytest`, `pytest-asyncio` into `requirements.txt`.
+- Set up automated tests testing `ConfigService` SQLite storage and `MusicBrainzService` mocked responses.
 
 ## 3. What I implemented
-Refactored `main.py` by splitting massive route definitions into logical components (`routers/core.py` and `routers/library.py`). Created `dependencies.py` to handle DI for FastAPI routers.
+Introduced a `tests/` directory with fixtures to test the fundamental service classes safely.
 
 ## 4. Tests passed/failed
-Verified `python -m py_compile` across all files, and asserted that `app.routes` loads correctly in the Python environment.
+`python -m pytest tests/` completes successfully (5/5 passing).
 
 ## 5. What remains next
-The next highest-priority item in `TODO.md` is actually implementing the real P2P protocol inside `bob_soulseek_rs` instead of mock data.
+The next highest-priority item in `TODO.md` is actually implementing the real P2P protocol inside `bob_soulseek_rs` instead of mock data, or continuing to expand test coverage.

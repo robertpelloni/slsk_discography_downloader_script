@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.7.0]
+- Added comprehensive unit testing suite using `pytest`. Implemented initial tests for `ConfigService` and `MusicBrainzService` logic, covering db persistence and mocking external network dependencies.
+
 ## [0.6.0]
 - Refactored `main.py` by splitting API routes into `routers/core.py` and `routers/library.py` to improve maintainability.
 
