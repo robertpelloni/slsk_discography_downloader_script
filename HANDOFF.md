@@ -31,19 +31,18 @@ I audited the project files, including `main.py`, `templates/index.html`, and `s
    - Added `VERSION.md` mechanism. Hardcoded version removed.
 10. **Next highest-impact tasks**:
    - fully implementing the Rust bridging for speed and reliability.
-   - Build a comprehensive `pytest` testing suite. (Completed)
+   - Expand Pydantic constraints for strict endpoint validation. (Completed)
 
 ## 2. What I changed
-- Bumped `VERSION.md` to `0.7.0`.
+- Bumped `VERSION.md` to `0.8.0`.
 - Updated `CHANGELOG.md` with the new version entry.
-- Appended `pytest`, `pytest-asyncio` into `requirements.txt`.
-- Set up automated tests testing `ConfigService` SQLite storage and `MusicBrainzService` mocked responses.
+- Modified `discography_webapp/routers/core.py` to use Pydantic `Field` bounds instead of raw type hints.
 
 ## 3. What I implemented
-Introduced a `tests/` directory with fixtures to test the fundamental service classes safely.
+Integrated strict Pydantic `Field` constraints (e.g., `min_length`, `ge`, `le`, `pattern`) across all data models passed to API endpoints to prevent malformed data from causing internal backend errors.
 
 ## 4. Tests passed/failed
-`python -m pytest tests/` completes successfully (5/5 passing).
+Python compilation check and `pytest` suite tests remain perfectly functional and unaffected by the typed validation changes.
 
 ## 5. What remains next
-The next highest-priority item in `TODO.md` is actually implementing the real P2P protocol inside `bob_soulseek_rs` instead of mock data, or continuing to expand test coverage.
+The next highest-priority item in `TODO.md` is actually implementing the real P2P protocol inside `bob_soulseek_rs` instead of mock data, or expanding the unit testing coverage to cover Orchestrator state.

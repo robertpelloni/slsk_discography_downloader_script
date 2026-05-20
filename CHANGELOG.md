@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.8.0]
+- Enhanced `Pydantic` request models with strict `Field` validation constraints to secure and structure API endpoint inputs.
+
 ## [0.7.0]
 - Added comprehensive unit testing suite using `pytest`. Implemented initial tests for `ConfigService` and `MusicBrainzService` logic, covering db persistence and mocking external network dependencies.
 

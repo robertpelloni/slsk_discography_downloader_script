@@ -1,6 +1,6 @@
 from fastapi import APIRouter, BackgroundTasks, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import asyncio
 from typing import List, Optional
 
@@ -14,29 +14,29 @@ def get_orch(request: Request):
     return get_orchestrator(request.app.state.event_bus)
 
 class SearchRequest(BaseModel):
-    query: str
+    query: str = Field(..., min_length=1, description="The artist name to search for.")
 
 class ScanRequest(BaseModel):
-    artist_names: List[str]
-    depth: int = 1
+    artist_names: List[str] = Field(..., min_items=1, description="List of artist names to scan.")
+    depth: int = Field(1, ge=0, le=5, description="Depth of related artists to search.")
 
 class StartJobRequest(BaseModel):
-    artist_names: List[str]
-    dry_run: bool = False
-    depth: int = 1
-    selection: Optional[List[dict]] = None
+    artist_names: List[str] = Field(..., min_items=1, description="List of artist names to start downloading.")
+    dry_run: bool = Field(False, description="Simulate downloads without writing files.")
+    depth: int = Field(1, ge=0, le=5, description="Depth of related artists to search.")
+    selection: Optional[List[dict]] = Field(None, description="Specific selected albums to download.")
 
 class ConfigUpdateRequest(BaseModel):
-    slsk_user: str
-    slsk_pass: str
-    preferred_format: str
-    acoustid_enabled: bool
-    acoustid_api_key: str
-    acoustid_verify: bool
-    embed_lyrics: bool
-    genius_api_key: str
-    convert_to_mp3: bool
-    sentinel_enabled: bool
+    slsk_user: str = Field(..., description="Soulseek username.")
+    slsk_pass: str = Field(..., description="Soulseek password.")
+    preferred_format: str = Field(..., pattern="^(flac|mp3)$", description="Preferred audio format.")
+    acoustid_enabled: bool = Field(True, description="Enable AcoustID fingerprinting.")
+    acoustid_api_key: str = Field(..., description="API key for AcoustID.")
+    acoustid_verify: bool = Field(False, description="Strict verification.")
+    embed_lyrics: bool = Field(False, description="Fetch and embed lyrics.")
+    genius_api_key: str = Field("", description="Genius API key for fallback lyrics.")
+    convert_to_mp3: bool = Field(False, description="Convert FLAC to MP3 V0.")
+    sentinel_enabled: bool = Field(False, description="Neural Audio-Quality Sentinel.")
 
 
 @router.get("/api/config")
