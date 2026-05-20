@@ -53,18 +53,17 @@ class ConfigService:
 
         try:
             config_json = json.dumps(self.config)
-            conn = self.get_db()
-            cursor = conn.cursor()
-            cursor.execute(
-                '''
-                INSERT INTO user_configs (user_id, config_json)
-                VALUES (?, ?)
-                ON CONFLICT(user_id) DO UPDATE SET config_json=excluded.config_json
-            ''',
-                (self.user_id, config_json),
-            )
-            conn.commit()
-            conn.close()
+            with self.get_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    '''
+                    INSERT INTO user_configs (user_id, config_json)
+                    VALUES (?, ?)
+                    ON CONFLICT(user_id) DO UPDATE SET config_json=excluded.config_json
+                    ''',
+                    (self.user_id, config_json),
+                )
+                conn.commit()
         except Exception as e:
             print(f"Error saving config to DB: {e}")
 

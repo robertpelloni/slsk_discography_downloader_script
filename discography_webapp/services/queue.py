@@ -21,17 +21,14 @@ class QueueService:
     def load(self):
         if not self.user_id:
             return
-
         try:
-            conn = self.get_db()
-            cursor = conn.cursor()
-            cursor.execute("SELECT queue_json FROM user_queues WHERE user_id = ?", (self.user_id,))
-            row = cursor.fetchone()
-            conn.close()
-
-            if row and row['queue_json']:
-                data = json.loads(row['queue_json'])
-                self.completed_albums = data.get('completed', [])
+            with self.get_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT queue_json FROM user_queues WHERE user_id = ?", (self.user_id,))
+                row = cursor.fetchone()
+                if row and row['queue_json']:
+                    data = json.loads(row['queue_json'])
+                    self.completed_albums = data.get('completed', [])
         except Exception as e:
             print(f"Error loading queue from DB: {e}")
 
