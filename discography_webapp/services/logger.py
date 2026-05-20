@@ -54,10 +54,16 @@ class WebSocketHandler(logging.Handler):
         except UnicodeEncodeError:
             record.msg = str(record.msg).encode('ascii', errors='replace').decode('ascii')
             log_entry = self.format(record)
-        self.event_bus.publish('log', {
-            'user_id': self.user_id,
-            'message': log_entry
-        })
+        except Exception:
+            return
+        try:
+            self.event_bus.publish('log', {
+                'user_id': self.user_id,
+                'message': log_entry
+            })
+        except Exception:
+            # Silently drop if event bus fails — don't crash logging
+            pass
 
 
 import os

@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, BackgroundTasks, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -11,6 +12,7 @@ import json
 import sys
 import shutil
 import time
+import logging
 from typing import List, Optional
 
 # Ensure UTF-8 on Windows console
@@ -35,7 +37,32 @@ from services.queue import QueueService
 from services.post_processor import PostProcessor
 from services.event_bus import EventBus
 
-app = FastAPI(title="Discography Downloader")
+# Event bus (must be created before lifespan function references it)
+event_bus = EventBus()
+
+# Lifespan handler (replaces deprecated @app.on_event)
+@asynccontextmanager
+async def lifespan(app):
+    # Startup
+    event_bus.set_loop(asyncio.get_running_loop())
+
+    async def handle_log_event(payload):
+        user_id = payload.get('user_id')
+        message = payload.get('message')
+        if user_id:
+            await manager.broadcast(json.dumps({"type": "log", "message": message}), user_id)
+
+    event_bus.subscribe('log', handle_log_event)
+    yield
+    # Shutdown: stop any running jobs
+    for uid, orch in orchestrators.items():
+        try:
+            if orch.is_running:
+                orch.stop_job()
+        except Exception:
+            pass
+
+app = FastAPI(title="Discography Downloader", lifespan=lifespan)
 
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
@@ -49,20 +76,6 @@ templates.env.cache = None
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.mount("/downloads", StaticFiles(directory=DOWNLOADS_DIR), name="downloads")
 
-# Event bus
-event_bus = EventBus()
-
-@app.on_event("startup")
-async def startup_event():
-    event_bus.set_loop(asyncio.get_running_loop())
-
-async def handle_log_event(payload):
-    user_id = payload.get('user_id')
-    message = payload.get('message')
-    if user_id:
-        await manager.broadcast(json.dumps({"type": "log", "message": message}), user_id)
-
-event_bus.subscribe('log', handle_log_event)
 
 # Single-user mode
 USER_ID = 1
@@ -124,7 +137,7 @@ async def get_config():
 
 @app.post("/api/config")
 async def save_config(request: ConfigUpdateRequest):
-    get_orchestrator().config_service.update_all(request.dict())
+    get_orchestrator().config_service.update_all(request.model_dump())
     return {"message": "Config saved"}
 
 @app.post("/api/search")
@@ -242,14 +255,19 @@ async def get_status():
             "eta": speed
         })
 
-    # Recent logs from file
+    # Recent logs from file (efficient tail read)
     recent_logs = []
     try:
         log_file = os.path.join(BASE_DIR, "data", f"app_{USER_ID}.log")
         if os.path.exists(log_file):
             with open(log_file, 'r', encoding='utf-8', errors='replace') as f:
-                lines = f.readlines()
-                recent_logs = [l.strip() for l in lines[-80:]]
+                # Read only last 16KB for efficiency on large logs
+                f.seek(0, 2)
+                size = f.tell()
+                f.seek(max(0, size - 16384))
+                if size > 16384:
+                    f.readline()  # discard partial first line
+                recent_logs = [l.strip() for l in f.readlines()[-80:]]
     except Exception:
         pass
 
@@ -418,13 +436,13 @@ async def organize_flat_files():
                         try:
                             os.remove(fp_src)
                             moved += 1
-                        except:
+                        except Exception:
                             errors += 1
                     else:
                         try:
                             shutil.move(fp_src, dest)
                             moved += 1
-                        except:
+                        except Exception:
                             errors += 1
             else:
                 os.makedirs(album_dir, exist_ok=True)
@@ -436,13 +454,13 @@ async def organize_flat_files():
                         try:
                             shutil.move(fp_src, dest)
                             moved += 1
-                        except:
+                        except Exception:
                             errors += 1
                     else:
                         try:
                             os.remove(fp_src)
                             moved += 1
-                        except:
+                        except Exception:
                             errors += 1
                 created.append(f"{artist_name}/{safe_key} ({len(file_tuples)} files)")
 
@@ -570,13 +588,13 @@ async def _organize_root_impl():
                     try:
                         os.remove(fp_src)
                         moved += 1
-                    except:
+                    except Exception:
                         errors += 1
                 else:
                     try:
                         shutil.move(fp_src, dest)
                         moved += 1
-                    except:
+                    except Exception:
                         errors += 1
         else:
             os.makedirs(album_dir, exist_ok=True)
@@ -588,13 +606,13 @@ async def _organize_root_impl():
                     try:
                         shutil.move(fp_src, dest)
                         moved += 1
-                    except:
+                    except Exception:
                         errors += 1
                 else:
                     try:
                         os.remove(fp_src)
                         moved += 1
-                    except:
+                    except Exception:
                         errors += 1
             created.append(f"{artist_folder}/{safe_key} ({len(files)} files)")
 
@@ -707,7 +725,7 @@ async def cleanup_empty_folders():
                 try:
                     shutil.rmtree(dirpath)
                     removed.append(dirpath)
-                except:
+                except Exception:
                     pass
 
     # Remove empty artist folders
@@ -724,7 +742,7 @@ async def cleanup_empty_folders():
             try:
                 shutil.rmtree(dp)
                 removed.append(d)
-            except:
+            except Exception:
                 pass
 
     return {"removed": len(removed), "folders": removed}
@@ -939,6 +957,8 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
+        manager.disconnect(websocket, USER_ID)
+    except Exception:
         manager.disconnect(websocket, USER_ID)
 
 if __name__ == "__main__":

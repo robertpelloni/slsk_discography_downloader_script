@@ -20,8 +20,15 @@ class EventBus:
     def publish(self, event_type: str, payload: Any):
         if event_type in self.subscribers:
             for callback in self.subscribers[event_type]:
-                if asyncio.iscoroutinefunction(callback):
-                    if self.loop and self.loop.is_running():
-                        asyncio.run_coroutine_threadsafe(callback(payload), self.loop)
-                else:
-                    callback(payload)
+                try:
+                    if asyncio.iscoroutinefunction(callback):
+                        if self.loop and self.loop.is_running():
+                            asyncio.run_coroutine_threadsafe(callback(payload), self.loop)
+                        else:
+                            # No running loop, skip async callbacks gracefully
+                            pass
+                    else:
+                        callback(payload)
+                except Exception:
+                    # Don't let event publishing crash the caller
+                    pass

@@ -371,7 +371,15 @@ class PostProcessor:
     def download_cover_art(self, rg_id, target_dir):
         """Fire-and-forget cover art download."""
         if rg_id:
-            asyncio.create_task(self._fetch_cover_art(rg_id, target_dir))
+            # Safely schedule on the running event loop
+            try:
+                loop = asyncio.get_running_loop()
+                loop.create_task(self._fetch_cover_art(rg_id, target_dir))
+            except RuntimeError:
+                try:
+                    asyncio.create_task(self._fetch_cover_art(rg_id, target_dir))
+                except RuntimeError:
+                    self.logger.warning(f"Could not schedule cover art download (no event loop)")
 
     async def _fetch_cover_art(self, rg_id, target_dir):
         try:

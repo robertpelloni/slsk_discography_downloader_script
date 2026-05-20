@@ -130,19 +130,19 @@ class SoulseekService:
             results = list(search_request.results)
             
             # If no results, wait a bit more and check again
-            if not results and timeout < 10:
+            if not results and timeout <= 10:
                 await asyncio.sleep(5)
                 results = list(search_request.results)
                 
         except Exception as e:
             # Try to reconnect if search fails
             print(f"Search error: {e}")
+            self.is_connected = False
             try:
                 if self.username and self.password:
-                    self.is_connected = False
                     await self.connect(self.username, self.password)
-            except Exception:
-                pass
+            except Exception as reconnect_err:
+                print(f"Soulseek: Reconnection failed: {reconnect_err}")
             return []
 
         parsed = []

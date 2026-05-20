@@ -37,15 +37,13 @@ class ConfigService:
             return
 
         try:
-            conn = self.get_db()
-            cursor = conn.cursor()
-            cursor.execute("SELECT config_json FROM user_configs WHERE user_id = ?", (self.user_id,))
-            row = cursor.fetchone()
-            conn.close()
-
-            if row and row['config_json']:
-                data = json.loads(row['config_json'])
-                self.config.update(data)
+            with self.get_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT config_json FROM user_configs WHERE user_id = ?", (self.user_id,))
+                row = cursor.fetchone()
+                if row and row['config_json']:
+                    data = json.loads(row['config_json'])
+                    self.config.update(data)
         except Exception as e:
             print(f"Error loading config from DB: {e}")
 

@@ -87,6 +87,21 @@ class Orchestrator:
                     if key not in index:
                         index[key] = {'dir': root, 'count': 1}
 
+        # Also index files in "Unsorted" subdirectories
+        for artist_name in os.listdir(root):
+            unsorted_path = os.path.join(root, artist_name, "Unsorted")
+            if not os.path.isdir(unsorted_path):
+                continue
+            for f in os.listdir(unsorted_path):
+                fp = os.path.join(unsorted_path, f)
+                if not os.path.isfile(fp):
+                    continue
+                ext = os.path.splitext(f)[1].lower()
+                if ext in AUDIO_EXTENSIONS and os.path.getsize(fp) > MIN_FILE_SIZE:
+                    key = normalize(os.path.splitext(f)[0])
+                    if key not in index:
+                        index[key] = {'dir': unsorted_path, 'count': 1}
+
         self._existing_cache = index
         self.logger.info(f"Library index built: {len(index)} albums/entries cached.")
         return index
@@ -681,7 +696,15 @@ class Orchestrator:
         info = self.album_tracker[target_dir]
         if info['done'] >= info['total']:
             self.logger.info(f"  ✓ Album complete: {os.path.basename(target_dir)}")
-            asyncio.create_task(self.post_processor.process_album(target_dir, info['metadata']))
+            # Safely schedule post-processing on the running event loop
+            try:
+                loop = asyncio.get_running_loop()
+                loop.create_task(self.post_processor.process_album(target_dir, info['metadata']))
+            except RuntimeError:
+                try:
+                    asyncio.create_task(self.post_processor.process_album(target_dir, info['metadata']))
+                except RuntimeError:
+                    self.logger.warning(f"Could not schedule post-processing for {target_dir} (no event loop)")
             del self.album_tracker[target_dir]
 
     # ─── Legacy Monitor (for any parallel downloads that slip through) ──
