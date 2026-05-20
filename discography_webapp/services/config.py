@@ -3,7 +3,6 @@ import os
 import sqlite3
 from typing import Any, Dict
 
-
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(BASE_DIR, "data", "app.db")
 
@@ -11,7 +10,6 @@ DB_PATH = os.path.join(BASE_DIR, "data", "app.db")
 class ConfigService:
     def __init__(self, user_id=None):
         self.user_id = user_id
-
         self.config: Dict[str, Any] = {
             "slsk_user": "",
             "slsk_pass": "",
@@ -35,7 +33,6 @@ class ConfigService:
     def load(self):
         if not self.user_id:
             return
-
         try:
             with self.get_db() as conn:
                 cursor = conn.cursor()
@@ -50,17 +47,16 @@ class ConfigService:
     def save(self):
         if not self.user_id:
             return
-
         try:
             config_json = json.dumps(self.config)
             with self.get_db() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    '''
+                    """
                     INSERT INTO user_configs (user_id, config_json)
                     VALUES (?, ?)
                     ON CONFLICT(user_id) DO UPDATE SET config_json=excluded.config_json
-                    ''',
+                    """,
                     (self.user_id, config_json),
                 )
                 conn.commit()

@@ -6,6 +6,7 @@ from typing import List, Dict, Any
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(BASE_DIR, "data", "app.db")
 
+
 class QueueService:
     def __init__(self, user_id=None):
         self.user_id = user_id
@@ -35,18 +36,16 @@ class QueueService:
     def save(self):
         if not self.user_id:
             return
-
         try:
             queue_json = json.dumps({"completed": self.completed_albums})
-            conn = self.get_db()
-            cursor = conn.cursor()
-            cursor.execute('''
-                INSERT INTO user_queues (user_id, queue_json)
-                VALUES (?, ?)
-                ON CONFLICT(user_id) DO UPDATE SET queue_json=excluded.queue_json
-            ''', (self.user_id, queue_json))
-            conn.commit()
-            conn.close()
+            with self.get_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT INTO user_queues (user_id, queue_json)
+                    VALUES (?, ?)
+                    ON CONFLICT(user_id) DO UPDATE SET queue_json=excluded.queue_json
+                """, (self.user_id, queue_json))
+                conn.commit()
         except Exception as e:
             print(f"Error saving queue to DB: {e}")
 
