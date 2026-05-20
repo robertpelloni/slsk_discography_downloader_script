@@ -9,3 +9,6 @@ bin/
 *.pyc
 *.exe
 *.dll
+
+# Jules AI session logs (auto-generated, not needed in repo)
+.jules/sessions/
