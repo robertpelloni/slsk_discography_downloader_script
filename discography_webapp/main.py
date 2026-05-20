@@ -56,72 +56,11 @@ templates.env.cache = None
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.mount("/downloads", StaticFiles(directory=DOWNLOADS_DIR), name="downloads")
 
-# Event bus
-event_bus = EventBus()
-
-@app.on_event("startup")
-async def startup_event():
-    event_bus.set_loop(asyncio.get_running_loop())
-
-async def handle_log_event(payload):
-    user_id = payload.get('user_id')
-    message = payload.get('message')
-    if user_id:
-        await manager.broadcast(json.dumps({"type": "log", "message": message}), user_id)
-
-event_bus.subscribe('log', handle_log_event)
-
-# Single-user mode
-USER_ID = 1
-orchestrators = {}
-
-def get_orchestrator(user_id: int = USER_ID):
-    if user_id not in orchestrators:
-        user_logger = get_logger(event_bus, user_id)
-        mb_service = MusicBrainzService()
-        config_service = ConfigService(user_id)
-        # Restore real SoulseekService to preserve core functionality
-        # The RustSoulseekService is currently a mock and breaks real downloads.
-        slsk_service = SoulseekService()
-        post_processor = PostProcessor(mb_service, config_service, user_logger)
-        queue_service = QueueService(user_id)
-        orchestrators[user_id] = Orchestrator(
-            logger=user_logger, mb_service=mb_service, slsk_service=slsk_service,
-            config_service=config_service, post_processor=post_processor,
-            queue_service=queue_service, user_id=user_id
-        )
-    return orchestrators[user_id]
+from routers.core import router as core_router
+from routers.library import router as library_router
 
 
-# ─── Request Models ─────────────────────────────────────────────
-
-class SearchRequest(BaseModel):
-    query: str
-
-class ScanRequest(BaseModel):
-    artist_names: List[str]
-    depth: int = 1
-
-class StartJobRequest(BaseModel):
-    artist_names: List[str]
-    dry_run: bool = False
-    depth: int = 1
-    selection: Optional[List[dict]] = None
-
-class ConfigUpdateRequest(BaseModel):
-    slsk_user: str
-    slsk_pass: str
-    preferred_format: str
-    acoustid_enabled: bool
-    acoustid_api_key: str
-    acoustid_verify: bool
-    embed_lyrics: bool
-    genius_api_key: str
-    convert_to_mp3: bool
-    sentinel_enabled: bool
-
-
-# ─── Routes ──────────────────────────────────────────────────────
+from fastapi.responses import HTMLResponse
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
@@ -135,101 +74,33 @@ async def read_root(request: Request):
             pass
     return templates.TemplateResponse("index.html", {"request": request, "version": version})
 
-@app.get("/api/config")
-async def get_config():
-    return get_orchestrator().config_service.config
-
-@app.post("/api/config")
-async def save_config(request: ConfigUpdateRequest):
-    get_orchestrator().config_service.update_all(request.dict())
-    return {"message": "Config saved"}
-
-@app.post("/api/search")
-async def search_artist(request: SearchRequest):
-    artists = await asyncio.to_thread(get_orchestrator().mb_service.search_artist, request.query)
-    return {"artists": artists}
-
-@app.post("/api/scan")
-async def scan_artist(request: ScanRequest):
-    result = await get_orchestrator().scan_artists(request.artist_names, request.depth)
-    return {"tree": result}
-
-@app.post("/api/test_search")
-async def test_search(request: Request):
-    """Test Soulseek connection with a simple search."""
-    data = await request.json()
-    query = data.get('query', 'FLAC')
-    orch = get_orchestrator()
-    if not orch.slsk_service.is_connected:
-        return {"error": "Not connected to Soulseek. Start a download first."}
-    try:
-        results = await orch.slsk_service.search(query, timeout=10)
-        return {
-            "query": query,
-            "result_count": len(results),
-            "sample": [r['filename'] for r in results[:5]] if results else []
-        }
-    except Exception as e:
-        return {"error": str(e)}
+app.include_router(core_router)
+app.include_router(library_router)
 
 
-@app.post("/api/start")
-async def start_job(request: StartJobRequest, background_tasks: BackgroundTasks):
-    orch = get_orchestrator()
-    if orch.is_running:
-        return JSONResponse(status_code=400, content={"message": "A job is already running."})
+from dependencies import get_orchestrator as deps_get_orchestrator
 
-    user = orch.config_service.get('slsk_user')
-    password = orch.config_service.get('slsk_pass')
-    if not user or not password:
-        return JSONResponse(status_code=400, content={"message": "Soulseek credentials not configured."})
+# Event bus
+event_bus = EventBus()
+app.state.event_bus = event_bus
 
-    background_tasks.add_task(
-        orch.start_download, request.artist_names, user, password,
-        request.dry_run, request.depth, request.selection
-    )
-    return {"message": "Job started", "artists": request.artist_names}
+@app.on_event("startup")
+async def startup_event():
+    event_bus.set_loop(asyncio.get_running_loop())
 
-@app.post("/api/autonomous_fill")
-async def autonomous_fill(request: StartJobRequest, background_tasks: BackgroundTasks):
-    orch = get_orchestrator()
-    if orch.is_running:
-        return JSONResponse(status_code=400, content={"message": "A job is already running."})
+async def handle_log_event(payload):
+    user_id = payload.get('user_id')
+    message = payload.get('message')
+    if user_id:
+        await manager.broadcast(json.dumps({"type": "log", "message": message}), user_id)
 
-    user = orch.config_service.get('slsk_user')
-    password = orch.config_service.get('slsk_pass')
-    if not user or not password:
-        return JSONResponse(status_code=400, content={"message": "Soulseek credentials not configured."})
+event_bus.subscribe('log', handle_log_event)
 
-    background_tasks.add_task(
-        orch.run_autonomous_filler, user, password, request.artist_names,
-        request.depth, request.dry_run
-    )
-    return {"message": "Autonomous fill started", "artists": request.artist_names}
+def get_orchestrator(user_id: int = 1):
+    return deps_get_orchestrator(event_bus, user_id)
 
-@app.post("/api/stop")
-async def stop_job():
-    orch = get_orchestrator()
-    if not orch.is_running:
-        return {"message": "No job running."}
-    orch.stop_job()
-    return {"message": "Stopping..."}
 
-@app.post("/api/pause")
-async def pause_job():
-    orch = get_orchestrator()
-    if not orch.is_running:
-        return {"message": "No job running.", "is_paused": False}
-    is_paused = orch.toggle_pause()
-    return {"message": "Paused" if is_paused else "Resumed", "is_paused": is_paused}
-
-@app.post("/api/clear_queue")
-async def clear_queue():
-    orch = get_orchestrator()
-    orch.completed_albums = []
-    orch.queue_service.completed_albums = []
-    orch.queue_service.save()
-    return {"message": "History cleared."}
+# ─── Request Models ─────────────────────────────────────────────
 
 @app.get("/api/status")
 async def get_status():
@@ -278,64 +149,6 @@ async def get_status():
         "completed_albums": orch.queue_service.completed_albums,
         "progress": progress_data
     }
-
-@app.get("/api/stats")
-async def get_stats():
-    """Return library statistics."""
-    orch = get_orchestrator()
-    orch.invalidate_cache()
-    index = orch._build_existing_index()
-
-    organized = 0
-    flat = 0
-    total_files = 0
-    artists = set()
-
-    for key, val in index.items():
-        if val['dir'] == 'downloads':
-            flat += val['count']
-        else:
-            organized += 1
-            parts = val['dir'].replace('\\', '/').split('/')
-            if len(parts) >= 2:
-                artists.add(parts[-2])
-        total_files += val['count']
-
-    return {
-        "total_albums": len(index),
-        "organized_albums": organized,
-        "flat_files": flat,
-        "total_audio_files": total_files,
-        "artists": len(artists),
-    }
-
-
-@app.get("/api/library")
-async def get_library():
-    """Return actual library contents from disk."""
-    root = "downloads"
-    if not os.path.isdir(root):
-        return {"artists": []}
-
-    result = []
-    for artist_name in sorted(os.listdir(root)):
-        artist_path = os.path.join(root, artist_name)
-        if not os.path.isdir(artist_path):
-            continue
-        albums = []
-        for album_name in sorted(os.listdir(artist_path)):
-            album_path = os.path.join(artist_path, album_name)
-            if not os.path.isdir(album_path):
-                continue
-            audio_count = sum(1 for f in os.listdir(album_path)
-                              if f.lower().endswith(('.mp3', '.flac', '.m4a')))
-            if audio_count > 0:
-                albums.append({"name": album_name, "tracks": audio_count})
-        if albums:
-            total = sum(a["tracks"] for a in albums)
-            result.append({"name": artist_name, "albums": albums, "total_tracks": total})
-
-    return {"artists": result}
 
 @app.post("/api/organize_flat")
 async def organize_flat_files():

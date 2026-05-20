@@ -30,21 +30,20 @@ I audited the project files, including `main.py`, `templates/index.html`, and `s
 9. **Deployment/versioning gaps**:
    - Added `VERSION.md` mechanism. Hardcoded version removed.
 10. **Next highest-impact tasks**:
-   - fully implementing the Rust bridging for speed and reliability (Attempted, but reverted because Rust code contains mocks).
-   - Containerization and one-click deployments. (Completed)
+   - fully implementing the Rust bridging for speed and reliability.
+   - Refactor backend routes into separate files. (Completed)
 
 ## 2. What I changed
-- Bumped `VERSION.md` to `0.5.0`.
+- Bumped `VERSION.md` to `0.6.0`.
 - Updated `CHANGELOG.md` with the new version entry.
-- Created `Dockerfile` and `docker-compose.yml`.
-- Updated `DEPLOY.md` to include Docker deployment instructions.
-- Marked Phase 4 in `ROADMAP.md` as completed.
+- Created `routers/` directory, moving endpoints into `core.py` and `library.py`.
+- Removed the finished task from `TODO.md`.
 
 ## 3. What I implemented
-Added containerization using a multi-stage Docker build to compile the `bob_soulseek_rs` Rust module, and host the FastAPI application within a consistent environment.
+Refactored `main.py` by splitting massive route definitions into logical components (`routers/core.py` and `routers/library.py`). Created `dependencies.py` to handle DI for FastAPI routers.
 
 ## 4. Tests passed/failed
-Verified `docker compose config`. Docker build was skipped due to sandbox docker hub rate limiting, but the configuration syntax was verified.
+Verified `python -m py_compile` across all files, and asserted that `app.routes` loads correctly in the Python environment.
 
 ## 5. What remains next
-The next highest-priority item in `TODO.md` is actually implementing the real P2P protocol inside `bob_soulseek_rs` instead of mock data, or splitting backend routes.
+The next highest-priority item in `TODO.md` is actually implementing the real P2P protocol inside `bob_soulseek_rs` instead of mock data.

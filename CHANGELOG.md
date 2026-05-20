@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.6.0]
+- Refactored `main.py` by splitting API routes into `routers/core.py` and `routers/library.py` to improve maintainability.
+
 ## [0.5.0]
 - Added Docker containerization (Dockerfile and docker-compose.yml) for reliable, one-click deployments.
 
