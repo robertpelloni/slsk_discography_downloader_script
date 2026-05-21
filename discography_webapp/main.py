@@ -15,6 +15,12 @@ import time
 import logging
 from typing import List, Optional
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 # Ensure UTF-8 on Windows console
 if sys.platform == 'win32':
     try:
@@ -32,6 +38,7 @@ from services.orchestrator import Orchestrator
 from services.logger import get_logger, manager
 from services.musicbrainz import MusicBrainzService
 from services.soulseek import SoulseekService
+from services.rust_soulseek import RustSoulseekService
 from services.config import ConfigService
 from services.queue import QueueService
 from services.post_processor import PostProcessor
@@ -77,24 +84,8 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.mount("/downloads", StaticFiles(directory=DOWNLOADS_DIR), name="downloads")
 
 
-# Single-user mode
-USER_ID = 1
-orchestrators = {}
-
-def get_orchestrator(user_id: int = USER_ID):
-    if user_id not in orchestrators:
-        user_logger = get_logger(event_bus, user_id)
-        mb_service = MusicBrainzService()
-        slsk_service = SoulseekService()
-        config_service = ConfigService(user_id)
-        post_processor = PostProcessor(mb_service, config_service, user_logger)
-        queue_service = QueueService(user_id)
-        orchestrators[user_id] = Orchestrator(
-            logger=user_logger, mb_service=mb_service, slsk_service=slsk_service,
-            config_service=config_service, post_processor=post_processor,
-            queue_service=queue_service, user_id=user_id
-        )
-    return orchestrators[user_id]
+def get_orchestrator(user_id: int = 1):
+    return deps_get_orchestrator(event_bus, user_id)
 
 
 # ─── Request Models ─────────────────────────────────────────────
@@ -279,64 +270,6 @@ async def get_status():
         "completed_albums": orch.queue_service.completed_albums,
         "progress": progress_data
     }
-
-@app.get("/api/stats")
-async def get_stats():
-    """Return library statistics."""
-    orch = get_orchestrator()
-    orch.invalidate_cache()
-    index = orch._build_existing_index()
-
-    organized = 0
-    flat = 0
-    total_files = 0
-    artists = set()
-
-    for key, val in index.items():
-        if val['dir'] == 'downloads':
-            flat += val['count']
-        else:
-            organized += 1
-            parts = val['dir'].replace('\\', '/').split('/')
-            if len(parts) >= 2:
-                artists.add(parts[-2])
-        total_files += val['count']
-
-    return {
-        "total_albums": len(index),
-        "organized_albums": organized,
-        "flat_files": flat,
-        "total_audio_files": total_files,
-        "artists": len(artists),
-    }
-
-
-@app.get("/api/library")
-async def get_library():
-    """Return actual library contents from disk."""
-    root = "downloads"
-    if not os.path.isdir(root):
-        return {"artists": []}
-
-    result = []
-    for artist_name in sorted(os.listdir(root)):
-        artist_path = os.path.join(root, artist_name)
-        if not os.path.isdir(artist_path):
-            continue
-        albums = []
-        for album_name in sorted(os.listdir(artist_path)):
-            album_path = os.path.join(artist_path, album_name)
-            if not os.path.isdir(album_path):
-                continue
-            audio_count = sum(1 for f in os.listdir(album_path)
-                              if f.lower().endswith(('.mp3', '.flac', '.m4a')))
-            if audio_count > 0:
-                albums.append({"name": album_name, "tracks": audio_count})
-        if albums:
-            total = sum(a["tracks"] for a in albums)
-            result.append({"name": artist_name, "albums": albums, "total_tracks": total})
-
-    return {"artists": result}
 
 @app.post("/api/organize_flat")
 async def organize_flat_files():

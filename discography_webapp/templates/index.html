@@ -106,7 +106,7 @@
 
     <!-- Header -->
     <div class="header">
-        <h1>🎵 Discography Downloader</h1>
+        <h1>🎵 Discography Downloader <span style="font-size: 12px; color: var(--text2); vertical-align: middle;">v{{ version }}</span></h1>
         <div class="header-btns">
             <button class="btn btn-ghost btn-sm" onclick="toggleTheme()">🌗 Theme</button>
         </div>
@@ -288,7 +288,27 @@ function connectWS() {
 }
 
 function appendLog(msg) {
-    logBox.textContent += msg + '\n';
+    let color = '';
+    const lowerMsg = msg.toLowerCase();
+
+    if (lowerMsg.includes('error') || lowerMsg.includes('failed') || lowerMsg.includes('✗')) {
+        color = 'color: #ff5555;'; // Red for errors
+    } else if (lowerMsg.includes('warning') || lowerMsg.includes('timeout')) {
+        color = 'color: #f1fa8c;'; // Yellow for warnings
+    } else if (lowerMsg.includes('success') || lowerMsg.includes('done') || lowerMsg.includes('✓')) {
+        color = 'color: #50fa7b;'; // Green for success
+    } else if (lowerMsg.includes('skip')) {
+        color = 'color: #6272a4;'; // Dimmed for skips
+    }
+
+    // Escape HTML to prevent injection but allow our span wrapper
+    const escapedMsg = msg.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+    if (color) {
+        logBox.innerHTML += `<span style="${color}">${escapedMsg}</span><br>`;
+    } else {
+        logBox.innerHTML += `${escapedMsg}<br>`;
+    }
     logBox.scrollTop = logBox.scrollHeight;
 }
 
@@ -373,7 +393,7 @@ async function startJob(fromReview = false) {
         if (!selection || !selection.length) return alert('No items selected.');
         $('reviewSection').style.display = 'none';
     }
-    logBox.textContent = '';
+    logBox.innerHTML = '';
     setButtons(true);
     try {
         const r = await fetch('/api/start', {
@@ -410,7 +430,7 @@ async function scanArtist() {
 async function startAutonomousFill() {
     const artists = getArtistNames();
     if (!artists.length) return alert('Enter at least one artist name.');
-    logBox.textContent = '';
+    logBox.innerHTML = '';
     setButtons(true);
     try {
         const r = await fetch('/api/autonomous_fill', {

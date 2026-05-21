@@ -1,0 +1,12 @@
+services:
+  discography-downloader:
+    build: .
+    container_name: discography_downloader
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./downloads:/app/discography_webapp/downloads
+      - ./data:/app/discography_webapp/data
+    env_file:
+      - .env
+    restart: unless-stopped
