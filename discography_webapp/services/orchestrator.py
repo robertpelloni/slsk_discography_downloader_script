@@ -16,7 +16,7 @@ import logging
 AUDIO_EXTENSIONS = {'.mp3', '.flac', '.m4a', '.ogg', '.wav', '.aac'}
 MIN_FILE_SIZE = 100 * 1024  # 100KB — ignore junk files
 
-# Known artist aliases for matching (abbreviated -> full name, and vice versa)
+# Known artist aliases for matching (abbreviated <-> full name)
 ARTIST_ALIASES = {
     'gms': 'Growling Mad Scientists',
     'g.m.s.': 'Growling Mad Scientists',
@@ -50,6 +50,49 @@ ARTIST_ALIASES = {
     'mantru': 'Manitu',
 }
 
+# Psytrance / electronic tags for genre filtering of related artists
+PSYTRANCE_TAGS = {
+    'psytrance', 'psychedelic trance', 'psychedelic', 'goa trance',
+    'goa', 'trance', 'electronic', 'techno', 'psy', 'full-on',
+    'progressive trance', 'darkpsy', 'suomisaundi', 'hi-tech',
+    'psychill', 'downtempo', 'ambient', 'chillout', 'tribal',
+    'industrial', 'hardcore', 'gabber', 'frenchcore',
+    'electronica', 'edm', 'dance', 'hard trance',
+}
+
+# Artists known to be in the psytrance/electronic scene, even if MB tags are sparse
+# Built lazily via function to avoid forward-reference issues with normalize()
+_KNOWN_PSYTRANCE_NAMES = [
+    '1200 Micrograms', 'Growling Mad Scientists', 'GMS', 'Infected Mushroom',
+    'Hallucinogen', 'Shpongle', 'Cosmosis', 'Total Eclipse', 'Astral Projection',
+    'Electric Universe', 'Space Tribe', 'Transwave', 'Koxbox', 'Logic Bomb',
+    'X-Dream', 'Sandman', 'Jaia', 'Chi-A.D.', 'Oforia', 'Prana',
+    'The Infinity Project', 'Younger Brother', 'Prometheus', 'Slinky',
+    'Absolum', 'Talamasca', 'Astrix', 'Ace Ventura', 'Ajja',
+    'Dickster', 'Mad Maxx', 'Mad Tribe', 'Biodegradable',
+    'Alien Project', 'Psysex', 'Hujaboy', 'Riktam', 'Bansi',
+    'Raja Ram', 'Chicago', 'Sajahan Matkin', 'Quintessence',
+    'Soundaholix', '3 Of Life', 'Faders', 'Hypnocoustics',
+    'Save The Robot', 'Alienatic', 'Space Buddha', 'Laughing Buddha',
+    'Outsiders', 'Growling Machines', 'DJ Stryker', 'Avalon',
+    'Mumbo Jumbo', 'Hopefiend', 'Abraxas',
+    'Alien vs. The Cat', 'Crunchy Punch', 'Liquid Ace', 'Zentura',
+    'Vogon 42', 'Specimen', 'Sirius Isness', 'Olli Wisdom',
+    'Max Peterson', 'The Plague', 'Hydra', 'ESP',
+    'DJ Technorch', 'Betwixt & Between', 'RaverRose',
+    'The Peaking Goddess Collective', 'Tranceformation',
+    'Undefined Behavior', 'Omputer', 'The Noodniks',
+    'Twisted Allstars', 'Meathead Productions', 'Spacedrifters',
+    'Sas, Ban & Tony', 'Riktam & Bansi', 'Children of the Doc',
+    'Psysex in Panick', 'Growling Mad Sex', 'Koopa Troopa',
+    'Sex on Mushroom', 'Alpha Portal', 'Easy Riders',
+    'The Unstables', 'Yoni Oshrat', 'Udi Sternberg',
+    'Volcano', 'Paradise Connection',
+    'Jupiter 8000', 'Electric Shiva Universe',
+    'Outside The Universe', 'Lo-Fi', 'Gabon', 'Endora',
+    'Boris Blenn', 'Roland Wedig', 'Michael Dressler',
+]
+
 
 def sanitize_name(name):
     """Make a filesystem-safe name."""
@@ -60,22 +103,44 @@ def normalize(text):
     """Lowercase, strip punctuation/spaces for fuzzy comparison."""
     return re.sub(r'[^a-z0-9]', '', text.lower())
 
+# Build the normalized set after normalize() is defined
+KNOWN_PSYTRANCE_ARTISTS = {normalize(n) for n in _KNOWN_PSYTRANCE_NAMES}
+
 
 def normalize_artist_aliases(artist_name):
-    """Return a list of normalized artist name variants for matching."""
+    """Return a set of normalized artist name variants for matching."""
     variants = set()
     norm = normalize(artist_name)
     variants.add(norm)
-
-    # Check if this artist has known aliases
     for short, full in ARTIST_ALIASES.items():
         short_norm = normalize(short)
         full_norm = normalize(full)
         if norm == short_norm or norm == full_norm:
             variants.add(short_norm)
             variants.add(full_norm)
-
     return variants
+
+
+def is_psytrance_artist(artist_data):
+    """Check if an artist (from MusicBrainz) is likely psytrance/electronic.
+
+    Uses tag matching and a known-artists whitelist.
+    """
+    name = artist_data.get('name', '')
+    if normalize(name) in KNOWN_PSYTRANCE_ARTISTS:
+        return True
+
+    # Check MB tags
+    tags = artist_data.get('tag-list', [])
+    for tag in tags:
+        tag_name = tag.get('name', '').lower() if isinstance(tag, dict) else str(tag).lower()
+        if tag_name in PSYTRANCE_TAGS:
+            return True
+
+    # Check type — persons in the psy scene are usually "Person"
+    # but we can't whitelist on type alone.  This is just a safety net;
+    # the known-artists set + tags covers most cases.
+    return False
 
 
 class Orchestrator:
@@ -94,17 +159,17 @@ class Orchestrator:
         self.active_downloads = {}
         self.album_tracker = {}
         self.completed_albums = self.queue_service.get_completed()
-        self._existing_cache = None  # Lazy-built index of what's already on disk
+        self._existing_cache = None
+        self._attempted_albums = set()  # Track (artist_norm, album_norm) to skip dupes
         self.slsk_user = self.config_service.get('slsk_user', '')
         self.slsk_pass = self.config_service.get('slsk_pass', '')
 
     # ─── Library Indexing ─────────────────────────────────────────
 
     def _build_existing_index(self):
-        """Scan the entire downloads tree and build a lookup of what we already have.
-
-        Returns a dict keyed by normalized 'artistalbum' or 'artistyearalbum'
-        with {dir, count, artist, album, year}.
+        """Scan the entire downloads tree and build a lookup of what we
+        already have.  Keys are normalized 'artistalbum' or
+        'artistyearalbum'.
         """
         if self._existing_cache is not None:
             return self._existing_cache
@@ -115,7 +180,7 @@ class Orchestrator:
             self._existing_cache = index
             return index
 
-        # ── 1. Scan organized folders: downloads/Artist/Year - Album/ ──
+        # 1. Organized folders
         for artist_name in os.listdir(root):
             artist_path = os.path.join(root, artist_name)
             if not os.path.isdir(artist_path):
@@ -126,74 +191,70 @@ class Orchestrator:
                     continue
                 audio_count = self._count_audio_files(album_path)
                 if audio_count > 0:
-                    # Index with multiple key variations
-                    self._add_album_to_index(index, artist_name, album_name, album_path, audio_count)
+                    self._add_album_to_index(index, artist_name, album_name,
+                                              album_path, audio_count)
 
-        # ── 2. Parse flat files in downloads/ root into album groups ──
+        # 2. Flat files in root
         self._index_flat_root_files(root, index)
 
-        # ── 3. Index files in "Unsorted" subdirectories ──
+        # 3. Unsorted subdirs
         for artist_name in os.listdir(root):
             unsorted_path = os.path.join(root, artist_name, "Unsorted")
-            if not os.path.isdir(unsorted_path):
-                continue
-            self._index_flat_subdir_files(unsorted_path, index, artist_name)
+            if os.path.isdir(unsorted_path):
+                self._index_flat_subdir_files(unsorted_path, index, artist_name)
 
-        # ── 4. Index files sitting directly in artist root folders ──
+        # 4. Flat files in artist root folders
         for artist_name in os.listdir(root):
             artist_path = os.path.join(root, artist_name)
-            if not os.path.isdir(artist_path):
-                continue
-            self._index_flat_subdir_files(artist_path, index, artist_name,
-                                          skip_subdirs=True)
+            if os.path.isdir(artist_path):
+                self._index_flat_subdir_files(artist_path, index, artist_name,
+                                              skip_subdirs=True)
 
         self._existing_cache = index
         self.logger.info(f"Library index built: {len(index)} albums/entries cached.")
         return index
 
-    def _add_album_to_index(self, index, artist_name, album_dir_name, path, audio_count):
-        """Add an album to the index with multiple key variations for robust matching."""
-        # Try to extract year from "YYYY - Album Title" pattern
+    def _add_album_to_index(self, index, artist_name, album_dir_name, path,
+                             audio_count):
         m = re.match(r'^(\d{4})\s*-\s*(.+)$', album_dir_name)
-        if m:
-            year = m.group(1)
-            album_title = m.group(2).strip()
-        else:
-            year = ''
-            album_title = album_dir_name
+        year = m.group(1) if m else ''
+        album_title = m.group(2).strip() if m else album_dir_name
 
         entry = {'dir': path, 'count': audio_count, 'artist': artist_name,
                  'album': album_title, 'year': year}
 
-        # Multiple key variations for robust matching
-        keys = set()
-        for artist_variant in normalize_artist_aliases(artist_name):
-            keys.add(artist_variant + normalize(album_dir_name))  # full dir name
-            keys.add(artist_variant + normalize(album_title))      # album title only
-            if year:
-                keys.add(artist_variant + year + normalize(album_title))
-                keys.add(artist_variant + normalize(year + album_title))
-
-        # Also try without common suffixes
-        clean_title = re.sub(
-            r'\s*\(.*?(deluxe|remaster|edition|expanded|bonus|special|remix|remastered|live|acoustic).*?\)',
-            '', album_title, flags=re.IGNORECASE)
-        clean_dir = re.sub(
-            r'\s*\(.*?(deluxe|remaster|edition|expanded|bonus|special|remix|remastered|live|acoustic).*?\)',
-            '', album_dir_name, flags=re.IGNORECASE)
-        for artist_variant in normalize_artist_aliases(artist_name):
-            keys.add(artist_variant + normalize(clean_title))
-            keys.add(artist_variant + normalize(clean_dir))
-            if year:
-                keys.add(artist_variant + year + normalize(clean_title))
-
+        keys = self._album_key_variants(artist_name, album_title, album_dir_name, year)
         for key in keys:
             if key not in index or index[key]['count'] < audio_count:
                 index[key] = entry
 
+    def _album_key_variants(self, artist_name, album_title, album_dir_name, year):
+        """Generate all reasonable lookup key variants for an album."""
+        keys = set()
+        clean_title = re.sub(
+            r'\s*\(.*?(deluxe|remaster|edition|expanded|bonus|special|'
+            r'remix|remastered|live|acoustic).*?\)',
+            '', album_title, flags=re.IGNORECASE)
+        clean_dir = re.sub(
+            r'\s*\(.*?(deluxe|remaster|edition|expanded|bonus|special|'
+            r'remix|remastered|live|acoustic).*?\)',
+            '', album_dir_name, flags=re.IGNORECASE)
+        title_no_the = re.sub(r'^[Tt]he\s+', '', album_title)
+
+        for av in normalize_artist_aliases(artist_name):
+            for title in [album_title, clean_title, title_no_the]:
+                keys.add(av + normalize(title))
+            for dirname in [album_dir_name, clean_dir]:
+                keys.add(av + normalize(dirname))
+            if year:
+                for title in [album_title, clean_title, title_no_the]:
+                    keys.add(av + year + normalize(title))
+                    keys.add(av + normalize(year + title))
+        return keys
+
     def _index_flat_root_files(self, root, index):
-        """Parse flat files in the downloads/ root and group them by album."""
-        album_groups = {}  # key -> {files: [], artist, album, year}
+        """Parse flat files in downloads/ root and group by album."""
+        album_groups = {}
 
         for f in sorted(os.listdir(root)):
             fp = os.path.join(root, f)
@@ -205,57 +266,30 @@ class Orchestrator:
             if os.path.getsize(fp) < MIN_FILE_SIZE:
                 continue
             name = os.path.splitext(f)[0]
-
-            # Pattern: Artist - Year - Album - TrackNum - Title
-            m = re.match(r'^(.+?)\s*-\s*(\d{4})\s*-\s*(.+?)\s*-\s*\d+', name)
-            if m:
-                artist = m.group(1).strip()
-                year = m.group(2)
-                album = re.sub(r'\s+\d+$', '', m.group(3).strip())
-                key = f"{artist}|{year}|{album}"
-                album_groups.setdefault(key, {
-                    'files': [], 'artist': artist, 'album': album, 'year': year
-                }).get('files').append(fp)
+            artist, year, album = self._parse_flat_filename(name)
+            if not album:
                 continue
+            key = f"{artist}|{year}|{album}"
+            grp = album_groups.setdefault(key, {
+                'files': [], 'artist': artist, 'album': album, 'year': year})
+            grp['files'].append(fp)
 
-            # Pattern: Artist - Album - TrackNum - Title
-            m = re.match(r'^(.+?)\s*-\s*(.+?)\s*-\s*\d+\s*[-.]', name)
-            if m:
-                artist = m.group(1).strip()
-                album = m.group(2).strip()
-                key = f"{artist}|{album}"
-                album_groups.setdefault(key, {
-                    'files': [], 'artist': artist, 'album': album, 'year': ''
-                }).get('files').append(fp)
-                continue
-
-        # Add groups with 2+ files to the index as real albums
         for key, group in album_groups.items():
             if len(group['files']) < 2:
                 continue
-            artist = group['artist']
-            album = group['album']
-            year = group['year']
+            artist, album, year = group['artist'], group['album'], group['year']
             count = len(group['files'])
-
             entry = {'dir': root, 'count': count, 'artist': artist,
                      'album': album, 'year': year, 'flat_files': True}
-
-            for artist_variant in normalize_artist_aliases(artist):
-                idx_key = artist_variant + normalize(album)
-                if idx_key not in index or index[idx_key]['count'] < count:
-                    index[idx_key] = entry
-                if year:
-                    idx_key2 = artist_variant + year + normalize(album)
-                    if idx_key2 not in index or index[idx_key2]['count'] < count:
-                        index[idx_key2] = entry
-                    idx_key3 = artist_variant + normalize(year + album)
-                    if idx_key3 not in index or index[idx_key3]['count'] < count:
-                        index[idx_key3] = entry
+            for av in normalize_artist_aliases(artist):
+                for idx_key in [av + normalize(album),
+                                av + year + normalize(album)] if year else [av + normalize(album)]:
+                    if idx_key not in index or index[idx_key]['count'] < count:
+                        index[idx_key] = entry
 
     def _index_flat_subdir_files(self, subdir, index, artist_name=None,
                                   skip_subdirs=False):
-        """Index flat audio files in a subdirectory (e.g. Unsorted/)."""
+        """Index flat audio files in a subdirectory."""
         for f in os.listdir(subdir):
             fp = os.path.join(subdir, f)
             if skip_subdirs and os.path.isdir(fp):
@@ -267,42 +301,46 @@ class Orchestrator:
                 continue
             if os.path.getsize(fp) < MIN_FILE_SIZE:
                 continue
-
             name = os.path.splitext(f)[0]
-            # Try to extract artist/album from filename
-            extracted_artist = artist_name
-            album = ''
-            year = ''
+            extracted_artist, year, album = self._parse_flat_filename(name)
+            effective = artist_name or extracted_artist
+            if not album:
+                continue
+            for av in normalize_artist_aliases(effective):
+                for idx_key in ([av + normalize(album),
+                                 av + year + normalize(album)] if year
+                                else [av + normalize(album)]):
+                    if idx_key not in index:
+                        index[idx_key] = {'dir': subdir, 'count': 1,
+                                          'artist': effective,
+                                          'album': album, 'year': year}
 
-            m = re.match(r'^(.+?)\s*-\s*(\d{4})\s*-\s*(.+?)\s*-\s*\d+', name)
-            if m:
-                extracted_artist = m.group(1).strip()
-                year = m.group(2)
-                album = re.sub(r'\s+\d+$', '', m.group(3).strip())
-            else:
-                m = re.match(r'^(.+?)\s*-\s*(.+?)\s*-\s*\d+\s*[-.]', name)
-                if m:
-                    extracted_artist = m.group(1).strip()
-                    album = m.group(2).strip()
+    @staticmethod
+    def _parse_flat_filename(name):
+        """Extract (artist, year, album) from a flat filename.
 
-            # Add to index with artist override if provided
-            effective_artist = artist_name or extracted_artist
-            for artist_variant in normalize_artist_aliases(effective_artist):
-                if album:
-                    key = artist_variant + normalize(album)
-                    if key not in index:
-                        index[key] = {'dir': subdir, 'count': 1,
-                                      'artist': effective_artist,
-                                      'album': album, 'year': year}
-                    if year and album:
-                        key2 = artist_variant + year + normalize(album)
-                        if key2 not in index:
-                            index[key2] = {'dir': subdir, 'count': 1,
-                                           'artist': effective_artist,
-                                           'album': album, 'year': year}
+        Handles patterns like:
+          Artist - Year - Album - TrackNum - Title
+          Artist - Album - TrackNum - Title
+        """
+        # Pattern: Artist - Year - Album - TrackNum …
+        m = re.match(r'^(.+?)\s*-\s*(\d{4})\s*-\s*(.+?)\s*-\s*\d+', name)
+        if m:
+            artist = m.group(1).strip()
+            year = m.group(2)
+            album = re.sub(r'\s+\d+$', '', m.group(3).strip())
+            return artist, year, album
+
+        # Pattern: Artist - Album - TrackNum …
+        m = re.match(r'^(.+?)\s*-\s*(.+?)\s*-\s*\d+\s*[-.]', name)
+        if m:
+            artist = m.group(1).strip()
+            album = m.group(2).strip()
+            return artist, '', album
+
+        return '', '', ''
 
     def _count_audio_files(self, directory):
-        """Count valid audio files (>100KB) in a directory."""
         count = 0
         if not os.path.isdir(directory):
             return 0
@@ -317,53 +355,39 @@ class Orchestrator:
         return count
 
     def album_exists_on_disk(self, artist_name, album_title, year=""):
-        """Check if a complete album already exists locally.
-
-        Returns None if not found or if only incomplete (< 3 files).
-        Uses multiple key variations and artist alias matching.
-        """
+        """Check if a complete album already exists locally."""
         index = self._build_existing_index()
 
-        # Build candidate keys with artist aliases
         candidates = set()
-        for artist_variant in normalize_artist_aliases(artist_name):
-            candidates.add(artist_variant + normalize(album_title))
-            if year:
-                candidates.add(artist_variant + year + normalize(album_title))
-                candidates.add(artist_variant + normalize(year + album_title))
+        title_no_the = re.sub(r'^[Tt]he\s+', '', album_title)
+        clean_title = re.sub(
+            r'\s*\(.*?(deluxe|remaster|edition|expanded|bonus|special|'
+            r'remix|remastered|live|acoustic).*?\)',
+            '', album_title, flags=re.IGNORECASE)
 
-            # Also try without common suffixes
-            clean_title = re.sub(
-                r'\s*\(.*?(deluxe|remaster|edition|expanded|bonus|special|remix|remastered|live|acoustic).*?\)',
-                '', album_title, flags=re.IGNORECASE)
-            candidates.add(artist_variant + normalize(clean_title))
-            if year:
-                candidates.add(artist_variant + year + normalize(clean_title))
+        for av in normalize_artist_aliases(artist_name):
+            for title in [album_title, clean_title, title_no_the]:
+                candidates.add(av + normalize(title))
+                if year:
+                    candidates.add(av + year + normalize(title))
+                    candidates.add(av + normalize(year + title))
 
-            # Try without "The" prefix
-            title_no_the = re.sub(r'^[Tt]he\s+', '', album_title)
-            candidates.add(artist_variant + normalize(title_no_the))
-            if year:
-                candidates.add(artist_variant + year + normalize(title_no_the))
-
-        # Check all candidates
         for key in candidates:
             if key in index:
                 entry = index[key]
                 if entry['count'] >= 3:
                     return entry
-                # Single/EP (1-2 tracks) in a proper subfolder is OK
                 if entry['count'] >= 1 and entry.get('dir', '') != 'downloads':
                     return entry
 
-        # Fallback: substring match — title appears in any index key for this artist
+        # Substring fallback
         title_norm = normalize(album_title)
-        for artist_variant in normalize_artist_aliases(artist_name):
+        for av in normalize_artist_aliases(artist_name):
             for key, entry in index.items():
-                if artist_variant in key and title_norm in key and entry['count'] >= 2:
+                if av in key and title_norm in key and entry['count'] >= 2:
                     return entry
 
-        # Final fallback: exact directory check
+        # Exact directory check
         safe_artist = sanitize_name(artist_name)
         for year_str in [year, "Unknown"] if year else ["Unknown"]:
             safe_album = f"{year_str} - {sanitize_name(album_title)}"
@@ -372,11 +396,9 @@ class Orchestrator:
                 count = self._count_audio_files(target_dir)
                 if count >= 3:
                     return {'dir': target_dir, 'count': count}
-
         return None
 
     def invalidate_cache(self):
-        """Call after downloads complete to refresh the index."""
         self._existing_cache = None
 
     # ─── Job Control ──────────────────────────────────────────────
@@ -401,14 +423,37 @@ class Orchestrator:
             artist_names = [artist_names]
         result_tree = []
         seen_ids = set()
+
         for artist_name in artist_names:
             self.logger.info(f"Scanning: {artist_name} (depth={depth})")
             artists = await asyncio.to_thread(
                 self.mb_service.search_artist, artist_name)
+
+            # If no results, or none match the psytrance scene, try
+            # alternative query forms (remove spaces, use aliases)
+            if not artists or not any(
+                    is_psytrance_artist(a) or
+                    normalize(a.get('name', '')) in KNOWN_PSYTRANCE_ARTISTS
+                    for a in artists):
+                alt_queries = self._artist_query_alternatives(artist_name)
+                for alt in alt_queries:
+                    self.logger.info(
+                        f"  Retrying search as: {alt}")
+                    alt_results = await asyncio.to_thread(
+                        self.mb_service.search_artist, alt)
+                    if alt_results and any(
+                            is_psytrance_artist(a) or
+                            normalize(a.get('name', '')) in KNOWN_PSYTRANCE_ARTISTS
+                            for a in alt_results):
+                        artists = alt_results
+                        break
+
             if not artists:
                 self.logger.warning(f"Artist not found: {artist_name}")
                 continue
-            main = artists[0]
+
+            # Pick the best match — prefer known psytrance artists
+            main = self._pick_best_artist(artists, artist_name)
             if main['id'] in seen_ids:
                 self.logger.info(f"  {main['name']} already scanned, skipping.")
                 continue
@@ -419,6 +464,14 @@ class Orchestrator:
                 self.logger.info("Finding related artists...")
                 related = await asyncio.to_thread(
                     self.mb_service.get_related_artists, main['id'], depth)
+                # Filter out artists that are clearly not psytrance
+                before = len(related)
+                related = self._filter_related_artists(related, main['name'])
+                after = len(related)
+                if before != after:
+                    self.logger.info(
+                        f"  Filtered related: {before} → {after} "
+                        f"(removed {before - after} non-genre artists)")
 
             all_artists = [main] + related
             for artist in all_artists:
@@ -446,6 +499,73 @@ class Orchestrator:
                     'albums': albums
                 })
         return result_tree
+
+    def _pick_best_artist(self, artists, query):
+        """From a list of MB search results, pick the one most likely
+        to be the artist the user intended.  Prefers known psytrance
+        artists, then exact-name matches, then first result.
+        """
+        query_norm = normalize(query)
+        for a in artists:
+            if normalize(a.get('name', '')) in KNOWN_PSYTRANCE_ARTISTS:
+                return a
+        for a in artists:
+            if normalize(a.get('name', '')) == query_norm:
+                return a
+        return artists[0]
+
+    @staticmethod
+    def _artist_query_alternatives(artist_name):
+        """Generate alternative MB search queries for an artist name.
+
+        For example 'Kox Box' → ['Koxbox', 'Kox-Box'],
+        'DJ Stryker' → ['Stryker'], etc.
+        """
+        alts = []
+        # Remove spaces: "Kox Box" → "Koxbox"
+        collapsed = re.sub(r'\s+', '', artist_name)
+        if collapsed != artist_name:
+            alts.append(collapsed)
+        # Replace spaces with hyphens
+        hyphenated = re.sub(r'\s+', '-', artist_name)
+        if hyphenated not in alts and hyphenated != artist_name:
+            alts.append(hyphenated)
+        # Try without "DJ " prefix
+        no_dj = re.sub(r'^DJ\s+', '', artist_name, flags=re.IGNORECASE)
+        if no_dj != artist_name:
+            alts.append(no_dj)
+        # Check aliases — search by the other name
+        norm = normalize(artist_name)
+        for short, full in ARTIST_ALIASES.items():
+            if norm == normalize(short):
+                if full not in alts and full != artist_name:
+                    alts.append(full)
+            elif norm == normalize(full):
+                if short not in alts and short != artist_name:
+                    alts.append(short)
+        return alts
+
+    def _filter_related_artists(self, related, main_artist_name):
+        """Remove related artists that are clearly not in the same genre."""
+        filtered = []
+        for artist in related:
+            if is_psytrance_artist(artist):
+                filtered.append(artist)
+                continue
+            # Even without tags, if the artist name is in our whitelist, keep
+            if normalize(artist.get('name', '')) in KNOWN_PSYTRANCE_ARTISTS:
+                filtered.append(artist)
+                continue
+            # If the relation description mentions this is a side project
+            # of someone in the psy scene, keep it
+            rel = artist.get('relation', '')
+            if 'member' in rel.lower() or 'involving' in rel.lower():
+                # Conservative: only keep if the main artist IS in the whitelist
+                if normalize(main_artist_name) in KNOWN_PSYTRANCE_ARTISTS:
+                    filtered.append(artist)
+                    continue
+            # Otherwise drop — it's probably a wrong-genre relation
+        return filtered
 
     # ─── Autonomous Filler ────────────────────────────────────────
 
@@ -476,7 +596,8 @@ class Orchestrator:
         if not missing:
             self.logger.info("Library is complete — no gaps found!")
             return
-        self.logger.info(f"Found {total_missing} missing albums across {len(missing)} artists.")
+        self.logger.info(
+            f"Found {total_missing} missing albums across {len(missing)} artists.")
         await self.start_download(
             artist_names=artist_names,
             slsk_user=slsk_user,
@@ -497,6 +618,7 @@ class Orchestrator:
         if isinstance(artist_names, str):
             artist_names = [artist_names]
         self.invalidate_cache()
+        self._attempted_albums = set()  # Reset per-job dedup
 
         if slsk_user != self.slsk_user or slsk_pass != self.slsk_pass:
             self.config_service.set('slsk_user', slsk_user)
@@ -517,7 +639,6 @@ class Orchestrator:
             await self.slsk_service.connect(slsk_user, slsk_pass)
             self.logger.info("Connected.")
 
-            # Build artist list
             if selection:
                 artists_to_process = selection
             else:
@@ -527,20 +648,25 @@ class Orchestrator:
                     found = await asyncio.to_thread(
                         self.mb_service.search_artist, name)
                     if not found:
-                        self.logger.warning(f"Artist not found on MusicBrainz: {name}")
+                        self.logger.warning(
+                            f"Artist not found on MusicBrainz: {name}")
                         continue
-                    main = found[0]
+                    main = self._pick_best_artist(found, name)
                     if main['id'] in seen:
                         continue
                     seen.add(main['id'])
                     self.logger.info(f"Found: {main['name']} ({main['id']})")
-                    artists_to_process.append({'id': main['id'], 'name': main['name']})
+                    artists_to_process.append({
+                        'id': main['id'], 'name': main['name']})
 
                     if related_artist_depth > 0:
-                        self.logger.info(f"Finding related artists (depth={related_artist_depth})...")
+                        self.logger.info(
+                            f"Finding related artists (depth={related_artist_depth})...")
                         related = await asyncio.to_thread(
                             self.mb_service.get_related_artists,
                             main['id'], related_artist_depth)
+                        related = self._filter_related_artists(
+                            related, main['name'])
                         for a in related:
                             if a['id'] not in seen:
                                 seen.add(a['id'])
@@ -552,12 +678,14 @@ class Orchestrator:
             for artist in artists_to_process:
                 if self.should_stop:
                     break
-                await self._process_artist(artist, dry_run, artist.get('albums'))
+                await self._process_artist(artist, dry_run,
+                                            artist.get('albums'))
 
             if self.should_stop:
                 self.logger.info("Job stopped by user.")
             else:
-                self.logger.info("All searches complete. Waiting for final downloads...")
+                self.logger.info(
+                    "All searches complete. Waiting for final downloads...")
                 while self.active_downloads and not self.should_stop:
                     await asyncio.sleep(2)
                 self.logger.info("=== Job Finished ===")
@@ -600,6 +728,16 @@ class Orchestrator:
             safe_album = f"{year} - {sanitize_name(title)}"
             target_dir = os.path.join("downloads", safe_artist, safe_album)
 
+            # ── Cross-artist dedup: skip if we already tried this album ──
+            album_norm = normalize(title)
+            artist_norm = normalize(name)
+            dedup_key = album_norm  # Just album title — same release under
+                                     # different artists is still the same search
+            if dedup_key in self._attempted_albums:
+                self.logger.info(f"  ⊘ Skip {title} (already attempted)")
+                continue
+            self._attempted_albums.add(dedup_key)
+
             # ── Check 1: Already completed this session
             if self._is_session_completed(name, title):
                 self.logger.info(f"  ⊘ Skip {title} (completed this session)")
@@ -608,7 +746,8 @@ class Orchestrator:
             # ── Check 2: Already on disk
             existing = self.album_exists_on_disk(name, title, year)
             if existing:
-                self.logger.info(f"  ⊘ Skip {title} ({existing['count']} tracks on disk)")
+                self.logger.info(
+                    f"  ⊘ Skip {title} ({existing['count']} tracks on disk)")
                 self.queue_service.add_completed({
                     'artist': name, 'album': title,
                     'year': year, 'path': existing['dir'],
@@ -618,7 +757,7 @@ class Orchestrator:
 
             self.logger.info(f"  ↓ [{idx+1}/{len(rgs)}] {title} ({year})")
 
-            # ── Smart Retry Search with broad strategy ──
+            # ── Search with adaptive timeout ──
             success = False
             queries = self._build_queries(name, title, year)
 
@@ -626,22 +765,27 @@ class Orchestrator:
                 if success or self.should_stop:
                     break
 
-                self.logger.info(f"  Searching (attempt {attempt+1}/{len(queries)}): {query}")
-                results = await self.slsk_service.search(query, timeout=20)
+                # Adaptive timeout: first 3 queries get full 20s,
+                # later queries get 10s (they're longshots anyway)
+                timeout = 20 if attempt < 3 else 10
+
+                self.logger.info(
+                    f"  Searching ({attempt+1}/{len(queries)}): {query}")
+                results = await self.slsk_service.search(query, timeout=timeout)
                 self.logger.info(f"  Got {len(results)} results")
 
                 if not results:
                     if attempt < len(queries) - 1:
-                        await asyncio.sleep(1)
+                        await asyncio.sleep(0.5)
                     continue
 
                 candidates = self._rank_candidates(results, artist_name=name)
                 if not candidates:
                     if attempt < len(queries) - 1:
-                        await asyncio.sleep(1)
+                        await asyncio.sleep(0.5)
                     continue
 
-                # Try top candidates
+                # Try top 5 candidates
                 for cidx, cand in enumerate(candidates[:5]):
                     if success or self.should_stop:
                         break
@@ -654,7 +798,8 @@ class Orchestrator:
                         f"({user}, score={score}, {len(files)} files)")
 
                     if dry_run:
-                        self.logger.info(f"  [Dry Run] Would download → {target_dir}")
+                        self.logger.info(
+                            f"  [Dry Run] Would download → {target_dir}")
                         success = True
                         break
 
@@ -663,7 +808,8 @@ class Orchestrator:
                             'artist': name, 'album': title,
                             'year': year, 'mb_release_group_id': rg['id']
                         }
-                        await self._download_sequential(user, files, target_dir, meta)
+                        await self._download_sequential(
+                            user, files, target_dir, meta)
                         success = True
                         self.queue_service.add_completed({
                             'artist': name, 'album': title,
@@ -677,40 +823,56 @@ class Orchestrator:
                         await asyncio.sleep(2)
 
                 if not success and attempt < len(queries) - 1:
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(0.5)
 
             if not success:
                 self.logger.warning(f"  ✗ Failed: {title}")
                 self._cleanup_dir(target_dir)
-                await asyncio.sleep(1)
 
     def _build_queries(self, artist, title, year=""):
-        """Build a prioritized list of search queries with increasing breadth.
+        """Build a prioritized list of search queries.
 
-        Strategy: start specific, get progressively broader.
+        Starts specific, gets broader.  Handles slash-separated
+        double-album titles by searching each half separately.
         """
-        clean_title = re.sub(r'[^a-zA-Z0-9 ]', '', title)
-        queries = [
-            f"{artist} {title}",                          # Full specific
-            f"{artist} {title} FLAC",                     # Format hint
-            f"{artist} {year} {title}",                   # With year
-            f"{artist} {clean_title}",                    # Cleaned title
-            f"{artist} {clean_title} FLAC",               # Cleaned + format
-            title,                                        # Album title alone
-            f"{clean_title} FLAC",                        # Cleaned title + format
-        ]
+        # Handle slash titles: "Title A / Title B" → try each half
+        title_parts = [title]
+        if '/' in title:
+            parts = [p.strip() for p in title.split('/') if p.strip()]
+            title_parts = parts + [title]  # Try each half first, then full
 
-        # Add alias-based queries if the artist has known aliases
+        clean = lambda t: re.sub(r'[^a-zA-Z0-9 ]', '', t)
+        queries = []
+
+        for t in title_parts:
+            ct = clean(t)
+            queries.extend([
+                f"{artist} {t}",              # Full specific
+                f"{artist} {t} FLAC",         # Format hint
+            ])
+            if year:
+                queries.append(f"{artist} {year} {t}")
+            queries.extend([
+                f"{artist} {ct}",             # Cleaned title
+                t,                            # Album title alone
+                f"{ct} FLAC",                 # Cleaned + format
+            ])
+
+        # Add alias-based queries
         norm = normalize(artist)
         for short, full in ARTIST_ALIASES.items():
             if norm == normalize(short):
-                queries.insert(3, f"{full} {title}")
-                queries.insert(4, f"{full} {year} {title}")
+                for t in title_parts[:2]:  # Only first 2 title variants
+                    queries.insert(3, f"{full} {t}")
+                    if year:
+                        queries.insert(4, f"{full} {year} {t}")
             elif norm == normalize(full):
-                queries.insert(3, f"{short} {title}")
-                queries.insert(4, f"{short} {year} {title}")
+                for t in title_parts[:2]:
+                    queries.insert(3, f"{short} {t}")
+                    if year:
+                        queries.insert(4, f"{short} {year} {t}")
 
-        # Deduplicate while preserving order
+        # Deduplicate preserving order
         seen = set()
         unique = []
         for q in queries:
@@ -721,11 +883,9 @@ class Orchestrator:
         return unique
 
     def _build_query(self, artist, title, attempt):
-        """Legacy single-query builder (kept for compatibility)."""
+        """Legacy single-query builder."""
         queries = self._build_queries(artist, title)
-        if attempt < len(queries):
-            return queries[attempt]
-        return title
+        return queries[attempt] if attempt < len(queries) else title
 
     def _is_session_completed(self, artist, album):
         return any(
@@ -744,7 +904,6 @@ class Orchestrator:
                 pass
 
     def _cleanup_partial(self, target_dir):
-        """Remove partially downloaded files (but keep cover art)."""
         if not os.path.exists(target_dir):
             return
         try:
@@ -760,13 +919,9 @@ class Orchestrator:
 
     def _rank_candidates(self, results, artist_name=None):
         preferred = self.config_service.get('preferred_format', 'flac')
+        artist_norms = normalize_artist_aliases(
+            artist_name) if artist_name else set()
 
-        # Normalize artist name for folder matching
-        artist_norms = set()
-        if artist_name:
-            artist_norms = normalize_artist_aliases(artist_name)
-
-        # Group results by (user, folder)
         groups = {}
         for res in results:
             user = res['user']
@@ -794,34 +949,32 @@ class Orchestrator:
                 elif '.mp3' in formats:
                     bitrates = [f['bitrate'] for f in audio if f['bitrate']]
                     avg = sum(bitrates) / len(bitrates) if bitrates else 0
-                    score += 80 if avg >= 320 else 60 if avg >= 190 else -50
+                    score += 80 if avg >= 320 else (60 if avg >= 190 else -50)
             else:
                 if '.mp3' in formats:
                     bitrates = [f['bitrate'] for f in audio if f['bitrate']]
                     avg = sum(bitrates) / len(bitrates) if bitrates else 0
-                    score += 200 if avg >= 320 else 80 if avg >= 190 else 40
+                    score += 200 if avg >= 320 else (80 if avg >= 190 else 40)
                 elif '.flac' in formats:
                     score += 100
 
-            # File count sweet spot
+            # File count
             if 4 <= num_files <= 20:
                 score += num_files * 10
             elif 2 <= num_files <= 3:
-                score += 20  # EPs are OK
+                score += 20
             elif num_files > 20:
-                score -= (num_files - 20) * 15  # Compilation penalty
+                score -= (num_files - 20) * 15
 
-            # Artist name verification with aliases
+            # Artist folder match with aliases
             if artist_norms:
                 folder_norm = re.sub(r'[^a-z0-9]', '', data['folder'].lower())
-                artist_match = any(a_norm in folder_norm for a_norm in artist_norms)
-                if artist_match:
-                    score += 50  # Bonus — correct artist
+                if any(a_norm in folder_norm for a_norm in artist_norms):
+                    score += 50
                 else:
-                    score -= 80  # Moderate penalty (not as harsh as before —
-                                  # folder might still be the right album)
+                    score -= 80
 
-            # Prefer users with free slots
+            # Free slots bonus
             if any(f.get('slots') for f in audio):
                 score += 20
 
@@ -836,10 +989,8 @@ class Orchestrator:
 
     async def _download_sequential(self, user, candidate_files, target_dir,
                                     metadata):
-        """Download files sequentially with circuit breaker."""
         os.makedirs(target_dir, exist_ok=True)
 
-        # Filter to audio + cover art only
         to_download = [
             f for f in candidate_files
             if f['extension'].lower() in AUDIO_EXTENSIONS
@@ -848,8 +999,8 @@ class Orchestrator:
         if not to_download:
             raise Exception("No audio files in candidate")
 
-        # Skip files that already exist
-        existing_files = set(os.listdir(target_dir)) if os.path.exists(target_dir) else set()
+        existing_files = (set(os.listdir(target_dir))
+                          if os.path.exists(target_dir) else set())
         to_download = [f for f in to_download
                        if os.path.basename(f['filename']) not in existing_files]
         if not to_download:
@@ -876,17 +1027,16 @@ class Orchestrator:
 
             remote_path = file_info['filename']
             filename = os.path.basename(remote_path)
-
-            # Sanitize filename for Windows
             safe_filename = re.sub(r'[<>:"|?*]', '', filename)
             if safe_filename != filename:
                 self.logger.info(f"  Sanitized: {safe_filename}")
             filename = safe_filename
 
-            # Skip if already downloaded
             local_target = os.path.join(target_dir, filename)
-            if os.path.exists(local_target) and os.path.getsize(local_target) > MIN_FILE_SIZE:
-                self.logger.info(f"  [{i+1}/{total}] Skip (exists): {filename}")
+            if (os.path.exists(local_target) and
+                    os.path.getsize(local_target) > MIN_FILE_SIZE):
+                self.logger.info(
+                    f"  [{i+1}/{total}] Skip (exists): {filename}")
                 self.album_tracker[target_dir]['done'] += 1
                 consecutive_failures = 0
                 continue
@@ -894,7 +1044,8 @@ class Orchestrator:
             self.logger.info(f"  [{i+1}/{total}] ↓ {filename}")
 
             try:
-                transfer = await self.slsk_service.download_file(user, remote_path)
+                transfer = await self.slsk_service.download_file(
+                    user, remote_path)
             except Exception as e:
                 self.logger.warning(f"  [{i+1}/{total}] Queue failed: {e}")
                 self.album_tracker[target_dir]['done'] += 1
@@ -927,7 +1078,6 @@ class Orchestrator:
                 self.album_tracker[target_dir]['done'] += 1
                 consecutive_failures += 1
                 if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
-                    self.logger.warning(f"  Circuit breaker: aborting.")
                     raise Exception(
                         f"User {user} unreliable after "
                         f"{MAX_CONSECUTIVE_FAILURES} failures")
@@ -936,7 +1086,6 @@ class Orchestrator:
                 self.album_tracker[target_dir]['done'] += 1
                 consecutive_failures += 1
                 if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
-                    self.logger.warning(f"  Circuit breaker: aborting.")
                     raise Exception(
                         f"User {user} too slow after "
                         f"{MAX_CONSECUTIVE_FAILURES} timeouts")
@@ -944,7 +1093,6 @@ class Orchestrator:
         self._finalize_album(target_dir)
 
     async def _wait_for_transfer(self, transfer, timeout=180):
-        """Wait for a single transfer to reach a final state."""
         waited = 0
         while waited < timeout:
             if self.should_stop:
@@ -964,26 +1112,27 @@ class Orchestrator:
             return
         info = self.album_tracker[target_dir]
         if info['done'] >= info['total']:
-            self.logger.info(f"  ✓ Album complete: {os.path.basename(target_dir)}")
-            # Safely schedule post-processing on the running event loop
+            self.logger.info(
+                f"  ✓ Album complete: {os.path.basename(target_dir)}")
             try:
                 loop = asyncio.get_running_loop()
                 loop.create_task(
-                    self.post_processor.process_album(target_dir, info['metadata']))
+                    self.post_processor.process_album(
+                        target_dir, info['metadata']))
             except RuntimeError:
                 try:
                     asyncio.create_task(
-                        self.post_processor.process_album(target_dir, info['metadata']))
+                        self.post_processor.process_album(
+                            target_dir, info['metadata']))
                 except RuntimeError:
                     self.logger.warning(
-                        f"Could not schedule post-processing for {target_dir} "
-                        f"(no event loop)")
+                        f"Could not schedule post-processing for "
+                        f"{target_dir} (no event loop)")
             del self.album_tracker[target_dir]
 
     # ─── Legacy Monitor ───────────────────────────────────────────
 
     async def monitor_downloads(self):
-        """Fallback monitor — only needed if _download_sequential isn't used."""
         while self.is_running or self.active_downloads:
             if self.should_stop and not self.active_downloads:
                 break
@@ -1019,5 +1168,4 @@ class Orchestrator:
         self._finalize_album(target_dir)
 
     def select_best_candidates(self, results):
-        """Public wrapper used by tests or external callers."""
         return self._rank_candidates(results)
