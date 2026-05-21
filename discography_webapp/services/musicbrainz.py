@@ -28,7 +28,7 @@ class MusicBrainzService:
     def get_artist_by_id(self, artist_id: str, includes: List[str] = None) -> Optional[Dict[str, Any]]:
         try:
             if includes is None:
-                includes = ['artist-rels', 'url-rels']
+                includes = ['artist-rels', 'url-rels', 'tags']
 
             # Rate limit before call
             time.sleep(1.1)
@@ -135,7 +135,7 @@ class MusicBrainzService:
     def get_related_artists(self, artist_id: str, depth: int = 1) -> List[Dict[str, Any]]:
         """
         Find related bands/projects via members recursively up to the given depth.
-        Returns a list of dicts: {'id', 'name', 'relation_type', 'related_to'}
+        Returns a list of dicts: {'id', 'name', 'relation_type', 'related_to', 'tag-list'}
         """
         if depth <= 0:
             return []
@@ -146,11 +146,18 @@ class MusicBrainzService:
         def add_artist(artist_data, relation_desc):
             aid = artist_data.get('id')
             if aid and aid not in found_artists and aid not in visited:
+                # Fetch full artist info to get tags for filtering
+                full_info = self.get_artist_by_id(aid, includes=['tags'])
+                tags = []
+                if full_info:
+                    tags = full_info.get('tag-list', [])
+
                 found_artists[aid] = {
                     'id': aid,
                     'name': artist_data.get('name'),
                     'relation': relation_desc,
-                    'type': artist_data.get('type')
+                    'type': artist_data.get('type'),
+                    'tag-list': tags
                 }
 
         def traverse(current_id, current_depth, is_member_of_original_band=False):

@@ -60,6 +60,13 @@ PSYTRANCE_TAGS = {
     'electronica', 'edm', 'dance', 'hard trance',
 }
 
+# Tags that represent a radical departure from the target scene
+DISALLOWED_TAGS = {
+    'pop', 'jazz', 'classical', 'country', 'folk', 'punk', 'blues', 
+    'soul', 'r&b', 'hip hop', 'rap', 'christian', 'gospel', 'latin', 
+    'reggae', 'indie', 'alternative rock', 'metal', 'heavy metal',
+}
+
 # Artists known to be in the psytrance/electronic scene, even if MB tags are sparse
 # Built lazily via function to avoid forward-reference issues with normalize()
 _KNOWN_PSYTRANCE_NAMES = [
@@ -137,15 +144,21 @@ def is_psytrance_artist(artist_data):
 
     # Check MB tags
     tags = artist_data.get('tag-list', [])
+    has_positive = False
+    has_negative = False
+
     for tag in tags:
         tag_name = tag.get('name', '').lower() if isinstance(tag, dict) else str(tag).lower()
         if tag_name in PSYTRANCE_TAGS:
-            return True
+            has_positive = True
+        if tag_name in DISALLOWED_TAGS:
+            has_negative = True
 
-    # Check type — persons in the psy scene are usually "Person"
-    # but we can't whitelist on type alone.  This is just a safety net;
-    # the known-artists set + tags covers most cases.
-    return False
+    # Radical departure check: if it has negative tags and NO positive tags, it's out.
+    if has_negative and not has_positive:
+        return False
+
+    return has_positive
 
 
 class Orchestrator:
@@ -693,22 +706,30 @@ class Orchestrator:
         """Remove related artists that are clearly not in the same genre."""
         filtered = []
         for artist in related:
+            # 1. Check tags/whitelist first
             if is_psytrance_artist(artist):
                 filtered.append(artist)
                 continue
-            # Even without tags, if the artist name is in our whitelist, keep
-            if normalize(artist.get('name', '')) in KNOWN_PSYTRANCE_ARTISTS:
-                filtered.append(artist)
+
+            # 2. If it failed is_psytrance_artist, check if it was specifically REJECTED
+            # due to radical genre tags.
+            tags = artist.get('tag-list', [])
+            has_negative = any(
+                (t.get('name', '').lower() if isinstance(t, dict) else str(t).lower()) in DISALLOWED_TAGS
+                for t in tags
+            )
+            if has_negative:
+                # Radically different genre detected via tags — skip even if related
                 continue
-            # If the relation description mentions this is a side project
-            # of someone in the psy scene, keep it
+
+            # 3. Fallback to "member of" side project rule for sparsely tagged projects
+            # If it has no tags (sparsely tagged) but is a side project of a psy artist, keep it.
             rel = artist.get('relation', '')
             if 'member' in rel.lower() or 'involving' in rel.lower():
                 # Conservative: only keep if the main artist IS in the whitelist
                 if normalize(main_artist_name) in KNOWN_PSYTRANCE_ARTISTS:
                     filtered.append(artist)
                     continue
-            # Otherwise drop — it's probably a wrong-genre relation
         return filtered
 
     # ─── Autonomous Filler ────────────────────────────────────────
