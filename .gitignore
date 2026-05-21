@@ -12,3 +12,9 @@ bin/
 
 # Jules AI session logs (auto-generated, not needed in repo)
 .jules/sessions/
+# AI tool artifacts
+.borg_startup_marker
+.pi/
+.jules/
+metamcp.db
+*.db
