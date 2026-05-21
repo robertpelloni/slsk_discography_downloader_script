@@ -112,6 +112,11 @@ def normalize_artist_aliases(artist_name):
     variants = set()
     norm = normalize(artist_name)
     variants.add(norm)
+
+    # Handle "The " prefix
+    if artist_name.lower().startswith('the '):
+        variants.add(normalize(artist_name[4:]))
+
     for short, full in ARTIST_ALIASES.items():
         short_norm = normalize(short)
         full_norm = normalize(full)
@@ -289,7 +294,9 @@ class Orchestrator:
 
     def _index_flat_subdir_files(self, subdir, index, artist_name=None,
                                   skip_subdirs=False):
-        """Index flat audio files in a subdirectory."""
+        """Index flat audio files in a subdirectory and group by album."""
+        album_groups = {}  # key -> {'artist', 'album', 'year', 'count'}
+
         for f in os.listdir(subdir):
             fp = os.path.join(subdir, f)
             if skip_subdirs and os.path.isdir(fp):
@@ -303,17 +310,37 @@ class Orchestrator:
                 continue
             name = os.path.splitext(f)[0]
             extracted_artist, year, album = self._parse_flat_filename(name)
-            effective = artist_name or extracted_artist
+            effective_artist = artist_name or extracted_artist
             if not album:
                 continue
-            for av in normalize_artist_aliases(effective):
-                for idx_key in ([av + normalize(album),
-                                 av + year + normalize(album)] if year
-                                else [av + normalize(album)]):
-                    if idx_key not in index:
-                        index[idx_key] = {'dir': subdir, 'count': 1,
-                                          'artist': effective,
-                                          'album': album, 'year': year}
+
+            # Grouping key for this specific subdirectory
+            g_key = f"{normalize(effective_artist)}|{year}|{normalize(album)}"
+            if g_key not in album_groups:
+                album_groups[g_key] = {
+                    'artist': effective_artist,
+                    'album': album,
+                    'year': year,
+                    'count': 0,
+                    'dir': subdir
+                }
+            album_groups[g_key]['count'] += 1
+
+        for g_key, group in album_groups.items():
+            count = group['count']
+            artist = group['artist']
+            album = group['album']
+            year = group['year']
+            entry = {'dir': subdir, 'count': count, 'artist': artist,
+                     'album': album, 'year': year}
+
+            for av in normalize_artist_aliases(artist):
+                keys = ([av + normalize(album),
+                         av + year + normalize(album)] if year
+                        else [av + normalize(album)])
+                for idx_key in keys:
+                    if idx_key not in index or index[idx_key]['count'] < count:
+                        index[idx_key] = entry
 
     @staticmethod
     def _parse_flat_filename(name):
@@ -377,14 +404,17 @@ class Orchestrator:
                 entry = index[key]
                 if entry['count'] >= 3:
                     return entry
-                if entry['count'] >= 1 and entry.get('dir', '') != 'downloads':
+                # If it's in a library folder (not root downloads), still require
+                # a reasonable track count to avoid skipping due to single tracks.
+                # (EPs usually have 3+ tracks anyway)
+                if entry['count'] >= 3 and entry.get('dir', '') != 'downloads':
                     return entry
 
         # Substring fallback
         title_norm = normalize(album_title)
         for av in normalize_artist_aliases(artist_name):
             for key, entry in index.items():
-                if av in key and title_norm in key and entry['count'] >= 2:
+                if av in key and title_norm in key and entry['count'] >= 3:
                     return entry
 
         # Exact directory check
@@ -571,54 +601,104 @@ class Orchestrator:
 
     async def run_autonomous_filler(self, slsk_user, slsk_pass, artist_names,
                                      depth=1, dry_run=False):
-        """Autonomous filler that processes one or more artists."""
+        """Autonomous filler that processes one or more artists in a persistent loop."""
         if isinstance(artist_names, str):
             artist_names = [artist_names]
-        self.logger.info("=== Autonomous Collection Filler ===")
+
+        self.logger.info("=== Autonomous Collection Filler (Persistent Mode) ===")
         self.logger.info(f"Artists: {', '.join(artist_names)}")
-        self.invalidate_cache()
-        result_tree = await self.scan_artists(artist_names, depth)
-        if not result_tree:
-            self.logger.warning("No artists found.")
-            return
-        missing = []
-        total_missing = 0
-        for artist_node in result_tree:
-            missing_albums = [a for a in artist_node['albums']
-                              if not a['exists_locally']]
-            if missing_albums:
-                missing.append({
-                    'id': artist_node['id'],
-                    'name': artist_node['name'],
-                    'albums': missing_albums
-                })
-                total_missing += len(missing_albums)
-        if not missing:
-            self.logger.info("Library is complete — no gaps found!")
-            return
-        self.logger.info(
-            f"Found {total_missing} missing albums across {len(missing)} artists.")
-        await self.start_download(
-            artist_names=artist_names,
-            slsk_user=slsk_user,
-            slsk_pass=slsk_pass,
-            dry_run=dry_run,
-            related_artist_depth=depth,
-            selection=missing
-        )
+
+        self.is_running = True
+        self.should_stop = False
+        self.is_paused = False
+
+        try:
+            while not self.should_stop:
+                self.invalidate_cache()
+                self.logger.info("Scanning library for gaps...")
+                result_tree = await self.scan_artists(artist_names, depth)
+
+                if not result_tree:
+                    self.logger.warning("No artists found.")
+                    break
+
+                missing = []
+                total_missing = 0
+                for artist_node in result_tree:
+                    missing_albums = [a for a in artist_node['albums']
+                                      if not a['exists_locally']]
+                    if missing_albums:
+                        missing.append({
+                            'id': artist_node['id'],
+                            'name': artist_node['name'],
+                            'albums': missing_albums
+                        })
+                        total_missing += len(missing_albums)
+
+                if not missing:
+                    self.logger.info("✨ Library is complete — no gaps found!")
+                    break
+
+                self.logger.info(
+                    f"Found {total_missing} missing albums across {len(missing)} artists.")
+
+                # Run a single download pass
+                await self._run_job_impl(
+                    artist_names=artist_names,
+                    slsk_user=slsk_user,
+                    slsk_pass=slsk_pass,
+                    dry_run=dry_run,
+                    related_artist_depth=depth,
+                    selection=missing
+                )
+
+                if self.should_stop:
+                    break
+
+                self.logger.info("Pass complete. Cooldown for 10 minutes before retrying remaining gaps...")
+                # Wait in small increments to remain responsive to stop signals
+                for _ in range(600):
+                    if self.should_stop:
+                        break
+                    await asyncio.sleep(1)
+
+        except Exception as e:
+            self.logger.error(f"Autonomous filler fatal error: {e}")
+        finally:
+            self.is_running = False
+            self.should_stop = False
+            self.logger.info("=== Autonomous Filler Stopped ===")
 
     # ─── Main Download Engine ─────────────────────────────────────
 
     async def start_download(self, artist_names, slsk_user, slsk_pass,
                               dry_run=False, related_artist_depth=1,
                               selection=None):
+        """Standard single-pass download job."""
         if self.is_running:
             self.logger.warning("Job already running.")
             return
+
+        self.is_running = True
+        try:
+            await self._run_job_impl(
+                artist_names, slsk_user, slsk_pass, dry_run,
+                related_artist_depth, selection
+            )
+        finally:
+            self.is_running = False
+
+    async def _run_job_impl(self, artist_names, slsk_user, slsk_pass,
+                             dry_run=False, related_artist_depth=1,
+                             selection=None):
+        """The actual core of the download engine."""
         if isinstance(artist_names, str):
             artist_names = [artist_names]
+
         self.invalidate_cache()
         self._attempted_albums = set()  # Reset per-job dedup
+        self.should_stop = False
+        self.is_paused = False
 
         if slsk_user != self.slsk_user or slsk_pass != self.slsk_pass:
             self.config_service.set('slsk_user', slsk_user)
@@ -626,13 +706,8 @@ class Orchestrator:
             self.slsk_user = slsk_user
             self.slsk_pass = slsk_pass
 
-        self.is_running = True
-        self.should_stop = False
-        self.is_paused = False
-
         if dry_run:
             self.logger.info("*** DRY RUN MODE ***")
-        self.logger.info(f"Starting job for artists: {', '.join(artist_names)}")
 
         try:
             self.logger.info("Connecting to Soulseek...")
@@ -685,16 +760,13 @@ class Orchestrator:
                 self.logger.info("Job stopped by user.")
             else:
                 self.logger.info(
-                    "All searches complete. Waiting for final downloads...")
+                    "Pass complete. Waiting for final downloads...")
                 while self.active_downloads and not self.should_stop:
                     await asyncio.sleep(2)
-                self.logger.info("=== Job Finished ===")
 
         except Exception as e:
-            self.logger.error(f"Fatal error: {e}")
+            self.logger.error(f"Download pass error: {e}")
         finally:
-            self.is_running = False
-            self.should_stop = False
             try:
                 await self.slsk_service.disconnect()
             except Exception:
@@ -731,8 +803,7 @@ class Orchestrator:
             # ── Cross-artist dedup: skip if we already tried this album ──
             album_norm = normalize(title)
             artist_norm = normalize(name)
-            dedup_key = album_norm  # Just album title — same release under
-                                     # different artists is still the same search
+            dedup_key = f"{artist_norm}:{album_norm}"
             if dedup_key in self._attempted_albums:
                 self.logger.info(f"  ⊘ Skip {title} (already attempted)")
                 continue
@@ -890,7 +961,7 @@ class Orchestrator:
     def _is_session_completed(self, artist, album):
         return any(
             c['artist'] == artist and c['album'] == album
-            and c['status'] in ('Existing', 'Downloaded', 'Queued')
+            and c['status'] in ('Downloaded', 'Queued')
             for c in self.completed_albums
         )
 
