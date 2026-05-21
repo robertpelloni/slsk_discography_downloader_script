@@ -103,6 +103,11 @@ class StartJobRequest(BaseModel):
     depth: int = 1
     selection: Optional[List[dict]] = None
 
+class ManagedArtistRequest(BaseModel):
+    artist_id: str
+    name: str
+    is_secondary: bool = False
+
 class ConfigUpdateRequest(BaseModel):
     slsk_user: str
     slsk_pass: str
@@ -138,8 +143,70 @@ async def search_artist(request: SearchRequest):
 
 @app.post("/api/scan")
 async def scan_artist(request: ScanRequest):
-    result = await get_orchestrator().scan_artists(request.artist_names, request.depth)
+    orch = get_orchestrator()
+    result = await orch.scan_artists(request.artist_names, request.depth)
+    # Auto-add main artists to managed list
+    for artist_node in result:
+        # We only auto-add depth 0 artists (the ones requested)
+        if artist_node['name'] in request.artist_names:
+            await orch.add_managed_artist(artist_node['id'], artist_node['name'])
     return {"tree": result}
+
+@app.get("/api/stats")
+async def get_stats():
+    orch = get_orchestrator()
+    orch.invalidate_cache()
+    index = orch._build_existing_index()
+
+    organized = 0
+    flat = 0
+    total_files = 0
+    artists = set()
+
+    for key, val in index.items():
+        if val['dir'] == 'downloads':
+            flat += val['count']
+        else:
+            organized += 1
+            parts = val['dir'].replace('\\', '/').split('/')
+            if len(parts) >= 2:
+                artists.add(parts[-2])
+        total_files += val['count']
+
+    return {
+        "total_albums": len(index),
+        "organized_albums": organized,
+        "flat_files": flat,
+        "total_audio_files": total_files,
+        "artists": len(artists),
+    }
+
+@app.get("/api/library")
+async def get_library():
+    """Return actual library contents from disk."""
+    root = "downloads"
+    if not os.path.isdir(root):
+        return {"artists": []}
+
+    result = []
+    for artist_name in sorted(os.listdir(root)):
+        artist_path = os.path.join(root, artist_name)
+        if not os.path.isdir(artist_path):
+            continue
+        albums = []
+        for album_name in sorted(os.listdir(artist_path)):
+            album_path = os.path.join(artist_path, album_name)
+            if not os.path.isdir(album_path):
+                continue
+            audio_count = sum(1 for f in os.listdir(album_path)
+                              if f.lower().endswith(('.mp3', '.flac', '.m4a')))
+            if audio_count > 0:
+                albums.append({"name": album_name, "tracks": audio_count})
+        if albums:
+            total = sum(a["tracks"] for a in albums)
+            result.append({"name": artist_name, "albums": albums, "total_tracks": total})
+
+    return {"artists": result}
 
 @app.post("/api/test_search")
 async def test_search(request: Request):
@@ -881,6 +948,25 @@ async def deduplicate_library():
             removed += 1
 
     return {"removed": removed, "freed_mb": round(freed_mb, 1)}
+
+
+@app.get("/api/managed_artists")
+async def get_managed_artists():
+    return await get_orchestrator().get_managed_artists()
+
+@app.post("/api/managed_artists")
+async def add_managed_artist(request: ManagedArtistRequest):
+    await get_orchestrator().add_managed_artist(request.artist_id, request.name, request.is_secondary)
+    return {"message": "Artist added"}
+
+@app.delete("/api/managed_artists/{artist_id}")
+async def remove_managed_artist(artist_id: str):
+    await get_orchestrator().remove_managed_artist(artist_id)
+    return {"message": "Artist removed"}
+
+@app.get("/api/artist_discography/{artist_id}")
+async def get_artist_discography(artist_id: str):
+    return await get_orchestrator().get_artist_discography_details(artist_id)
 
 
 @app.websocket("/ws/logs")

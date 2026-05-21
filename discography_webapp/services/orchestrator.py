@@ -431,6 +431,120 @@ class Orchestrator:
     def invalidate_cache(self):
         self._existing_cache = None
 
+    # ─── Managed Artists ──────────────────────────────────────────
+
+    async def get_managed_artists(self):
+        """Returns the list of managed artists, prepopulating from disk if empty."""
+        db_artists = self.queue_service.get_managed_artists()
+
+        if not db_artists:
+            # Prepopulate from downloads folder
+            root = "downloads"
+            if os.path.exists(root):
+                self.logger.info("Prepopulating managed artists from downloads folder...")
+                for artist_name in os.listdir(root):
+                    artist_path = os.path.join(root, artist_name)
+                    if os.path.isdir(artist_path):
+                        # Simple check: does it have any subdirectories (albums)?
+                        if any(os.path.isdir(os.path.join(artist_path, d)) for d in os.listdir(artist_path)):
+                            try:
+                                artists = await asyncio.to_thread(self.mb_service.search_artist, artist_name)
+                                if artists:
+                                    best = self._pick_best_artist(artists, artist_name)
+                                    self.queue_service.add_managed_artist(best['id'], best['name'])
+                            except Exception as e:
+                                self.logger.warning(f"Failed to resolve artist {artist_name} during prepopulation: {e}")
+                db_artists = self.queue_service.get_managed_artists()
+
+        active = [a for a in db_artists if not a['is_secondary']]
+        secondary = [a for a in db_artists if a['is_secondary']]
+        return {"active": active, "secondary": secondary}
+
+    async def add_managed_artist(self, artist_id: str, name: str, is_secondary: bool = False):
+        self.queue_service.add_managed_artist(artist_id, name, is_secondary)
+        # If we added a primary artist, also find and add related artists as secondary
+        if not is_secondary:
+            try:
+                related = await asyncio.to_thread(self.mb_service.get_related_artists, artist_id, 1)
+                related = self._filter_related_artists(related, name)
+                for r in related:
+                    # Only add as secondary if not already in the list
+                    self.queue_service.add_managed_artist(r['id'], r['name'], is_secondary=True)
+            except Exception as e:
+                self.logger.warning(f"Failed to fetch related artists for {name}: {e}")
+
+    async def remove_managed_artist(self, artist_id: str):
+        self.queue_service.remove_managed_artist(artist_id)
+
+    async def get_artist_discography_details(self, artist_id: str):
+        """Returns detailed discography for an artist with track-level comparison."""
+        artist_info = await asyncio.to_thread(self.mb_service.get_artist_by_id, artist_id)
+        if not artist_info:
+            return {"error": "Artist not found"}
+
+        artist_name = artist_info['name']
+        rgs = await asyncio.to_thread(self.mb_service.get_discography, artist_id)
+        
+        discography = []
+        for rg in rgs:
+            year = rg.get('first-release-date', '')[:4] or "Unknown"
+            title = rg['title']
+            rg_id = rg['id']
+            
+            existing = self.album_exists_on_disk(artist_name, title, year)
+            
+            status = "Missing"
+            local_files = []
+            missing_tracks = []
+            
+            if existing:
+                status = "Complete" # Default if existing
+                target_dir = existing['dir']
+                if os.path.exists(target_dir):
+                    local_files = [f for f in os.listdir(target_dir) if f.lower().endswith(tuple(AUDIO_EXTENSIONS))]
+                
+                # For track-level comparison, we need the official tracklist
+                release = await asyncio.to_thread(self.mb_service.get_best_release_with_tracks, rg_id)
+                if release:
+                    official_tracks = []
+                    for medium in release.get('medium-list', []):
+                        for track in medium.get('track-list', []):
+                            track_title = track.get('recording', {}).get('title', 'Unknown Track')
+                            official_tracks.append(track_title)
+                    
+                    # Fuzzy match local files against official tracks
+                    found_tracks = []
+                    for track in official_tracks:
+                        norm_track = normalize(track)
+                        found = False
+                        for f in local_files:
+                            if norm_track in normalize(f):
+                                found = True
+                                break
+                        if found:
+                            found_tracks.append(track)
+                        else:
+                            missing_tracks.append(track)
+                    
+                    if missing_tracks:
+                        status = "Partial"
+                    elif len(found_tracks) >= len(official_tracks):
+                        status = "Complete"
+            
+            discography.append({
+                "id": rg_id,
+                "title": title,
+                "year": year,
+                "status": status,
+                "local_files": local_files,
+                "missing_tracks": missing_tracks
+            })
+
+        return {
+            "artist": artist_name,
+            "discography": discography
+        }
+
     # ─── Job Control ──────────────────────────────────────────────
 
     def stop_job(self):

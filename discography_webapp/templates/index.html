@@ -88,6 +88,56 @@
         .tree-panel .exists { color: var(--text2); text-decoration: line-through; }
         .tree-panel .badge-sm { font-size: 10px; padding: 1px 6px; border-radius: 8px; background: var(--text2); color: #fff; margin-left: 6px; }
 
+        /* Managed Artist List */
+        .artist-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 12px; }
+        .artist-chip { 
+            background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; 
+            display: flex; flex-direction: column; gap: 8px; cursor: pointer; transition: transform 0.1s, border-color 0.1s;
+            position: relative;
+        }
+        .artist-chip:hover { border-color: var(--primary); transform: translateY(-1px); }
+        .artist-chip .name { font-weight: 600; font-size: 14px; padding-right: 20px; }
+        .artist-chip .meta { font-size: 11px; color: var(--text2); }
+        .artist-chip .remove { 
+            position: absolute; top: 8px; right: 8px; width: 20px; height: 20px; 
+            display: flex; align-items: center; justify-content: center; border-radius: 50%;
+            background: rgba(0,0,0,0.05); color: var(--text2); font-size: 12px; border: none; cursor: pointer;
+        }
+        .artist-chip .remove:hover { background: var(--danger); color: #fff; }
+        .secondary-label { font-size: 10px; color: var(--info); font-weight: 700; text-transform: uppercase; margin-bottom: 2px; }
+
+        /* Modal */
+        .modal-overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000;
+            padding: 20px;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal { 
+            background: var(--surface); width: 100%; max-width: 800px; max-height: 90vh; 
+            border-radius: 12px; display: flex; flex-direction: column; overflow: hidden;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+        }
+        .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+        .modal-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+
+        /* Discography details */
+        .disco-item { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+        .disco-header { padding: 10px 16px; background: rgba(0,0,0,0.02); display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .disco-header:hover { background: rgba(0,0,0,0.04); }
+        .disco-title { font-weight: 600; font-size: 14px; }
+        .disco-status { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; text-transform: uppercase; }
+        .status-complete { background: var(--success); color: #fff; }
+        .status-partial { background: var(--warning); color: #fff; }
+        .status-missing { background: var(--border); color: var(--text2); }
+        .disco-body { padding: 12px 16px; border-top: 1px solid var(--border); display: none; }
+        .disco-body.open { display: block; }
+        .track-list { list-style: none; font-size: 13px; }
+        .track-item { display: flex; gap: 8px; padding: 4px 0; }
+        .track-missing { color: var(--danger); }
+        .track-found { color: var(--success); opacity: 0.8; }
+
         /* Collapsible settings */
         .settings-body { display: none; margin-top: 16px; }
         .settings-body.open { display: block; }
@@ -152,6 +202,46 @@
                 <button class="btn btn-success btn-sm" onclick="startJob(true)">✓ Download Selected</button>
             </div>
             <div id="treeRoot"></div>
+        </div>
+    </div>
+
+    <!-- Artist Manager -->
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="card-title" style="margin-bottom: 0;">Artist Manager</div>
+            <button class="btn btn-ghost btn-sm" onclick="loadManagedArtists()">🔄 Sync Artists</button>
+        </div>
+        <p style="font-size: 12px; color: var(--text2); margin-top: 4px;">Click an artist to view discography and track-level gaps.</p>
+        
+        <div class="artist-grid" id="managedArtistList">
+            <!-- Managed artists will be loaded here -->
+        </div>
+
+        <div style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px;">
+            <div class="card-title" style="font-size: 11px;">Secondary / Suggested Artists</div>
+            <div class="artist-grid" id="secondaryArtistList">
+                <!-- Secondary artists will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Artist Details -->
+    <div class="modal-overlay" id="artistModal" onclick="if(event.target==this) closeArtistModal()">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modalTitle">Artist Discography</h2>
+                <button class="btn btn-ghost btn-sm" onclick="closeArtistModal()">✕</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Discography details loaded here -->
+                <div style="text-align: center; padding: 40px; color: var(--text2);">
+                    Loading discography and comparing tracks...
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="closeArtistModal()">Close</button>
+                <button class="btn btn-primary" id="modalStartBtn">Download Missing</button>
+            </div>
         </div>
     </div>
 
@@ -367,6 +457,114 @@ async function testSearch() {
     } catch(e) { appendLog('Test search failed: ' + e); }
 }
 
+// ─── Managed Artists ──────────────────────────────────────────
+async function loadManagedArtists() {
+    try {
+        const r = await fetch('/api/managed_artists');
+        const d = await r.json();
+        renderManagedArtists(d.active, d.secondary);
+    } catch(e) { console.error('Error loading managed artists:', e); }
+}
+
+function renderManagedArtists(active, secondary) {
+    const activeList = $('managedArtistList');
+    const secondaryList = $('secondaryArtistList');
+    
+    activeList.innerHTML = active.map(a => `
+        <div class="artist-chip" onclick="showArtistDetails('${a.artist_id}')">
+            <span class="name">${a.name}</span>
+            <button class="remove" onclick="event.stopPropagation(); removeArtist('${a.artist_id}')">✕</button>
+        </div>
+    `).join('') || '<p style="color:var(--text2); font-size:12px; padding: 10px;">No active artists.</p>';
+    
+    secondaryList.innerHTML = secondary.map(a => `
+        <div class="artist-chip" style="opacity: 0.7;" onclick="promoteArtist('${a.artist_id}', '${a.name}')">
+            <span class="secondary-label">Related</span>
+            <span class="name" style="font-size: 12px;">${a.name}</span>
+            <button class="remove" onclick="event.stopPropagation(); removeArtist('${a.artist_id}')">✕</button>
+        </div>
+    `).join('') || '<p style="color:var(--text2); font-size:12px; padding: 10px;">No suggestions available.</p>';
+}
+
+async function removeArtist(id) {
+    if(!confirm('Remove this artist from management?')) return;
+    try {
+        await fetch(`/api/managed_artists/${id}`, { method: 'DELETE' });
+        loadManagedArtists();
+    } catch(e) { alert('Error removing artist'); }
+}
+
+async function promoteArtist(id, name) {
+    try {
+        await fetch('/api/managed_artists', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ artist_id: id, name: name, is_secondary: false })
+        });
+        loadManagedArtists();
+    } catch(e) { alert('Error promoting artist'); }
+}
+
+async function showArtistDetails(id) {
+    const modal = $('artistModal');
+    const body = $('modalBody');
+    const title = $('modalTitle');
+    
+    modal.classList.add('open');
+    body.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text2);">Loading discography and comparing tracks...</div>';
+    
+    try {
+        const r = await fetch(`/api/artist_discography/${id}`);
+        const d = await r.json();
+        
+        title.textContent = `${d.artist} Discography`;
+        
+        let html = '';
+        d.discography.forEach((item, idx) => {
+            const statusClass = `status-${item.status.toLowerCase()}`;
+            html += `
+                <div class="disco-item">
+                    <div class="disco-header" onclick="this.nextElementSibling.classList.toggle('open')">
+                        <span class="disco-title">${item.year} - ${item.title}</span>
+                        <span class="disco-status ${statusClass}">${item.status}</span>
+                    </div>
+                    <div class="disco-body">
+                        ${item.missing_tracks.length > 0 ? `
+                            <div style="margin-bottom: 8px; font-weight: 600; font-size: 12px; color: var(--danger);">Missing Tracks:</div>
+                            <ul class="track-list">
+                                ${item.missing_tracks.map(t => `<li class="track-item track-missing">❌ ${t}</li>`).join('')}
+                            </ul>
+                        ` : ''}
+                        ${item.local_files.length > 0 ? `
+                            <div style="margin: 8px 0; font-weight: 600; font-size: 12px; color: var(--success);">Local Files:</div>
+                            <ul class="track-list">
+                                ${item.local_files.map(f => `<li class="track-item track-found">✓ ${f}</li>`).join('')}
+                            </ul>
+                        ` : ''}
+                        ${item.status === 'Missing' ? '<p style="font-size: 12px; color: var(--text2);">No tracks found locally.</p>' : ''}
+                    </div>
+                </div>
+            `;
+        });
+        body.innerHTML = html;
+        
+        $('modalStartBtn').onclick = () => {
+            const missing = d.discography.filter(i => i.status !== 'Complete');
+            if(!missing.length) return alert('No missing items to download!');
+            closeArtistModal();
+            $('artistName').value = d.artist;
+            startJob();
+        };
+        
+    } catch(e) {
+        body.innerHTML = `<p style="color: var(--danger)">Error loading details: ${e}</p>`;
+    }
+}
+
+function closeArtistModal() {
+    $('artistModal').classList.remove('open');
+}
+
 // ─── Actions ───────────────────────────────────────────────────
 function setButtons(running) {
     $('startBtn').style.display = running ? 'none' : '';
@@ -378,15 +576,28 @@ function setButtons(running) {
     btns.forEach(b => b.disabled = running);
 }
 
-        function getArtistNames() {
-            const raw = $('artistName').value.trim();
-            if (!raw) return [];
-            return raw.split(',').map(s => s.trim()).filter(s => s.length > 0);
-        }
+function getArtistNames() {
+    const raw = $('artistName').value.trim();
+    if (!raw) return [];
+    return raw.split(',').map(s => s.trim()).filter(s => s.length > 0);
+}
+
+async function getManagedArtistNames() {
+    const r = await fetch('/api/managed_artists');
+    const d = await r.json();
+    return d.active.map(a => a.name);
+}
 
 async function startJob(fromReview = false) {
-    const artists = getArtistNames();
-    if (!artists.length) return alert('Enter at least one artist name.');
+    let artists = getArtistNames();
+    
+    // If no names in input, use managed artists
+    if (!artists.length) {
+        artists = await getManagedArtistNames();
+    }
+    
+    if (!artists.length) return alert('Enter at least one artist name or add artists to the Manager.');
+    
     let selection = null;
     if (fromReview) {
         selection = getSelection();
@@ -409,7 +620,10 @@ async function startJob(fromReview = false) {
 }
 
 async function scanArtist() {
-    const artists = getArtistNames();
+    let artists = getArtistNames();
+    if (!artists.length) {
+        artists = await getManagedArtistNames();
+    }
     if (!artists.length) return alert('Enter at least one artist name.');
     $('scanBtn').disabled = true;
     appendLog('Scanning metadata...');
@@ -428,7 +642,10 @@ async function scanArtist() {
 }
 
 async function startAutonomousFill() {
-    const artists = getArtistNames();
+    let artists = getArtistNames();
+    if (!artists.length) {
+        artists = await getManagedArtistNames();
+    }
     if (!artists.length) return alert('Enter at least one artist name.');
     logBox.innerHTML = '';
     setButtons(true);
@@ -704,6 +921,7 @@ async function pollStatus() {
 loadConfig();
 connectWS();
 loadStats();
+loadManagedArtists();
 setInterval(pollStatus, 2000);
 </script>
 </body>

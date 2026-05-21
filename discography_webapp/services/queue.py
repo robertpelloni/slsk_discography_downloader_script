@@ -17,6 +17,25 @@ class QueueService:
     def get_db(self):
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
+        
+        # Ensure tables exist
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS user_queues (
+                user_id INTEGER PRIMARY KEY,
+                queue_json TEXT
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS managed_artists (
+                user_id INTEGER,
+                artist_id TEXT,
+                name TEXT,
+                is_secondary INTEGER DEFAULT 0,
+                PRIMARY KEY (user_id, artist_id)
+            )
+        """)
+        conn.commit()
         return conn
 
     def load(self):
@@ -48,6 +67,52 @@ class QueueService:
                 conn.commit()
         except Exception as e:
             print(f"Error saving queue to DB: {e}")
+
+    def get_managed_artists(self) -> List[Dict[str, Any]]:
+        if not self.user_id:
+            return []
+        try:
+            with self.get_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT artist_id, name, is_secondary FROM managed_artists WHERE user_id = ?",
+                    (self.user_id,)
+                )
+                return [dict(row) for row in cursor.fetchall()]
+        except Exception as e:
+            print(f"Error getting managed artists: {e}")
+            return []
+
+    def add_managed_artist(self, artist_id: str, name: str, is_secondary: bool = False):
+        if not self.user_id:
+            return
+        try:
+            with self.get_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT INTO managed_artists (user_id, artist_id, name, is_secondary)
+                    VALUES (?, ?, ?, ?)
+                    ON CONFLICT(user_id, artist_id) DO UPDATE SET 
+                        name=excluded.name, 
+                        is_secondary=excluded.is_secondary
+                """, (self.user_id, artist_id, name, 1 if is_secondary else 0))
+                conn.commit()
+        except Exception as e:
+            print(f"Error adding managed artist: {e}")
+
+    def remove_managed_artist(self, artist_id: str):
+        if not self.user_id:
+            return
+        try:
+            with self.get_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "DELETE FROM managed_artists WHERE user_id = ? AND artist_id = ?",
+                    (self.user_id, artist_id)
+                )
+                conn.commit()
+        except Exception as e:
+            print(f"Error removing managed artist: {e}")
 
     def add_completed(self, album_info):
         # Remove any existing entry for this artist+album (to update status)
