@@ -43,6 +43,7 @@ from services.config import ConfigService
 from services.queue import QueueService
 from services.post_processor import PostProcessor
 from services.event_bus import EventBus
+from dependencies import USER_ID, orchestrators, get_orchestrator as deps_get_orchestrator
 
 # Event bus (must be created before lifespan function references it)
 event_bus = EventBus()
