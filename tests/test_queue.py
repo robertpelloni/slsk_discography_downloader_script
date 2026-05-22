@@ -5,9 +5,16 @@ from discography_webapp.services.queue import QueueService
 
 @pytest.fixture
 def queue_service(tmp_path):
+    # Mocking DB_PATH in the module
+    import discography_webapp.services.queue as queue_mod
+    original_db_path = queue_mod.DB_PATH
     db_file = tmp_path / "test_queue.db"
-    service = QueueService(db_path=str(db_file))
+    queue_mod.DB_PATH = str(db_file)
+
+    service = QueueService(user_id=1)
     yield service
+
+    queue_mod.DB_PATH = original_db_path
     if os.path.exists(db_file):
         os.remove(db_file)
 

@@ -11,6 +11,7 @@ class QueueService:
     def __init__(self, user_id=None):
         self.user_id = user_id
         self.completed_albums = []
+        self.queue = []
         self.pending_downloads = []
         self.load()
 

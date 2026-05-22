@@ -26,8 +26,19 @@ class ConfigService:
         self.load()
 
     def get_db(self):
+        os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
+
+        # Ensure tables exist
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS user_configs (
+                user_id INTEGER PRIMARY KEY,
+                config_json TEXT
+            )
+        """)
+        conn.commit()
         return conn
 
     def load(self):

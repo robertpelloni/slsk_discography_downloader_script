@@ -179,6 +179,7 @@ class Orchestrator:
         self.is_running = False
         self.should_stop = False
         self.is_paused = False
+        self.current_artist = None
         self.active_downloads = {}
         self.album_tracker = {}
         self.completed_albums = self.queue_service.get_completed()
@@ -934,6 +935,7 @@ class Orchestrator:
         if self.should_stop:
             return
         name = artist['name']
+        self.current_artist = name
         self.logger.info(f"═══ {name} ═══")
 
         if specific_albums:
