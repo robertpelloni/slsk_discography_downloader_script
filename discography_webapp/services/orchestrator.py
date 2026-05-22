@@ -1039,13 +1039,19 @@ class Orchestrator:
                         }
                         await self._download_sequential(
                             user, files, target_dir, meta)
-                        success = True
-                        self.queue_service.add_completed({
-                            'artist': name, 'album': title,
-                            'year': year, 'path': target_dir,
-                            'status': 'Downloaded'
-                        })
-                        self.invalidate_cache()
+                        
+                        # Verify we actually got files before marking as success
+                        if self._count_audio_files(target_dir) > 0:
+                            success = True
+                            self.queue_service.add_completed({
+                                'artist': name, 'album': title,
+                                'year': year, 'path': target_dir,
+                                'status': 'Downloaded'
+                            })
+                            self.invalidate_cache()
+                        else:
+                            self.logger.warning(f"  Candidate {user} finished but no files were saved.")
+                            self._cleanup_dir(target_dir)
                     except Exception as e:
                         self.logger.warning(f"  Candidate failed: {e}")
                         self._cleanup_partial(target_dir)
@@ -1055,8 +1061,11 @@ class Orchestrator:
                     await asyncio.sleep(0.5)
 
             if not success:
-                self.logger.warning(f"  ✗ Failed: {title}")
+                if not self.should_stop:
+                    self.logger.warning(f"  ✗ Failed: {title}")
                 self._cleanup_dir(target_dir)
+            else:
+                self.logger.info(f"  ✓ Album complete: {year} - {title}")
 
     def _build_queries(self, artist, title, year=""):
         """Build a prioritized list of search queries.
@@ -1341,22 +1350,30 @@ class Orchestrator:
             return
         info = self.album_tracker[target_dir]
         if info['done'] >= info['total']:
-            self.logger.info(
-                f"  ✓ Album complete: {os.path.basename(target_dir)}")
-            try:
-                loop = asyncio.get_running_loop()
-                loop.create_task(
-                    self.post_processor.process_album(
-                        target_dir, info['metadata']))
-            except RuntimeError:
+            # Count actual audio files in directory to ensure we actually got something
+            audio_count = self._count_audio_files(target_dir)
+            
+            if audio_count > 0:
+                self.logger.info(
+                    f"  ✓ Album complete: {os.path.basename(target_dir)}")
                 try:
-                    asyncio.create_task(
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(
                         self.post_processor.process_album(
                             target_dir, info['metadata']))
                 except RuntimeError:
-                    self.logger.warning(
-                        f"Could not schedule post-processing for "
-                        f"{target_dir} (no event loop)")
+                    try:
+                        asyncio.create_task(
+                            self.post_processor.process_album(
+                                target_dir, info['metadata']))
+                    except RuntimeError:
+                        self.logger.warning(
+                            f"Could not schedule post-processing for "
+                            f"{target_dir} (no event loop)")
+            else:
+                self.logger.warning(
+                    f"  ✗ Failed: {os.path.basename(target_dir)} (no files downloaded)")
+            
             del self.album_tracker[target_dir]
 
     # ─── Legacy Monitor ───────────────────────────────────────────
