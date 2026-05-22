@@ -965,6 +965,11 @@ async def remove_managed_artist(artist_id: str):
     await get_orchestrator().remove_managed_artist(artist_id)
     return {"message": "Artist removed"}
 
+@app.post("/api/cleanup_artists")
+async def cleanup_artists():
+    removed = await get_orchestrator().cleanup_managed_artists()
+    return {"message": f"Cleaned up {removed} artists"}
+
 @app.get("/api/artist_discography/{artist_id}")
 async def get_artist_discography(artist_id: str):
     return await get_orchestrator().get_artist_discography_details(artist_id)

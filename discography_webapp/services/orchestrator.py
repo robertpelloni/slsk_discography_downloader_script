@@ -67,7 +67,11 @@ DISALLOWED_TAGS = {
     'reggae', 'indie', 'alternative rock', 'metal', 'heavy metal',
     'rock', 'hard rock', 'soft rock', 'aor', 'prog rock', 'progressive rock',
     'singer-songwriter', 'musical', 'soundtrack', 'score',
+    'contemporary christian', 'worship', 'praise', 'spiritual',
 }
+
+# Names that exist in both psy/electronic and unrelated genres
+AMBIGUOUS_NAMES = {'chicago', 'avalon', 'quintessence', 'truth', 'esp', 'hydra'}
 
 # Artists known to be in the psytrance/electronic scene, even if MB tags are sparse
 # Built lazily via function to avoid forward-reference issues with normalize()
@@ -96,10 +100,15 @@ _KNOWN_PSYTRANCE_NAMES = [
     'Psysex in Panick', 'Growling Mad Sex', 'Koopa Troopa',
     'Sex on Mushroom', 'Alpha Portal', 'Easy Riders',
     'The Unstables', 'Yoni Oshrat', 'Udi Sternberg',
-    'Volcano', 'Paradise Connection',
+    'Volcano', 'Volcano On Mars', 'Paradise Connection',
     'Jupiter 8000', 'Electric Shiva Universe',
     'Outside The Universe', 'Lo-Fi', 'Gabon', 'Endora',
     'Boris Blenn', 'Roland Wedig', 'Michael Dressler',
+    'Everblast', 'Third Ear Audio', 'Water Spirits', 'Dual Head',
+    'The Rave Commission', 'TCD', 'Yakov Biton', 'Psykov',
+    'Mandelbrot', 'Electric S.U.N.', 'Eli Biton Tal', 'Celli Firmi',
+    'Sebastian Claro', 'Tony 2 Toes', 'Sound Farmers', 'Jakan',
+    'Jakaan', 'Dennis Stellovic', 'Ido Liran', 'Ari Linker',
 ]
 
 
@@ -141,13 +150,11 @@ def is_psytrance_artist(artist_data):
     Uses tag matching and a known-artists whitelist.
     """
     name = artist_data.get('name', '')
-    if normalize(name) in KNOWN_PSYTRANCE_ARTISTS:
-        return True
-
-    # Check MB tags
+    norm_name = normalize(name)
     tags = artist_data.get('tag-list', [])
+    
     has_positive = False
-    negative_tags = []
+    neg_tags = []
 
     for tag in tags:
         tag_name = (tag.get('name', '').lower() if isinstance(tag, dict) 
@@ -155,15 +162,28 @@ def is_psytrance_artist(artist_data):
         if tag_name in PSYTRANCE_TAGS:
             has_positive = True
         if tag_name in DISALLOWED_TAGS:
-            negative_tags.append(tag_name)
+            neg_tags.append(tag_name)
 
-    # Radical departure check: if it has ANY negative tags, it's out,
-    # unless it's on our high-confidence whitelist (checked above).
-    if negative_tags:
-        # We allow "electronic" + "soundtrack" sometimes, but let's be strict for now.
+    # 1. Ambiguous names MUST have positive tags and NO negative tags
+    if norm_name in AMBIGUOUS_NAMES:
+        return has_positive and not neg_tags
+
+    # 2. Known psytrance whitelist (high confidence for non-ambiguous names)
+    if norm_name in KNOWN_PSYTRANCE_ARTISTS:
+        # Accept if they have no tags OR positive tags, as long as no negative tags
+        return not neg_tags
+
+    # 3. Radical departure check: if it has ANY negative tags, it's out.
+    if neg_tags:
         return False
 
-    return has_positive
+    # 4. Side-project/collaborator safety net: 
+    # If they are connected to a known artist (detected via relation description in _filter_related_artists),
+    # we allow them to stay even with NO tags, provided they don't have negative tags (checked above).
+    # Since this function only sees the artist data, we assume that if we are here
+    # and there are NO positive tags, it's only okay if it's a side project.
+    # Standard tag check:
+    return has_positive or (not tags)  # Permissive for sparsely-tagged artists
 
 
 class Orchestrator:
@@ -493,6 +513,26 @@ class Orchestrator:
 
     async def remove_managed_artist(self, artist_id: str):
         self.queue_service.remove_managed_artist(artist_id)
+
+    async def cleanup_managed_artists(self):
+        """Re-filter the entire managed list and remove non-genre artists."""
+        self.logger.info("🧹 Starting database cleanup...")
+        db_artists = self.queue_service.get_managed_artists()
+        removed = 0
+        
+        for artist in db_artists:
+            aid = artist['artist_id']
+            name = artist['name']
+            
+            # Fetch fresh tags for the artist
+            full_info = await asyncio.to_thread(self.mb_service.get_artist_by_id, aid)
+            if not full_info or not is_psytrance_artist(full_info):
+                self.logger.info(f"  🗑 Removing {name} (failed genre check)")
+                self.queue_service.remove_managed_artist(aid)
+                removed += 1
+                
+        self.logger.info(f"✨ Cleanup complete. Removed {removed} artists.")
+        return removed
 
     async def get_artist_discography_details(self, artist_id: str):
         """Returns detailed discography for an artist with track-level comparison."""

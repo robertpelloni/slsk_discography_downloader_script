@@ -209,7 +209,10 @@
     <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div class="card-title" style="margin-bottom: 0;">Artist Manager</div>
-            <button class="btn btn-ghost btn-sm" onclick="loadManagedArtists()">🔄 Sync Artists</button>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn btn-ghost btn-sm" onclick="cleanupArtists()">🧹 Cleanup</button>
+                <button class="btn btn-ghost btn-sm" onclick="loadManagedArtists()">🔄 Sync</button>
+            </div>
         </div>
         <p style="font-size: 12px; color: var(--text2); margin-top: 4px;">Click an artist to view discography and track-level gaps.</p>
         
@@ -503,6 +506,17 @@ async function promoteArtist(id, name) {
         });
         loadManagedArtists();
     } catch(e) { alert('Error promoting artist'); }
+}
+
+async function cleanupArtists() {
+    if(!confirm('Re-filter all managed artists and remove those that do not match the Psytrance/Electronic genre profile? This will take a few minutes.')) return;
+    appendLog('🧹 Starting database cleanup...');
+    try {
+        const r = await fetch('/api/cleanup_artists', { method: 'POST' });
+        const d = await r.json();
+        appendLog('✨ ' + d.message);
+        loadManagedArtists();
+    } catch(e) { alert('Cleanup failed'); }
 }
 
 async function showArtistDetails(id) {
