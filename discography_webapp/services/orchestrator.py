@@ -65,6 +65,8 @@ DISALLOWED_TAGS = {
     'pop', 'jazz', 'classical', 'country', 'folk', 'punk', 'blues', 
     'soul', 'r&b', 'hip hop', 'rap', 'christian', 'gospel', 'latin', 
     'reggae', 'indie', 'alternative rock', 'metal', 'heavy metal',
+    'rock', 'hard rock', 'soft rock', 'aor', 'prog rock', 'progressive rock',
+    'singer-songwriter', 'musical', 'soundtrack', 'score',
 }
 
 # Artists known to be in the psytrance/electronic scene, even if MB tags are sparse
@@ -78,7 +80,7 @@ _KNOWN_PSYTRANCE_NAMES = [
     'Absolum', 'Talamasca', 'Astrix', 'Ace Ventura', 'Ajja',
     'Dickster', 'Mad Maxx', 'Mad Tribe', 'Biodegradable',
     'Alien Project', 'Psysex', 'Hujaboy', 'Riktam', 'Bansi',
-    'Raja Ram', 'Chicago', 'Sajahan Matkin', 'Quintessence',
+    'Raja Ram', 'Sajahan Matkin',
     'Soundaholix', '3 Of Life', 'Faders', 'Hypnocoustics',
     'Save The Robot', 'Alienatic', 'Space Buddha', 'Laughing Buddha',
     'Outsiders', 'Growling Machines', 'DJ Stryker', 'Avalon',
@@ -145,17 +147,20 @@ def is_psytrance_artist(artist_data):
     # Check MB tags
     tags = artist_data.get('tag-list', [])
     has_positive = False
-    has_negative = False
+    negative_tags = []
 
     for tag in tags:
-        tag_name = tag.get('name', '').lower() if isinstance(tag, dict) else str(tag).lower()
+        tag_name = (tag.get('name', '').lower() if isinstance(tag, dict) 
+                    else str(tag).lower())
         if tag_name in PSYTRANCE_TAGS:
             has_positive = True
         if tag_name in DISALLOWED_TAGS:
-            has_negative = True
+            negative_tags.append(tag_name)
 
-    # Radical departure check: if it has negative tags and NO positive tags, it's out.
-    if has_negative and not has_positive:
+    # Radical departure check: if it has ANY negative tags, it's out,
+    # unless it's on our high-confidence whitelist (checked above).
+    if negative_tags:
+        # We allow "electronic" + "soundtrack" sometimes, but let's be strict for now.
         return False
 
     return has_positive
@@ -611,6 +616,12 @@ class Orchestrator:
 
             # Pick the best match — prefer known psytrance artists
             main = self._pick_best_artist(artists, artist_name)
+            
+            # Final genre guard before fetching releases
+            if not is_psytrance_artist(main):
+                self.logger.info(f"  ⊘ Skip {main['name']} (does not match genre profile)")
+                continue
+
             if main['id'] in seen_ids:
                 self.logger.info(f"  {main['name']} already scanned, skipping.")
                 continue
@@ -660,15 +671,22 @@ class Orchestrator:
     def _pick_best_artist(self, artists, query):
         """From a list of MB search results, pick the one most likely
         to be the artist the user intended.  Prefers known psytrance
-        artists, then exact-name matches, then first result.
+        artists, then those with psytrance tags, then exact-name matches.
         """
         query_norm = normalize(query)
+        # 1. High-confidence whitelist
         for a in artists:
             if normalize(a.get('name', '')) in KNOWN_PSYTRANCE_ARTISTS:
                 return a
+        # 2. Genre tag match (is_psytrance_artist returns has_positive and not has_negative)
+        for a in artists:
+            if is_psytrance_artist(a):
+                return a
+        # 3. Exact name match
         for a in artists:
             if normalize(a.get('name', '')) == query_norm:
                 return a
+        # 4. Fallback to first result
         return artists[0]
 
     @staticmethod
@@ -706,6 +724,7 @@ class Orchestrator:
         """Remove related artists that are clearly not in the same genre."""
         filtered = []
         for artist in related:
+            name = artist.get('name', 'Unknown')
             # 1. Check tags/whitelist first
             if is_psytrance_artist(artist):
                 filtered.append(artist)
@@ -714,12 +733,13 @@ class Orchestrator:
             # 2. If it failed is_psytrance_artist, check if it was specifically REJECTED
             # due to radical genre tags.
             tags = artist.get('tag-list', [])
-            has_negative = any(
-                (t.get('name', '').lower() if isinstance(t, dict) else str(t).lower()) in DISALLOWED_TAGS
+            neg_tags = [
+                (t.get('name', '').lower() if isinstance(t, dict) else str(t).lower())
                 for t in tags
-            )
-            if has_negative:
-                # Radically different genre detected via tags — skip even if related
+                if (t.get('name', '').lower() if isinstance(t, dict) else str(t).lower()) in DISALLOWED_TAGS
+            ]
+            if neg_tags:
+                self.logger.info(f"  ⊘ Skip {name} (wrong genre: {', '.join(neg_tags)})")
                 continue
 
             # 3. Fallback to "member of" side project rule for sparsely tagged projects
@@ -730,6 +750,9 @@ class Orchestrator:
                 if normalize(main_artist_name) in KNOWN_PSYTRANCE_ARTISTS:
                     filtered.append(artist)
                     continue
+            
+            # Default skip if it didn't meet any criteria
+            # self.logger.info(f"  ⊘ Skip {name} (unverified genre/connection)")
         return filtered
 
     # ─── Autonomous Filler ────────────────────────────────────────
