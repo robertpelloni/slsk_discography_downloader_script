@@ -3,7 +3,6 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 import asyncio
 import os
-import time
 from typing import List, Optional
 from dependencies import get_orchestrator
 
@@ -11,40 +10,6 @@ router = APIRouter()
 
 def get_orch(request: Request):
     return get_orchestrator(request.app.state.event_bus)
-
-@router.get("/api/status")
-async def get_status(orch=Depends(get_orch)):
-    progress_data = []
-    for target_dir, data in orch.album_tracker.items():
-        meta = data['metadata']
-        total = data['total']
-        done = data['done']
-        pct = (done / total * 100) if total > 0 else 0
-        elapsed = time.time() - data.get('start_time', time.time())
-        speed = ""
-        if done > 0 and elapsed > 0:
-            rate = done / elapsed
-            remaining = (total - done) / rate if rate > 0 else 0
-            speed = f"{rate:.1f} f/s, {int(remaining)}s left"
-
-        progress_data.append({
-            "album": meta['album'],
-            "artist": meta['artist'],
-            "total": total,
-            "done": done,
-            "percent": round(pct, 1),
-            "speed": speed
-        })
-
-    return {
-        "is_running": orch.is_running,
-        "is_paused": orch.is_paused,
-        "current_artist": orch.current_artist,
-        "progress": progress_data,
-        "queue_size": len(orch.queue_service.queue),
-        "completed_count": len(orch.queue_service.completed_albums),
-        "completed_albums": orch.queue_service.get_completed()
-    }
 
 class SearchRequest(BaseModel):
     query: str = Field(..., min_length=1)
@@ -93,11 +58,12 @@ async def search_artist(request: SearchRequest, orch=Depends(get_orch)):
 @router.post("/api/scan")
 async def scan_artist(request: ScanRequest, orch=Depends(get_orch)):
     result = await orch.scan_artists(request.artist_names, request.depth)
-    # Auto-add main artists to managed list
-    for artist_node in result:
-        # We only auto-add depth 0 artists (the ones requested)
-        if artist_node['name'] in request.artist_names:
-            await orch.add_managed_artist(artist_node['id'], artist_node['name'])
+    # Automatically add scanned artists to managed list if they are primary search terms
+    for artist_name in request.artist_names:
+        found = await asyncio.to_thread(orch.mb_service.search_artist, artist_name)
+        if found:
+            best = orch._pick_best_artist(found, artist_name)
+            orch.queue_service.add_managed_artist(best['id'], best['name'])
     return {"tree": result}
 
 @router.post("/api/test_search")
@@ -108,11 +74,7 @@ async def test_search(request: Request, orch=Depends(get_orch)):
         return {"error": "Not connected to Soulseek."}
     try:
         results = await orch.slsk_service.search(query, timeout=10)
-        return {
-            "query": query, 
-            "result_count": len(results),
-            "sample": [r['filename'] for r in results[:5]] if results else []
-        }
+        return {"query": query, "result_count": len(results)}
     except Exception as e:
         return {"error": str(e)}
 
@@ -168,12 +130,3 @@ async def add_managed_artist(request: ManagedArtistRequest, orch=Depends(get_orc
 async def remove_managed_artist(artist_id: str, orch=Depends(get_orch)):
     await orch.remove_managed_artist(artist_id)
     return {"message": "Removed artist"}
-
-@router.post("/api/cleanup_artists")
-async def cleanup_artists(orch=Depends(get_orch)):
-    removed = await orch.cleanup_managed_artists()
-    return {"message": f"Cleaned up {removed} artists"}
-
-@router.get("/api/artist_discography/{artist_id}")
-async def get_artist_discography(artist_id: str, orch=Depends(get_orch)):
-    return await orch.get_artist_discography_details(artist_id)

@@ -1,23 +1,28 @@
-# Handoff - Phase 2 (Mid)
+# Handoff - v0.9.5
 
-## 1. What I analyzed
-I analyzed the current state of the Rust Search Bridge and identified that while functional, it lacked the rich metadata (bitrate, size, speed) necessary for effective candidate ranking in the `Orchestrator`. I also analyzed the `Orchestrator`'s lack of unit tests for its complex library indexing and filtering logic.
+## Status
+- **Current Version**: 0.9.5
+- **Modularization**: Complete.
+- **Rust Search Bridge**: Functional and Integrated.
+- **Neural Sentinel**: Functional and Integrated.
+- **Library Management**: Integrated with Path Safety.
+- **Pilot Test**: Passed.
 
-## 2. What I changed
-- **Rust Bridge**: Rewrote the `rust_search_async` function to return structured Python dictionaries instead of raw strings.
-- **Orchestrator Integration**: Updated `_run_job_impl` to detect the Rust bridge and use it for search boosting with automatic fallback.
-- **Library Router**: Added skeleton routes for manual album renaming and deletion to initiate Phase 3.
+## Major Changes in 0.9.5
+1. **Pilot Integration**: Added `tests/pilot_autonomous_test.py` for end-to-end API validation.
+2. **Security Fixes**: Patched path traversal in `routers/library.py`.
+3. **Initialization**: Fixed `rust_slsk` object lifecycle and `Jinja2` template response signatures.
+4. **Automation**: Updated Windows batch scripts for easier deployment.
 
-## 3. What I implemented
-- **Enhanced Search Metadata**: The Rust bridge now extracts bitrates (via Soulseek attributes), file sizes, and user speeds.
-- **Robust Testing**: Implemented `tests/test_orchestrator.py` which mocks services and verifies the indexing of organized library folders and Psytrance-specific genre filtering.
-- **Refined Tidy Logic**: The `/api/tidy` route now uses `ARTIST_ALIASES` from the Orchestrator for more accurate flat-file organization.
+## Structural Map (Submodules)
+- **Rust Bridge**: `discography_webapp/rust_bridge/`
+  - Depends on `soulseek-rs-lib` crate.
+  - Linked to Python via `pyo3` and `maturin`.
 
-## 4. Tests passed/failed
-- All 12 Python unit tests passed (Config, MusicBrainz, Queue, Orchestrator).
-- Rust bridge compilation and GIL-based dictionary conversion verified.
+## Unfinished / Next Steps
+- Implement full P2P transfer logic in Rust (currently only search is Rust-based).
+- Wired frontend UI for the new interactive delete/rename endpoints.
+- Enhance genre filtering with more sophisticated NLP.
 
-## 5. What remains next
-- **Phase 3 UI Completion**: Wire the frontend to use the new `/api/delete_album` and `/api/rename_album` endpoints.
-- **Rust Download Support**: Implement file transfer logic in the Rust bridge to replace `aioslsk`.
-- **WebSocket Progress Migration**: Move download progress tracking to the event bus for more granular UI updates.
+## Note for Successor Models
+The repository has been synchronized with `origin/main` while preserving the modularized v0.9.0 structure. Use `python -m pytest` for testing. Ensure `ffmpeg` is in the PATH for the Sentinel system to function.
