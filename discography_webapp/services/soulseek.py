@@ -4,24 +4,7 @@ import re
 import time
 from typing import List, Dict, Any, Optional
 
-try:
-    import aioslsk
-    from aioslsk.client import SoulSeekClient
-    from aioslsk.settings import (
-        Settings as SlskSettings,
-        CredentialsSettings,
-        SharesSettings,
-    )
-    from aioslsk.transfer.state import TransferState
-    HAS_AIOSLSK = True
-except ImportError:
-    print("aioslsk not found. Soulseek functionality will not work.")
-    HAS_AIOSLSK = False
-    SoulSeekClient = None
-
-
 AUDIO_EXTENSIONS = {'.mp3', '.flac', '.m4a', '.ogg', '.wav', '.aac', '.wma'}
-
 
 class SoulseekService:
     def __init__(self):
@@ -35,6 +18,18 @@ class SoulseekService:
             os.makedirs(self.download_path)
 
     async def connect(self, username, password):
+        try:
+            import aioslsk
+            from aioslsk.client import SoulSeekClient
+            from aioslsk.settings import (
+                Settings as SlskSettings,
+                CredentialsSettings,
+                SharesSettings,
+            )
+            HAS_AIOSLSK = True
+        except ImportError:
+            HAS_AIOSLSK = False
+
         if not HAS_AIOSLSK:
             raise Exception("aioslsk library missing")
 
