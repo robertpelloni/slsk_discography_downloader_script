@@ -183,6 +183,7 @@ class Orchestrator:
         self.active_downloads = {}
         self.album_tracker = {}
         self.completed_albums = self.queue_service.get_completed()
+        self.blacklisted_users = set()
         self._existing_cache = None
         self._attempted_albums = set()  # Track (artist_norm, album_norm) to skip dupes
         self.slsk_user = self.config_service.get('slsk_user', '')
@@ -871,6 +872,22 @@ class Orchestrator:
         try:
             self.logger.info("Connecting to Soulseek...")
             await self.slsk_service.connect(slsk_user, slsk_pass)
+
+            # Optional Rust Bridge Boost
+            try:
+                from .rust_soulseek import RUST_AVAILABLE
+                if RUST_AVAILABLE:
+                    self.logger.info("Rust P2P Search Bridge available. Initializing boost...")
+                    from .rust_soulseek import RustSoulseekService
+                    rust_slsk = RustSoulseekService(slsk_user, slsk_pass)
+                    await rust_slsk.connect()
+                    self.rust_slsk = rust_slsk
+                else:
+                    self.rust_slsk = None
+            except Exception as e:
+                self.logger.warning(f"Failed to initialize Rust boost: {e}")
+                self.rust_slsk = None
+
             self.logger.info("Connected.")
 
             if selection:
@@ -1021,6 +1038,11 @@ class Orchestrator:
                     if success or self.should_stop:
                         break
                     user = cand['user']
+
+                    if user in self.blacklisted_users:
+                        self.logger.info(f"  ⊘ Skip {user} (blacklisted due to low quality)")
+                        continue
+
                     folder = cand['folder']
                     score = cand['score']
                     files = cand['files']
@@ -1050,6 +1072,11 @@ class Orchestrator:
                         self.invalidate_cache()
                     except Exception as e:
                         self.logger.warning(f"  Candidate failed: {e}")
+
+                        if "Fake FLAC" in str(e):
+                            self.logger.warning(f"  !!! BLACKLISTING {user} !!!")
+                            self.blacklisted_users.add(user)
+
                         self._cleanup_partial(target_dir)
                         await asyncio.sleep(2)
 
@@ -1321,7 +1348,7 @@ class Orchestrator:
                         f"User {user} too slow after "
                         f"{MAX_CONSECUTIVE_FAILURES} timeouts")
 
-        self._finalize_album(target_dir)
+        await self._finalize_album(target_dir)
 
     async def _wait_for_transfer(self, transfer, timeout=180):
         waited = 0
@@ -1338,27 +1365,25 @@ class Orchestrator:
             waited += 1
         return 'timeout'
 
-    def _finalize_album(self, target_dir):
+    async def _finalize_album(self, target_dir):
         if target_dir not in self.album_tracker:
             return
         info = self.album_tracker[target_dir]
         if info['done'] >= info['total']:
             self.logger.info(
                 f"  ✓ Album complete: {os.path.basename(target_dir)}")
+
+            # Post-processing can raise "Fake FLAC detected"
             try:
-                loop = asyncio.get_running_loop()
-                loop.create_task(
-                    self.post_processor.process_album(
-                        target_dir, info['metadata']))
-            except RuntimeError:
-                try:
-                    asyncio.create_task(
-                        self.post_processor.process_album(
-                            target_dir, info['metadata']))
-                except RuntimeError:
-                    self.logger.warning(
-                        f"Could not schedule post-processing for "
-                        f"{target_dir} (no event loop)")
+                await self.post_processor.process_album(target_dir, info['metadata'])
+            except Exception as e:
+                if "Fake FLAC" in str(e):
+                    # Propagate to _process_artist for blacklisting
+                    del self.album_tracker[target_dir]
+                    raise e
+                else:
+                    self.logger.error(f"Post-processing error for {target_dir}: {e}")
+
             del self.album_tracker[target_dir]
 
     # ─── Legacy Monitor ───────────────────────────────────────────

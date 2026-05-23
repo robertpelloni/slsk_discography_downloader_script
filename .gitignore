@@ -19,3 +19,5 @@ bin/
 metamcp.db
 *.db
 .borg_startup_marker
+discography_webapp/rust_bridge/target/
+discography_webapp/rust_bridge/bob_soulseek_rs/target/

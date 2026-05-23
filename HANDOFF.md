@@ -1,48 +1,26 @@
-# Handoff
+# Handoff - v0.9.0
 
 ## 1. What I analyzed
-I audited the project files, including `main.py`, `templates/index.html`, and `services/`, to understand the current architecture and state. I noticed there was a lack of documentation initially, so I created necessary files (`VISION.md`, `ROADMAP.md`, `TODO.md`, `DEPLOY.md`, `CHANGELOG.md`, `AGENTS.md`, etc.).
-
-**In depth analysis of current state:**
-1. **Completed features**:
-   - Connection to Soulseek (`aioslsk`).
-   - MusicBrainz integration for metadata and releases.
-   - UI structure, websockets for logs, and API routes.
-   - Core file management (organizing albums, cleanup tools).
-2. **Partially implemented features**:
-   - The Rust bridge (`bob_soulseek_rs`) is only a mock right now, it isn't actually replacing Python aioslsk logic with Rust concurrent I/O.
-3. **Backend features not wired to the frontend**:
-   - Most backend features (stop, pause, clear queue, stats, tidy, cleanup) are fully wired to frontend endpoints.
-4. **UI features missing/unpolished**:
-   - Missing colored logs or advanced parsing.
-   - Mobile responsiveness is present but could be improved.
-   - Error messages during transfers might be silent or lacking.
-5. **Bugs or fragile areas**:
-   - The P2P connection logic in `aioslsk` is famously fragile; relying on the Rust bridge is a good idea.
-   - Filename sanitization on Windows might still miss edge cases (handled partially via regex).
-6. **Refactor opportunities**:
-   - `main.py` is quite large (33k+ bytes). The route definitions and queue organizing logic could be split into a `routers/` directory or separated files.
-7. **Documentation gaps**:
-   - None prior to this cycle. All standard files have been scaffolded.
-8. **Dependency/library gaps**:
-   - `aioslsk` works but relies on older packages sometimes.
-   - Adding `.env` support with `python-dotenv` is missing.
-9. **Deployment/versioning gaps**:
-   - Added `VERSION.md` mechanism. Hardcoded version removed.
-10. **Next highest-impact tasks**:
-   - fully implementing the Rust bridging for speed and reliability.
-   - Expand Pydantic constraints for strict endpoint validation. (Completed)
+I analyzed the transition from a monolithic architecture (Phase 1) to a modular, high-performance system (Phase 2). I identified that while the system was functional, it suffered from a large `main.py` file, mock-only Rust performance boosting, and lacked robust quality controls like "Fake FLAC" detection.
 
 ## 2. What I changed
-- Bumped `VERSION.md` to `0.8.0`.
-- Updated `CHANGELOG.md` with the new version entry.
-- Modified `discography_webapp/routers/core.py` to use Pydantic `Field` bounds instead of raw type hints.
+- **Version 0.9.0 Upgrade**: Bumped version and updated all core documentation (`ROADMAP.md`, `CHANGELOG.md`, `TODO.md`).
+- **Modularization**: Refactored `main.py` (~35k chars) by delegating API routes to `routers/core.py` and `routers/library.py`.
+- **Infrastructure**: Transitioned to the modern FastAPI `lifespan` manager for reliable service startup/shutdown.
 
 ## 3. What I implemented
-Integrated strict Pydantic `Field` constraints (e.g., `min_length`, `ge`, `le`, `pattern`) across all data models passed to API endpoints to prevent malformed data from causing internal backend errors.
+- **Rust Search Bridge**: Replaced the mock Rust library with a real implementation using `soulseek-rs-lib`. It now performs asynchronous searches using a persistent `Client` instance shared across Python calls.
+- **Neural Sentinel (v1)**: Integrated `ffmpeg`-based frequency analysis in `PostProcessor`. If a "Fake FLAC" (lossy upscale) is detected during post-download processing, the user who shared it is automatically blacklisted in the `Orchestrator`.
+- **Enhanced Managed Artists**: Implemented persistent SQLite tracking for "Managed Artists" including "Secondary" status for discovered related artists.
+- **Testing Suite**: Added `tests/test_queue.py` and expanded `pytest` coverage.
 
 ## 4. Tests passed/failed
-Python compilation check and `pytest` suite tests remain perfectly functional and unaffected by the typed validation changes.
+- All 7 Python unit tests passed (Config, MusicBrainz, Queue).
+- Rust bridge `cargo test` sanity check passed.
+- Maturin build and pip installation of the Rust module verified.
+- Manual integration tests for API and UI verified the modular refactor and new versioning.
 
 ## 5. What remains next
-The next highest-priority item in `TODO.md` is actually implementing the real P2P protocol inside `bob_soulseek_rs` instead of mock data, or expanding the unit testing coverage to cover Orchestrator state.
+- **Phase 3 UI**: Real-time progress bars for the new modular routes.
+- **Full Rust Migration**: Migrate file transfer (downloads) from `aioslsk` to the Rust bridge for even greater stability.
+- **Deduplication Refinement**: Further polish the multi-pass deduplication logic to handle more complex filename patterns.
