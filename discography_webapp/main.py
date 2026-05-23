@@ -36,6 +36,8 @@ from dependencies import orchestrators, get_orchestrator as deps_get_orchestrato
 from routers.core import router as core_router
 from routers.library import router as library_router
 from routers.protocol import router as protocol_router
+from routers.benchmark import router as benchmark_router
+from services.protocol import ProtocolService
 
 # Event bus
 event_bus = EventBus()
@@ -53,6 +55,15 @@ async def lifespan(app: FastAPI):
             await manager.broadcast(json.dumps({"type": "log", "message": message}), user_id)
 
     event_bus.subscribe('log', handle_log_event)
+
+    # Optional: Run Roadmap extraction on startup to detect gaps
+    try:
+        orch = deps_get_orchestrator(event_bus)
+        protocol = ProtocolService(orch.logger)
+        asyncio.create_task(protocol.extract_roadmap())
+    except Exception:
+        pass
+
     yield
     # Shutdown
     for uid, orch in orchestrators.items():
@@ -80,6 +91,7 @@ app.mount("/downloads", StaticFiles(directory=DOWNLOADS_DIR), name="downloads")
 app.include_router(core_router)
 app.include_router(library_router)
 app.include_router(protocol_router)
+app.include_router(benchmark_router)
 
 def get_orchestrator(user_id: int = 1):
     return deps_get_orchestrator(event_bus, user_id)

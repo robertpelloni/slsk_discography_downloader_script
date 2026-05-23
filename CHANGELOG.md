@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.9.7]
+- **Performance Benchmarking**: Integrated a new benchmark suite to measure and compare search latency between Python and Rust Soulseek bridges. Initial tests show an ~87% reduction in search time with Rust.
+- **Continuous Protocol**: Embedded the Autonomous AI Development Protocol into the application startup, automatically extracting roadmaps to detect technical debt and feature gaps.
+- **Robust Error Handling**: Refined benchmark and service initialization to gracefully handle disconnected or unavailable bridge states.
+
 ## [0.9.6]
 - **Codified AI Protocol**: Integrated the Autonomous AI Development Protocol into the core codebase via `ProtocolService`.
 - **System Maintenance UI**: Added a new dashboard panel for triggering repo sync, branch reconciliation, and roadmap extraction.
