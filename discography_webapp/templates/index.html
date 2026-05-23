@@ -375,7 +375,8 @@ function toggleSettings() {
 // ─── WebSocket ─────────────────────────────────────────────────
 function connectWS() {
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    ws = new WebSocket(`${proto}//${location.host}/ws/logs`);
+    // Use hardcoded user_id 1 for now to match default orchestrator
+    ws = new WebSocket(`${proto}//${location.host}/ws/1`);
     ws.onmessage = e => { const d = JSON.parse(e.data); if (d.type === 'log') appendLog(d.message); };
     ws.onclose = () => setTimeout(connectWS, 2000);
 }

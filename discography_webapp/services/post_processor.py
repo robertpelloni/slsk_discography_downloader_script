@@ -83,6 +83,8 @@ class PostProcessor:
             try:
                 await self._process_file(target_dir, filename, track, metadata, cover_path if has_cover else None)
             except Exception as e:
+                if "Fake FLAC" in str(e):
+                    raise e
                 self.logger.error(f"Error processing {filename}: {e}")
 
         self.logger.info(f"Tagged {len(matched)} files in {os.path.basename(target_dir)}")
@@ -149,7 +151,7 @@ class PostProcessor:
                     os.remove(new_path)
                 except Exception:
                     pass
-                return
+                raise ValueError(f"Fake FLAC detected in {filename}")
 
         # Fetch lyrics if enabled
         lyrics = None

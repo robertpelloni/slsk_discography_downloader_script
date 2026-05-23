@@ -1,43 +1,80 @@
-from fastapi import APIRouter, BackgroundTasks, Request
+from fastapi import APIRouter, BackgroundTasks, Request, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 import asyncio
+import os
+import time
 from typing import List, Optional
+from dependencies import get_orchestrator
 
 router = APIRouter()
-
-# Because routers are imported by main.py, we can safely import get_orchestrator from main.
-from fastapi import Depends
-from dependencies import get_orchestrator
 
 def get_orch(request: Request):
     return get_orchestrator(request.app.state.event_bus)
 
+@router.get("/api/status")
+async def get_status(orch=Depends(get_orch)):
+    progress_data = []
+    for target_dir, data in orch.album_tracker.items():
+        meta = data['metadata']
+        total = data['total']
+        done = data['done']
+        pct = (done / total * 100) if total > 0 else 0
+        elapsed = time.time() - data.get('start_time', time.time())
+        speed = ""
+        if done > 0 and elapsed > 0:
+            rate = done / elapsed
+            remaining = (total - done) / rate if rate > 0 else 0
+            speed = f"{rate:.1f} f/s, {int(remaining)}s left"
+
+        progress_data.append({
+            "album": meta['album'],
+            "artist": meta['artist'],
+            "total": total,
+            "done": done,
+            "percent": round(pct, 1),
+            "speed": speed
+        })
+
+    return {
+        "is_running": orch.is_running,
+        "is_paused": orch.is_paused,
+        "current_artist": orch.current_artist,
+        "progress": progress_data,
+        "queue_size": len(orch.queue_service.queue),
+        "completed_count": len(orch.queue_service.completed_albums),
+        "completed_albums": orch.queue_service.get_completed()
+    }
+
 class SearchRequest(BaseModel):
-    query: str = Field(..., min_length=1, description="The artist name to search for.")
+    query: str = Field(..., min_length=1)
 
 class ScanRequest(BaseModel):
-    artist_names: List[str] = Field(..., min_items=1, description="List of artist names to scan.")
-    depth: int = Field(1, ge=0, le=5, description="Depth of related artists to search.")
+    artist_names: List[str]
+    depth: int = 1
 
 class StartJobRequest(BaseModel):
-    artist_names: List[str] = Field(..., min_items=1, description="List of artist names to start downloading.")
-    dry_run: bool = Field(False, description="Simulate downloads without writing files.")
-    depth: int = Field(1, ge=0, le=5, description="Depth of related artists to search.")
-    selection: Optional[List[dict]] = Field(None, description="Specific selected albums to download.")
+    artist_names: List[str]
+    dry_run: bool = False
+    depth: int = 1
+    selection: Optional[List[dict]] = None
+
+class ManagedArtistRequest(BaseModel):
+    artist_id: str
+    name: str
+    is_secondary: bool = False
 
 class ConfigUpdateRequest(BaseModel):
-    slsk_user: str = Field(..., description="Soulseek username.")
-    slsk_pass: str = Field(..., description="Soulseek password.")
-    preferred_format: str = Field(..., pattern="^(flac|mp3)$", description="Preferred audio format.")
-    acoustid_enabled: bool = Field(True, description="Enable AcoustID fingerprinting.")
-    acoustid_api_key: str = Field(..., description="API key for AcoustID.")
-    acoustid_verify: bool = Field(False, description="Strict verification.")
-    embed_lyrics: bool = Field(False, description="Fetch and embed lyrics.")
-    genius_api_key: str = Field("", description="Genius API key for fallback lyrics.")
-    convert_to_mp3: bool = Field(False, description="Convert FLAC to MP3 V0.")
-    sentinel_enabled: bool = Field(False, description="Neural Audio-Quality Sentinel.")
-
+    slsk_user: str
+    slsk_pass: str
+    preferred_format: str
+    acoustid_enabled: bool
+    acoustid_api_key: str
+    acoustid_verify: bool
+    embed_lyrics: bool
+    genius_api_key: str
+    convert_to_mp3: bool
+    sentinel_enabled: bool
 
 @router.get("/api/config")
 async def get_config(orch=Depends(get_orch)):
@@ -56,19 +93,23 @@ async def search_artist(request: SearchRequest, orch=Depends(get_orch)):
 @router.post("/api/scan")
 async def scan_artist(request: ScanRequest, orch=Depends(get_orch)):
     result = await orch.scan_artists(request.artist_names, request.depth)
+    # Auto-add main artists to managed list
+    for artist_node in result:
+        # We only auto-add depth 0 artists (the ones requested)
+        if artist_node['name'] in request.artist_names:
+            await orch.add_managed_artist(artist_node['id'], artist_node['name'])
     return {"tree": result}
 
 @router.post("/api/test_search")
 async def test_search(request: Request, orch=Depends(get_orch)):
-    """Test Soulseek connection with a simple search."""
     data = await request.json()
     query = data.get('query', 'FLAC')
     if not orch.slsk_service.is_connected:
-        return {"error": "Not connected to Soulseek. Start a download first."}
+        return {"error": "Not connected to Soulseek."}
     try:
         results = await orch.slsk_service.search(query, timeout=10)
         return {
-            "query": query,
+            "query": query, 
             "result_count": len(results),
             "sample": [r['filename'] for r in results[:5]] if results else []
         }
@@ -79,45 +120,31 @@ async def test_search(request: Request, orch=Depends(get_orch)):
 async def start_job(request: StartJobRequest, background_tasks: BackgroundTasks, orch=Depends(get_orch)):
     if orch.is_running:
         return JSONResponse(status_code=400, content={"message": "A job is already running."})
-
     user = orch.config_service.get('slsk_user')
     password = orch.config_service.get('slsk_pass')
     if not user or not password:
         return JSONResponse(status_code=400, content={"message": "Soulseek credentials not configured."})
-
-    background_tasks.add_task(
-        orch.start_download, request.artist_names, user, password,
-        request.dry_run, request.depth, request.selection
-    )
+    background_tasks.add_task(orch.start_download, request.artist_names, user, password, request.dry_run, request.depth, request.selection)
     return {"message": "Job started", "artists": request.artist_names}
 
 @router.post("/api/autonomous_fill")
 async def autonomous_fill(request: StartJobRequest, background_tasks: BackgroundTasks, orch=Depends(get_orch)):
     if orch.is_running:
         return JSONResponse(status_code=400, content={"message": "A job is already running."})
-
     user = orch.config_service.get('slsk_user')
     password = orch.config_service.get('slsk_pass')
     if not user or not password:
         return JSONResponse(status_code=400, content={"message": "Soulseek credentials not configured."})
-
-    background_tasks.add_task(
-        orch.run_autonomous_filler, user, password, request.artist_names,
-        request.depth, request.dry_run
-    )
+    background_tasks.add_task(orch.run_autonomous_filler, user, password, request.artist_names, request.depth, request.dry_run)
     return {"message": "Autonomous fill started", "artists": request.artist_names}
 
 @router.post("/api/stop")
 async def stop_job(orch=Depends(get_orch)):
-    if not orch.is_running:
-        return {"message": "No job running."}
-    orch.stop_job()
-    return {"message": "Stopping..."}
+    if orch.is_running: orch.stop_job()
+    return {"message": "Stopped"}
 
 @router.post("/api/pause")
 async def pause_job(orch=Depends(get_orch)):
-    if not orch.is_running:
-        return {"message": "No job running.", "is_paused": False}
     is_paused = orch.toggle_pause()
     return {"message": "Paused" if is_paused else "Resumed", "is_paused": is_paused}
 
@@ -127,3 +154,26 @@ async def clear_queue(orch=Depends(get_orch)):
     orch.queue_service.completed_albums = []
     orch.queue_service.save()
     return {"message": "History cleared."}
+
+@router.get("/api/managed_artists")
+async def get_managed_artists(orch=Depends(get_orch)):
+    return await orch.get_managed_artists()
+
+@router.post("/api/managed_artists")
+async def add_managed_artist(request: ManagedArtistRequest, orch=Depends(get_orch)):
+    await orch.add_managed_artist(request.artist_id, request.name, request.is_secondary)
+    return {"message": f"Added {request.name}"}
+
+@router.delete("/api/managed_artists/{artist_id}")
+async def remove_managed_artist(artist_id: str, orch=Depends(get_orch)):
+    await orch.remove_managed_artist(artist_id)
+    return {"message": "Removed artist"}
+
+@router.post("/api/cleanup_artists")
+async def cleanup_artists(orch=Depends(get_orch)):
+    removed = await orch.cleanup_managed_artists()
+    return {"message": f"Cleaned up {removed} artists"}
+
+@router.get("/api/artist_discography/{artist_id}")
+async def get_artist_discography(artist_id: str, orch=Depends(get_orch)):
+    return await orch.get_artist_discography_details(artist_id)

@@ -1,44 +1,100 @@
 use pyo3::prelude::*;
+use pyo3::types::{PyDict, PyList};
 use pyo3_asyncio::tokio::future_into_py;
+use soulseek_rs::{Client, ClientSettings, SearchResult};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use std::time::Duration;
 
-/// An asynchronous Rust function that simulates connecting to the Soulseek network
+lazy_static::lazy_static! {
+    static ref CLIENT: Arc<Mutex<Option<Client>>> = Arc::new(Mutex::new(None));
+}
+
+/// An asynchronous Rust function that connects to the Soulseek network
 #[pyfunction]
-fn connect_to_soulseek_async<'py>(py: Python<'py>, username: String, _password: String) -> PyResult<&'py PyAny> {
+fn connect_to_soulseek_async<'py>(py: Python<'py>, username: String, password: String) -> PyResult<&'py PyAny> {
     future_into_py(py, async move {
-        println!("Rust Engine: Authenticated and connected to Soulseek network as {}", username);
-        // Simulate network connection latency
-        tokio::time::sleep(Duration::from_millis(100)).await;
-        Ok(true)
+        let settings = ClientSettings::new(username.clone(), password);
+        let mut client = Client::with_settings(settings);
+
+        let result = tokio::task::spawn_blocking(move || {
+            client.connect();
+            match client.login() {
+                Ok(_) => Ok(client),
+                Err(e) => Err(format!("Login failed: {}", e))
+            }
+        }).await.unwrap();
+
+        match result {
+            Ok(c) => {
+                let mut guard = CLIENT.lock().await;
+                *guard = Some(c);
+                println!("Rust Engine: Authenticated and connected as {}", username);
+                Ok(true)
+            }
+            Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e))
+        }
     })
 }
 
-/// An asynchronous Rust function that simulates connecting to the Soulseek network
-/// and performing a high-performance concurrent search.
+/// An asynchronous Rust function that performs a search on the Soulseek network
 #[pyfunction]
 fn rust_search_async<'py>(py: Python<'py>, query: String) -> PyResult<&'py PyAny> {
     future_into_py(py, async move {
-        // In a real P2P implementation, we would spawn thousands of async socket
-        // connection requests here across the distributed routing table.
-        println!("Rust Engine: Initializing zero-latency search bridge for '{}'", query);
+        let client_arc = CLIENT.clone();
 
-        // Simulate high-speed network I/O
-        tokio::time::sleep(Duration::from_millis(500)).await;
+        let query_clone = query.clone();
+        let results: Result<Vec<SearchResult>, String> = tokio::task::spawn_blocking(move || {
+            let guard = client_arc.blocking_lock();
+            if let Some(ref client) = *guard {
+                client.search(&query_clone, Duration::from_secs(5))
+                    .map_err(|e| e.to_string())
+            } else {
+                Err("Not connected to Soulseek".to_string())
+            }
+        }).await.unwrap();
 
-        let mut results = Vec::new();
-        results.push(format!("Rust_Result: Fast_FLAC_Candidate_1_for_{}.flac", query));
-        results.push(format!("Rust_Result: HighPerf_MP3_Candidate_2_for_{}.mp3", query));
+        match results {
+            Ok(res_list) => {
+                Python::with_gil(|py| {
+                    let list = PyList::empty(py);
+                    for res in res_list {
+                        for file in res.files {
+                            let dict = PyDict::new(py);
+                            dict.set_item("filename", &file.name)?;
+                            dict.set_item("user", &res.username)?;
+                            dict.set_item("size", file.size)?;
+                            dict.set_item("speed", res.speed)?;
+                            dict.set_item("slots", res.slots > 0)?;
 
-        println!("Rust Engine: Search completed");
+                            // Extract bitrate from attribs if available
+                            // Key 0 is often bitrate in Soulseek
+                            let bitrate = file.attribs.get(&0).cloned().unwrap_or(0);
+                            dict.set_item("bitrate", bitrate)?;
 
-        // Return results to Python
-        Ok(results)
+                            // Infer extension
+                            let ext = std::path::Path::new(&file.name)
+                                .extension()
+                                .and_then(|s| s.to_str())
+                                .map(|s| format!(".{}", s.to_lowercase()))
+                                .unwrap_or_default();
+                            dict.set_item("extension", ext)?;
+
+                            list.append(dict)?;
+                        }
+                    }
+                    Ok(list.to_object(py))
+                })
+            }
+            Err(e) => {
+                Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Search failed: {}", e)))
+            }
+        }
     })
 }
 
-/// The main Python module initialization
 #[pymodule]
-fn bob_soulseek_rs(py: Python, m: &PyModule) -> PyResult<()> {
+fn bob_soulseek_rs(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(connect_to_soulseek_async, m)?)?;
     m.add_function(wrap_pyfunction!(rust_search_async, m)?)?;
     Ok(())

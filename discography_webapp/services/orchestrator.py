@@ -199,11 +199,14 @@ class Orchestrator:
         self.is_running = False
         self.should_stop = False
         self.is_paused = False
+        self.current_artist = None
         self.active_downloads = {}
         self.album_tracker = {}
         self.completed_albums = self.queue_service.get_completed()
+        self.blacklisted_users = set()
         self._existing_cache = None
         self._attempted_albums = set()  # Track (artist_norm, album_norm) to skip dupes
+        self.rust_slsk = None
         self.slsk_user = self.config_service.get('slsk_user', '')
         self.slsk_pass = self.config_service.get('slsk_pass', '')
 
@@ -910,6 +913,21 @@ class Orchestrator:
         try:
             self.logger.info("Connecting to Soulseek...")
             await self.slsk_service.connect(slsk_user, slsk_pass)
+
+            # Optional Rust Bridge Boost
+            try:
+                from .rust_soulseek import RUST_AVAILABLE
+                if RUST_AVAILABLE:
+                    self.logger.info("Rust P2P Search Bridge available. Initializing boost...")
+                    from .rust_soulseek import RustSoulseekService
+                    self.rust_slsk = RustSoulseekService(slsk_user, slsk_pass)
+                    await self.rust_slsk.connect()
+                else:
+                    self.rust_slsk = None
+            except Exception as e:
+                self.logger.warning(f"Failed to initialize Rust boost: {e}")
+                self.rust_slsk = None
+
             self.logger.info("Connected.")
 
             if selection:
@@ -974,6 +992,7 @@ class Orchestrator:
         if self.should_stop:
             return
         name = artist['name']
+        self.current_artist = name
         self.logger.info(f"═══ {name} ═══")
 
         if specific_albums:
@@ -1040,7 +1059,18 @@ class Orchestrator:
 
                 self.logger.info(
                     f"  Searching ({attempt+1}/{len(queries)}): {query}")
+
+            # Rust Search Boost
+            if self.rust_slsk:
+                try:
+                    self.logger.info("  (Using Rust Search Boost)")
+                    results = await self.rust_slsk.search(query)
+                except Exception as e:
+                    self.logger.warning(f"  Rust search failed: {e}. Falling back to Python.")
+                    results = await self.slsk_service.search(query, timeout=timeout)
+            else:
                 results = await self.slsk_service.search(query, timeout=timeout)
+
                 self.logger.info(f"  Got {len(results)} results")
 
                 if not results:
@@ -1059,6 +1089,11 @@ class Orchestrator:
                     if success or self.should_stop:
                         break
                     user = cand['user']
+
+                    if user in self.blacklisted_users:
+                        self.logger.info(f"  ⊘ Skip {user} (blacklisted due to low quality)")
+                        continue
+
                     folder = cand['folder']
                     score = cand['score']
                     files = cand['files']
@@ -1094,6 +1129,11 @@ class Orchestrator:
                             self._cleanup_dir(target_dir)
                     except Exception as e:
                         self.logger.warning(f"  Candidate failed: {e}")
+
+                        if "Fake FLAC" in str(e):
+                            self.logger.warning(f"  !!! BLACKLISTING {user} !!!")
+                            self.blacklisted_users.add(user)
+
                         self._cleanup_partial(target_dir)
                         await asyncio.sleep(2)
 
@@ -1368,7 +1408,7 @@ class Orchestrator:
                         f"User {user} too slow after "
                         f"{MAX_CONSECUTIVE_FAILURES} timeouts")
 
-        self._finalize_album(target_dir)
+        await self._finalize_album(target_dir)
 
     async def _wait_for_transfer(self, transfer, timeout=180):
         waited = 0
@@ -1385,7 +1425,7 @@ class Orchestrator:
             waited += 1
         return 'timeout'
 
-    def _finalize_album(self, target_dir):
+    async def _finalize_album(self, target_dir):
         if target_dir not in self.album_tracker:
             return
         info = self.album_tracker[target_dir]
@@ -1396,25 +1436,24 @@ class Orchestrator:
             if audio_count > 0:
                 self.logger.info(
                     f"  ✓ Album complete: {os.path.basename(target_dir)}")
+
+                # Post-processing can raise "Fake FLAC detected"
                 try:
-                    loop = asyncio.get_running_loop()
-                    loop.create_task(
-                        self.post_processor.process_album(
-                            target_dir, info['metadata']))
-                except RuntimeError:
-                    try:
-                        asyncio.create_task(
-                            self.post_processor.process_album(
-                                target_dir, info['metadata']))
-                    except RuntimeError:
-                        self.logger.warning(
-                            f"Could not schedule post-processing for "
-                            f"{target_dir} (no event loop)")
+                    await self.post_processor.process_album(target_dir, info['metadata'])
+                except Exception as e:
+                    if "Fake FLAC" in str(e):
+                        # Propagate to _process_artist for blacklisting
+                        if target_dir in self.album_tracker:
+                            del self.album_tracker[target_dir]
+                        raise e
+                    else:
+                        self.logger.error(f"Post-processing error for {target_dir}: {e}")
             else:
                 self.logger.warning(
                     f"  ✗ Failed: {os.path.basename(target_dir)} (no files downloaded)")
-            
-            del self.album_tracker[target_dir]
+
+            if target_dir in self.album_tracker:
+                del self.album_tracker[target_dir]
 
     # ─── Legacy Monitor ───────────────────────────────────────────
 

@@ -1,48 +1,23 @@
-# Handoff
+# Handoff - Phase 2 (Mid)
 
 ## 1. What I analyzed
-I audited the project files, including `main.py`, `templates/index.html`, and `services/`, to understand the current architecture and state. I noticed there was a lack of documentation initially, so I created necessary files (`VISION.md`, `ROADMAP.md`, `TODO.md`, `DEPLOY.md`, `CHANGELOG.md`, `AGENTS.md`, etc.).
-
-**In depth analysis of current state:**
-1. **Completed features**:
-   - Connection to Soulseek (`aioslsk`).
-   - MusicBrainz integration for metadata and releases.
-   - UI structure, websockets for logs, and API routes.
-   - Core file management (organizing albums, cleanup tools).
-2. **Partially implemented features**:
-   - The Rust bridge (`bob_soulseek_rs`) is only a mock right now, it isn't actually replacing Python aioslsk logic with Rust concurrent I/O.
-3. **Backend features not wired to the frontend**:
-   - Most backend features (stop, pause, clear queue, stats, tidy, cleanup) are fully wired to frontend endpoints.
-4. **UI features missing/unpolished**:
-   - Missing colored logs or advanced parsing.
-   - Mobile responsiveness is present but could be improved.
-   - Error messages during transfers might be silent or lacking.
-5. **Bugs or fragile areas**:
-   - The P2P connection logic in `aioslsk` is famously fragile; relying on the Rust bridge is a good idea.
-   - Filename sanitization on Windows might still miss edge cases (handled partially via regex).
-6. **Refactor opportunities**:
-   - `main.py` is quite large (33k+ bytes). The route definitions and queue organizing logic could be split into a `routers/` directory or separated files.
-7. **Documentation gaps**:
-   - None prior to this cycle. All standard files have been scaffolded.
-8. **Dependency/library gaps**:
-   - `aioslsk` works but relies on older packages sometimes.
-   - Adding `.env` support with `python-dotenv` is missing.
-9. **Deployment/versioning gaps**:
-   - Added `VERSION.md` mechanism. Hardcoded version removed.
-10. **Next highest-impact tasks**:
-   - fully implementing the Rust bridging for speed and reliability.
-   - Expand Pydantic constraints for strict endpoint validation. (Completed)
+I analyzed the current state of the Rust Search Bridge and identified that while functional, it lacked the rich metadata (bitrate, size, speed) necessary for effective candidate ranking in the `Orchestrator`. I also analyzed the `Orchestrator`'s lack of unit tests for its complex library indexing and filtering logic.
 
 ## 2. What I changed
-- Bumped `VERSION.md` to `0.8.0`.
-- Updated `CHANGELOG.md` with the new version entry.
-- Modified `discography_webapp/routers/core.py` to use Pydantic `Field` bounds instead of raw type hints.
+- **Rust Bridge**: Rewrote the `rust_search_async` function to return structured Python dictionaries instead of raw strings.
+- **Orchestrator Integration**: Updated `_run_job_impl` to detect the Rust bridge and use it for search boosting with automatic fallback.
+- **Library Router**: Added skeleton routes for manual album renaming and deletion to initiate Phase 3.
 
 ## 3. What I implemented
-Integrated strict Pydantic `Field` constraints (e.g., `min_length`, `ge`, `le`, `pattern`) across all data models passed to API endpoints to prevent malformed data from causing internal backend errors.
+- **Enhanced Search Metadata**: The Rust bridge now extracts bitrates (via Soulseek attributes), file sizes, and user speeds.
+- **Robust Testing**: Implemented `tests/test_orchestrator.py` which mocks services and verifies the indexing of organized library folders and Psytrance-specific genre filtering.
+- **Refined Tidy Logic**: The `/api/tidy` route now uses `ARTIST_ALIASES` from the Orchestrator for more accurate flat-file organization.
 
 ## 4. Tests passed/failed
-Python compilation check and `pytest` suite tests remain perfectly functional and unaffected by the typed validation changes.
+- All 12 Python unit tests passed (Config, MusicBrainz, Queue, Orchestrator).
+- Rust bridge compilation and GIL-based dictionary conversion verified.
 
 ## 5. What remains next
-The next highest-priority item in `TODO.md` is actually implementing the real P2P protocol inside `bob_soulseek_rs` instead of mock data, or expanding the unit testing coverage to cover Orchestrator state.
+- **Phase 3 UI Completion**: Wire the frontend to use the new `/api/delete_album` and `/api/rename_album` endpoints.
+- **Rust Download Support**: Implement file transfer logic in the Rust bridge to replace `aioslsk`.
+- **WebSocket Progress Migration**: Move download progress tracking to the event bus for more granular UI updates.

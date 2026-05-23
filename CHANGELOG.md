@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.9.0]
+- **Modular Architecture**: Refactored monolithic `main.py` into dedicated FastAPI routers (`core`, `library`).
+- **Rust P2P Search Bridge**: Replaced mock Rust code with real `soulseek-rs-lib` implementation for high-performance concurrent searching.
+- **Neural Audio-Quality Sentinel**: Integrated `ffmpeg`-based fake FLAC detection with automatic user blacklisting.
+- **Enhanced Managed Artists**: Added persistent tracking of "Managed Artists" and automatic discovery of related artists.
+- **Modern FastAPI**: Transitioned to the `lifespan` context manager for robust resource handling.
+- **Improved Testing**: Expanded `pytest` suite to cover `QueueService`, `Orchestrator`, and library indexing logic.
+- **Enhanced Rust Bridge**: Search results now include rich metadata (size, bitrate, speed).
+- **Library Management**: New backend routes for manual album renaming and deletion; refined "Tidy" logic.
+
 ## [0.8.0]
 - Enhanced `Pydantic` request models with strict `Field` validation constraints to secure and structure API endpoint inputs.
 
