@@ -1019,7 +1019,18 @@ class Orchestrator:
 
                 self.logger.info(
                     f"  Searching ({attempt+1}/{len(queries)}): {query}")
+
+            # Rust Search Boost
+            if hasattr(self, 'rust_slsk') and self.rust_slsk:
+                try:
+                    self.logger.info("  (Using Rust Search Boost)")
+                    results = await self.rust_slsk.search(query)
+                except Exception as e:
+                    self.logger.warning(f"  Rust search failed: {e}. Falling back to Python.")
+                    results = await self.slsk_service.search(query, timeout=timeout)
+            else:
                 results = await self.slsk_service.search(query, timeout=timeout)
+
                 self.logger.info(f"  Got {len(results)} results")
 
                 if not results:

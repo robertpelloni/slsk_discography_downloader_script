@@ -1,4 +1,5 @@
 use pyo3::prelude::*;
+use pyo3::types::{PyDict, PyList};
 use pyo3_asyncio::tokio::future_into_py;
 use soulseek_rs::{Client, ClientSettings, SearchResult};
 use std::sync::Arc;
@@ -55,13 +56,35 @@ fn rust_search_async<'py>(py: Python<'py>, query: String) -> PyResult<&'py PyAny
 
         match results {
             Ok(res_list) => {
-                let mut output = Vec::new();
-                for res in res_list {
-                    for file in res.files {
-                        output.push(file.name);
+                Python::with_gil(|py| {
+                    let list = PyList::empty(py);
+                    for res in res_list {
+                        for file in res.files {
+                            let dict = PyDict::new(py);
+                            dict.set_item("filename", &file.name)?;
+                            dict.set_item("user", &res.username)?;
+                            dict.set_item("size", file.size)?;
+                            dict.set_item("speed", res.speed)?;
+                            dict.set_item("slots", res.slots > 0)?;
+
+                            // Extract bitrate from attribs if available
+                            // Key 0 is often bitrate in Soulseek
+                            let bitrate = file.attribs.get(&0).cloned().unwrap_or(0);
+                            dict.set_item("bitrate", bitrate)?;
+
+                            // Infer extension
+                            let ext = std::path::Path::new(&file.name)
+                                .extension()
+                                .and_then(|s| s.to_str())
+                                .map(|s| format!(".{}", s.to_lowercase()))
+                                .unwrap_or_default();
+                            dict.set_item("extension", ext)?;
+
+                            list.append(dict)?;
+                        }
                     }
-                }
-                Ok(output)
+                    Ok(list.to_object(py))
+                })
             }
             Err(e) => {
                 Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Search failed: {}", e)))

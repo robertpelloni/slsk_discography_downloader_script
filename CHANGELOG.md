@@ -6,7 +6,9 @@
 - **Neural Audio-Quality Sentinel**: Integrated `ffmpeg`-based fake FLAC detection with automatic user blacklisting.
 - **Enhanced Managed Artists**: Added persistent tracking of "Managed Artists" and automatic discovery of related artists.
 - **Modern FastAPI**: Transitioned to the `lifespan` context manager for robust resource handling.
-- **Improved Testing**: Expanded `pytest` suite to cover `QueueService` and library indexing logic.
+- **Improved Testing**: Expanded `pytest` suite to cover `QueueService`, `Orchestrator`, and library indexing logic.
+- **Enhanced Rust Bridge**: Search results now include rich metadata (size, bitrate, speed).
+- **Library Management**: New backend routes for manual album renaming and deletion; refined "Tidy" logic.
 
 ## [0.8.0]
 - Enhanced `Pydantic` request models with strict `Field` validation constraints to secure and structure API endpoint inputs.

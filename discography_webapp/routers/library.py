@@ -289,6 +289,19 @@ async def tidy_library(orch=Depends(get_orch)):
 
         artist_norm = re.sub(r'[^a-z0-9]', '', artist.lower())
         matched_dir = artist_dirs.get(artist_norm)
+
+        # Use refined Orchestrator aliases if no direct folder match
+        if not matched_dir:
+            from services.orchestrator import ARTIST_ALIASES
+            for short, full in ARTIST_ALIASES.items():
+                s_norm = re.sub(r'[^a-z0-9]', '', short.lower())
+                f_norm = re.sub(r'[^a-z0-9]', '', full.lower())
+                if artist_norm == s_norm or artist_norm == f_norm:
+                    # Check if either variant exists as a folder
+                    if s_norm in artist_dirs: matched_dir = artist_dirs[s_norm]
+                    elif f_norm in artist_dirs: matched_dir = artist_dirs[f_norm]
+                    break
+
         if not matched_dir:
             for norm, orig in artist_dirs.items():
                 if artist_norm in norm or norm in artist_norm:
@@ -358,3 +371,36 @@ async def deduplicate_library():
                     os.remove(fp)
                     removed += 1
     return {"removed": removed, "freed_mb": round(freed_mb, 1)}
+
+@router.post("/api/delete_album")
+async def delete_album(request: Request, orch=Depends(get_orch)):
+    data = await request.json()
+    artist = data.get('artist')
+    album = data.get('album')
+    if not artist or not album:
+        return {"error": "Missing artist or album"}
+
+    path = os.path.join("downloads", artist, album)
+    if os.path.isdir(path):
+        shutil.rmtree(path)
+        orch.invalidate_cache()
+        return {"message": f"Deleted {album}"}
+    return {"error": "Album folder not found"}
+
+@router.post("/api/rename_album")
+async def rename_album(request: Request, orch=Depends(get_orch)):
+    data = await request.json()
+    artist = data.get('artist')
+    old_name = data.get('old_name')
+    new_name = data.get('new_name')
+    if not all([artist, old_name, new_name]):
+        return {"error": "Missing parameters"}
+
+    old_path = os.path.join("downloads", artist, old_name)
+    new_path = os.path.join("downloads", artist, new_name)
+
+    if os.path.isdir(old_path) and not os.path.exists(new_path):
+        os.rename(old_path, new_path)
+        orch.invalidate_cache()
+        return {"message": f"Renamed to {new_name}"}
+    return {"error": "Rename failed"}
