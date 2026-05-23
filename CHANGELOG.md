@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.9.6]
+- **Codified AI Protocol**: Integrated the Autonomous AI Development Protocol into the core codebase via `ProtocolService`.
+- **System Maintenance UI**: Added a new dashboard panel for triggering repo sync, branch reconciliation, and roadmap extraction.
+- **Interactive Library Management**: Fully wired backend rename/delete endpoints to the UI with interactive confirmation dialogs.
+- **Robust Path Handling**: Improved virtual environment and path resolution in batch scripts and library organization logic.
+
 ## [0.9.5]
 - **Pilot Integration Protocol**: Successfully executed pilot integration test verifying health, config, scanning, and managed artist persistence.
 - **Security & Safety**: Implemented `is_safe_path` validation for all file-system modifying API endpoints (rename, delete, organize) to prevent path traversal vulnerabilities.

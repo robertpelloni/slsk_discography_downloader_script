@@ -1,12 +1,17 @@
 # Handoff - v0.9.5
 
 ## Status
-- **Current Version**: 0.9.5
+- **Current Version**: 0.9.6
 - **Modularization**: Complete.
 - **Rust Search Bridge**: Functional and Integrated.
 - **Neural Sentinel**: Functional and Integrated.
-- **Library Management**: Integrated with Path Safety.
+- **Library Management**: Fully Wired and Interactive.
+- **AI Protocol**: Codified and Integrated.
 - **Pilot Test**: Passed.
+
+## Major Changes in 0.9.6
+1. **Codified Protocol**: Autonomous maintenance tasks are now available via `/api/maintenance`.
+2. **Interactive Library**: UI now supports renaming and deleting albums.
 
 ## Major Changes in 0.9.5
 1. **Pilot Integration**: Added `tests/pilot_autonomous_test.py` for end-to-end API validation.

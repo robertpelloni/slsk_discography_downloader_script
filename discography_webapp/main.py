@@ -35,6 +35,7 @@ from services.event_bus import EventBus
 from dependencies import orchestrators, get_orchestrator as deps_get_orchestrator
 from routers.core import router as core_router
 from routers.library import router as library_router
+from routers.protocol import router as protocol_router
 
 # Event bus
 event_bus = EventBus()
@@ -78,6 +79,7 @@ app.mount("/downloads", StaticFiles(directory=DOWNLOADS_DIR), name="downloads")
 # Register Routers
 app.include_router(core_router)
 app.include_router(library_router)
+app.include_router(protocol_router)
 
 def get_orchestrator(user_id: int = 1):
     return deps_get_orchestrator(event_bus, user_id)

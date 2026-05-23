@@ -284,6 +284,22 @@
         </div>
     </div>
 
+    <!-- System Maintenance -->
+    <div class="card">
+        <div class="settings-toggle" onclick="this.nextElementSibling.classList.toggle('open'); this.classList.toggle('open')">
+            <div class="card-title" style="margin-bottom: 0;">System Maintenance (AI Protocol)</div>
+        </div>
+        <div class="settings-body">
+            <p style="font-size: 12px; color: var(--text2); margin-bottom: 12px;">Codified Autonomous AI Development Protocol actions.</p>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn btn-ghost btn-sm" onclick="runMaintenance('/api/maintenance/sync', 'Syncing repository...')">🔄 Sync Repo</button>
+                <button class="btn btn-ghost btn-sm" onclick="runMaintenance('/api/maintenance/reconcile', 'Reconciling branches...')">Merge Branches</button>
+                <button class="btn btn-ghost btn-sm" onclick="runMaintenance('/api/maintenance/roadmap', 'Extracting roadmap...')">Update Roadmap</button>
+                <button class="btn btn-primary btn-sm" onclick="runMaintenance('/api/maintenance/full_protocol', 'Running full AI protocol...')">🚀 Full Protocol Refresh</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Settings (collapsed) -->
     <div class="card">
         <div class="settings-toggle" id="settingsToggle" onclick="toggleSettings()">
@@ -808,12 +824,19 @@ async function loadLibrary() {
         let html = '';
         d.artists.forEach((artist, idx) => {
             const albumCount = artist.albums.length;
-            html += `<div class="artist-entry" onclick="toggleArtist(${idx})" style="cursor: pointer; margin-bottom: 8px; padding: 6px 8px; border-radius: 4px; background: var(--bg2);">`;
-            html += `<strong style="font-size: 14px;">📁 ${artist.name}</strong> `;
-            html += `<span style="color: var(--text2); font-size: 12px;">${albumCount} album${albumCount !== 1 ? 's' : ''} · ${artist.total_tracks} tracks</span>`;
+            html += `<div class="artist-entry" style="margin-bottom: 8px; padding: 6px 8px; border-radius: 4px; background: var(--bg2);">`;
+            html += `<div style="cursor: pointer; display: flex; justify-content: space-between;" onclick="toggleArtist(${idx})">`;
+            html += `<span><strong style="font-size: 14px;">📁 ${artist.name}</strong> `;
+            html += `<span style="color: var(--text2); font-size: 12px;">${albumCount} album${albumCount !== 1 ? 's' : ''} · ${artist.total_tracks} tracks</span></span>`;
+            html += `</div>`;
             html += `<div id="artist-${idx}" style="display: none; margin-top: 8px; margin-left: 20px;">`;
             artist.albums.forEach(album => {
-                html += `<div style="font-size: 13px; padding: 3px 0; border-bottom: 1px solid var(--border);">🎵 ${album.name} <span style="color: var(--text2)">(${album.tracks})</span></div>`;
+                html += `<div style="font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">`;
+                html += `<span>🎵 ${album.name} <span style="color: var(--text2)">(${album.tracks})</span></span>`;
+                html += `<div style="display: flex; gap: 4px;">`;
+                html += `<button class="btn btn-ghost btn-sm" style="padding: 2px 6px;" onclick="renameAlbum('${artist.name}', '${album.name}')">✎</button>`;
+                html += `<button class="btn btn-ghost btn-sm" style="padding: 2px 6px; color: var(--danger);" onclick="deleteAlbum('${artist.name}', '${album.name}')">🗑</button>`;
+                html += `</div></div>`;
             });
             html += '</div></div>';
         });
@@ -821,9 +844,51 @@ async function loadLibrary() {
     } catch(e) { $('libraryContent').innerHTML = '<p style="color: red">Error loading library.</p>'; }
 }
 
+async function renameAlbum(artist, oldName) {
+    const newName = prompt(`Rename "${oldName}" to:`, oldName);
+    if (!newName || newName === oldName) return;
+    try {
+        const r = await fetch('/api/rename_album', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ artist, old_name: oldName, new_name: newName })
+        });
+        const d = await r.json();
+        if (d.message) { appendLog(d.message); loadLibrary(); }
+        else { alert(d.error || 'Rename failed'); }
+    } catch(e) { alert('Error: ' + e); }
+}
+
+async function deleteAlbum(artist, album) {
+    if (!confirm(`Permanently delete "${album}" by ${artist}?`)) return;
+    try {
+        const r = await fetch('/api/delete_album', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ artist, album })
+        });
+        const d = await r.json();
+        if (d.message) { appendLog(d.message); loadLibrary(); }
+        else { alert(d.error || 'Delete failed'); }
+    } catch(e) { alert('Error: ' + e); }
+}
+
+async function runMaintenance(url, msg) {
+    appendLog(msg);
+    try {
+        const r = await fetch(url, { method: 'POST' });
+        const d = await r.json();
+        appendLog('✨ ' + d.message);
+    } catch(e) { appendLog('❌ Maintenance failed: ' + e); }
+}
+
 function toggleArtist(idx) {
     const el = $('artist-' + idx);
+    if (!el) return;
     el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function toggleTreeArtist(idx) {
+    const artistCb = $('treeRoot').querySelectorAll('ul > li > label > input[type="checkbox"]')[idx];
+    document.querySelectorAll(`.album-check-${idx}`).forEach(cb => cb.checked = artistCb.checked);
 }
 
 // ─── Tree rendering ────────────────────────────────────────────
@@ -831,7 +896,7 @@ function renderTree(tree) {
     if (!tree) { $('treeRoot').innerHTML = 'No results.'; return; }
     let html = '<ul>';
     tree.forEach((artist, ai) => {
-        html += `<li><label><input type="checkbox" checked onchange="toggleArtist(${ai})"> <span class="artist-name">${artist.name}</span></label><ul>`;
+        html += `<li><label><input type="checkbox" checked onchange="toggleTreeArtist(${ai})"> <span class="artist-name">${artist.name}</span></label><ul>`;
         artist.albums.forEach(album => {
             const chk = album.exists_locally ? '' : 'checked';
             const cls = album.exists_locally ? 'exists' : '';
@@ -844,15 +909,6 @@ function renderTree(tree) {
     $('treeRoot').innerHTML = html;
 }
 
-window.toggleArtist = function(i) {
-    const on = document.querySelector(`#treeRoot input[type="checkbox"]`).checked; // artist checkbox
-    document.querySelectorAll(`.album-check-${i}`).forEach(cb => {
-        // Find the artist checkbox for this group
-    });
-    // Simpler: just find the artist checkbox by its position
-    const artistCb = $('treeRoot').querySelectorAll('ul > li > label > input[type="checkbox"]')[i];
-    document.querySelectorAll(`.album-check-${i}`).forEach(cb => cb.checked = artistCb.checked);
-};
 
 function getSelection() {
     if (!scanResult) return null;
