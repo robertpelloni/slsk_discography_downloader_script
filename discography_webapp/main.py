@@ -91,7 +91,7 @@ async def index(request: Request):
     if os.path.exists(version_file):
         with open(version_file, "r") as f:
             version = f.read().strip()
-    return templates.TemplateResponse(request=request, name="index.html", context={"version": version})
+    return templates.TemplateResponse(request=request, name="index.html", context={"request": request, "version": version})
 
 # ─── API Routes (Remaining) ─────────────────────────────────────
 

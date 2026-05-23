@@ -186,6 +186,7 @@ class Orchestrator:
         self.blacklisted_users = set()
         self._existing_cache = None
         self._attempted_albums = set()  # Track (artist_norm, album_norm) to skip dupes
+        self.rust_slsk = None
         self.slsk_user = self.config_service.get('slsk_user', '')
         self.slsk_pass = self.config_service.get('slsk_pass', '')
 
@@ -879,9 +880,8 @@ class Orchestrator:
                 if RUST_AVAILABLE:
                     self.logger.info("Rust P2P Search Bridge available. Initializing boost...")
                     from .rust_soulseek import RustSoulseekService
-                    rust_slsk = RustSoulseekService(slsk_user, slsk_pass)
-                    await rust_slsk.connect()
-                    self.rust_slsk = rust_slsk
+                    self.rust_slsk = RustSoulseekService(slsk_user, slsk_pass)
+                    await self.rust_slsk.connect()
                 else:
                     self.rust_slsk = None
             except Exception as e:
@@ -1021,7 +1021,7 @@ class Orchestrator:
                     f"  Searching ({attempt+1}/{len(queries)}): {query}")
 
             # Rust Search Boost
-            if hasattr(self, 'rust_slsk') and self.rust_slsk:
+            if self.rust_slsk:
                 try:
                     self.logger.info("  (Using Rust Search Boost)")
                     results = await self.rust_slsk.search(query)

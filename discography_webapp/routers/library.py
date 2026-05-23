@@ -60,8 +60,8 @@ async def get_library():
             result.append({"name": artist_name, "albums": albums, "total_tracks": total})
     return {"artists": result}
 
-@router.post("/api/organize")
-async def organize_library(orch=Depends(get_orch)):
+@router.post("/api/organize_flat")
+async def organize_library_flat(orch=Depends(get_orch)):
     """Move all albums into Artist/Year - Album/ folders."""
     root = "downloads"
     moved = 0
@@ -83,6 +83,98 @@ async def organize_library(orch=Depends(get_orch)):
                     moved += 1
     orch.invalidate_cache()
     return {"moved": moved}
+
+@router.post("/api/organize_root")
+async def organize_root_files(orch=Depends(get_orch)):
+    """Organize flat files in the downloads/ root into Artist/Year - Album/ folders."""
+    root = "downloads"
+    moved = 0
+    skipped = 0
+    errors = 0
+    created = []
+
+    if not os.path.isdir(root):
+        return {"moved": 0}
+
+    # Build artist alias map (e.g. GMS -> Growling Mad Scientists)
+    artist_aliases = {}
+    for d in os.listdir(root):
+        dp = os.path.join(root, d)
+        if os.path.isdir(dp):
+            artist_aliases[d.lower()] = d
+
+    # Group root-level flat files by (artist, album)
+    album_groups = {}  # key: (artist, "YYYY - Album") -> list of files
+
+    for f in sorted(os.listdir(root)):
+        fp = os.path.join(root, f)
+        if not os.path.isfile(fp):
+            continue
+        ext = os.path.splitext(f)[1].lower()
+        if ext not in AUDIO_EXT:
+            continue
+        if os.path.getsize(fp) < 50 * 1024:
+            continue
+
+        name = os.path.splitext(f)[0]
+        name = re.sub(r'\s+\(\d+\)$', '', name)
+
+        m = re.match(r'^(.+?)\s*-\s*(\d{4})\s*-\s*(.+?)\s*-\s*\d+\s*-\s*(.+)$', name)
+        if m:
+            artist_raw = m.group(1).strip()
+            year = m.group(2)
+            album = m.group(3).strip()
+            album = re.sub(r'\s+\d+$', '', album)
+            key = (artist_raw, f"{year} - {album}")
+            album_groups.setdefault(key, []).append(f)
+            continue
+
+        m = re.match(r'^(.+?)\s*-\s*(\d{4})\s*-\s*(.+?)\s*-\s*\d+', name)
+        if m:
+            artist_raw = m.group(1).strip()
+            year = m.group(2)
+            album = m.group(3).strip()
+            key = (artist_raw, f"{year} - {album}")
+            album_groups.setdefault(key, []).append(f)
+            continue
+        skipped += 1
+
+    from services.orchestrator import ARTIST_ALIASES
+    def resolve_artist(raw_name):
+        raw_lower = raw_name.lower()
+        if raw_lower in artist_aliases:
+            return artist_aliases[raw_lower]
+        raw_norm = re.sub(r'[^a-z0-9]', '', raw_lower)
+        for alias_lower, alias_orig in artist_aliases.items():
+            alias_norm = re.sub(r'[^a-z0-9]', '', alias_lower)
+            if raw_norm == alias_norm or raw_norm in alias_norm or alias_norm in raw_norm:
+                return alias_orig
+        for short, full in ARTIST_ALIASES.items():
+            if raw_lower == short.lower() or raw_lower == full.lower():
+                if full.lower() in artist_aliases: return artist_aliases[full.lower()]
+                if short.lower() in artist_aliases: return artist_aliases[short.lower()]
+        return re.sub(r'[<>:"|?*]', '', raw_name)
+
+    for (artist_raw, album_key), files in sorted(album_groups.items()):
+        if len(files) < 2:
+            skipped += len(files)
+            continue
+        artist_folder = resolve_artist(artist_raw)
+        safe_key = re.sub(r'[<>:"|?*]', '', album_key).rstrip('. ')
+        album_dir = os.path.join(root, artist_folder, safe_key)
+        os.makedirs(album_dir, exist_ok=True)
+        for f in files:
+            fp_src = os.path.join(root, f)
+            dest = os.path.join(album_dir, re.sub(r'\s+\(\d+\)\.', '.', f))
+            try:
+                if os.path.exists(dest): os.remove(fp_src)
+                else: shutil.move(fp_src, dest)
+                moved += 1
+            except: errors += 1
+        created.append(f"{artist_folder}/{safe_key}")
+
+    orch.invalidate_cache()
+    return {"moved": moved, "skipped": skipped, "errors": errors, "created": created}
 
 @router.post("/api/organize_artist")
 async def organize_artist_files(request: Request, orch=Depends(get_orch)):
@@ -150,7 +242,7 @@ async def organize_by_tags(orch=Depends(get_orch)):
         return {"moved": 0}
 
     try:
-        import mutagen
+        import mutagen, mutagen.easyid3, mutagen.flac
     except ImportError:
         return {"moved": 0, "error": "mutagen not installed"}
 
@@ -372,6 +464,12 @@ async def deduplicate_library():
                     removed += 1
     return {"removed": removed, "freed_mb": round(freed_mb, 1)}
 
+def is_safe_path(path: str, base_dir: str = "downloads") -> bool:
+    """Ensure the path is within the base directory and prevent traversal."""
+    abs_base = os.path.abspath(base_dir)
+    abs_path = os.path.abspath(path)
+    return abs_path.startswith(abs_base)
+
 @router.post("/api/delete_album")
 async def delete_album(request: Request, orch=Depends(get_orch)):
     data = await request.json()
@@ -381,6 +479,9 @@ async def delete_album(request: Request, orch=Depends(get_orch)):
         return {"error": "Missing artist or album"}
 
     path = os.path.join("downloads", artist, album)
+    if not is_safe_path(path):
+        return {"error": "Access denied"}
+
     if os.path.isdir(path):
         shutil.rmtree(path)
         orch.invalidate_cache()
@@ -398,6 +499,9 @@ async def rename_album(request: Request, orch=Depends(get_orch)):
 
     old_path = os.path.join("downloads", artist, old_name)
     new_path = os.path.join("downloads", artist, new_name)
+
+    if not is_safe_path(old_path) or not is_safe_path(new_path):
+        return {"error": "Access denied"}
 
     if os.path.isdir(old_path) and not os.path.exists(new_path):
         os.rename(old_path, new_path)
