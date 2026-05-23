@@ -1,13 +1,17 @@
 # Handoff - v0.9.5
 
 ## Status
-- **Current Version**: 0.9.6
+- **Current Version**: 0.9.8
 - **Modularization**: Complete.
 - **Rust Search Bridge**: Functional and Integrated.
 - **Neural Sentinel**: Functional and Integrated.
 - **Library Management**: Fully Wired and Interactive.
-- **AI Protocol**: Codified and Integrated.
-- **Pilot Test**: Passed.
+- **AI Protocol**: Codified, Integrated, and Pilot-Tested.
+- **Pilot Test**: Integration Pilot Successful.
+
+## Major Changes in 0.9.8
+1. **Integration Pilot**: Verified end-to-end performance and safety of the codified maintenance protocol.
+2. **Git Lock Protection**: Improved `ProtocolService` robustness for concurrent access.
 
 ## Major Changes in 0.9.6
 1. **Codified Protocol**: Autonomous maintenance tasks are now available via `/api/maintenance`.

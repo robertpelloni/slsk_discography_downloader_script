@@ -48,6 +48,11 @@ class ProtocolService:
         """Step 2: Dual-Direction Intelligent Merge Engine."""
         self.logger.info("Starting Branch Reconciliation...")
 
+        # Ensure we are not in the middle of a merge
+        if os.path.exists(os.path.join(self.root_dir, ".git", "MERGE_HEAD")):
+            self.logger.warning("A merge is already in progress. Aborting reconciliation attempt.")
+            return
+
         # Identify local feature branches (excluding main and current)
         branches_raw = self._run_git(["branch"]).split("\n")
         current_branch = ""

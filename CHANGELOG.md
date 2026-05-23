@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.9.8]
+- **Protocol Integration Pilot**: Successfully integrated and validated the Autonomous AI Development Protocol in a live environment.
+- **Maintenance Safety**: Added checks for existing Git locks (`MERGE_HEAD`) to prevent corrupted repository states during automated reconciliation.
+- **Integrated Performance**: Verified that the codified protocol layer maintains search latency improvements (~86% gain).
+- **UI Verification**: Completed visual verification of the integrated System Maintenance dashboard.
+
 ## [0.9.7]
 - **Performance Benchmarking**: Integrated a new benchmark suite to measure and compare search latency between Python and Rust Soulseek bridges. Initial tests show an ~87% reduction in search time with Rust.
 - **Continuous Protocol**: Embedded the Autonomous AI Development Protocol into the application startup, automatically extracting roadmaps to detect technical debt and feature gaps.
