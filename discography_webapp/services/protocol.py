@@ -101,8 +101,9 @@ class ProtocolService:
 
         # Sample logic: search for TODO comments in code
         try:
+            # Exclude data and pycache to avoid log/binary noise
             todos = subprocess.check_output(
-                ["grep", "-rI", "TODO", os.path.join(self.root_dir, "discography_webapp")],
+                ["grep", "-rI", "--exclude-dir=data", "--exclude-dir=__pycache__", "TODO", os.path.join(self.root_dir, "discography_webapp")],
                 text=True
             ).split("\n")
         except subprocess.CalledProcessError:

@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.0]
+- **Core Self-Directed Agent Framework**: Introduced autonomous planning and execution engine.
+- **Unified Maintenance Protocol**: Completed real-world repository sync and branch reconciliation.
+- **Scalable Architecture**: Fully modularized backend with dedicated routers for core, library, protocol, and agent services.
+- **Verified Stability**: Integrated 23-test suite covering all forensic and autonomous components.
+
 ## [0.9.9]
 - **AcoustID Audio Fingerprinting**: Integrated `pyacoustid` to identify unmatched files based on audio content.
 - **Performance Visualization**: Added live search benchmark visualization to the dashboard.

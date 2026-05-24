@@ -94,10 +94,16 @@ async def search_artist(request: SearchRequest, orch=Depends(get_orch)):
 async def scan_artist(request: ScanRequest, orch=Depends(get_orch)):
     result = await orch.scan_artists(request.artist_names, request.depth)
     # Auto-add main artists to managed list
+    # Use alias-aware normalization to ensure matches (e.g. GMS -> Growling Mad Scientists)
+    from services.orchestrator import normalize, normalize_artist_aliases
+
     for artist_node in result:
-        # We only auto-add depth 0 artists (the ones requested)
-        if artist_node['name'] in request.artist_names:
-            await orch.add_managed_artist(artist_node['id'], artist_node['name'])
+        node_norm = normalize(artist_node['name'])
+        for req_name in request.artist_names:
+            # Check if the returned artist name is an alias of the requested name
+            if node_norm in normalize_artist_aliases(req_name):
+                await orch.add_managed_artist(artist_node['id'], artist_node['name'])
+                break
     return {"tree": result}
 
 @router.post("/api/test_search")
