@@ -37,6 +37,7 @@ from routers.protocol import router as protocol_router
 from routers.benchmark import router as benchmark_router
 from routers.agent import router as agent_router
 from services.protocol import ProtocolService
+from services.agent import AgentService
 
 # Event bus
 event_bus = EventBus()
@@ -55,11 +56,19 @@ async def lifespan(app: FastAPI):
 
     event_bus.subscribe('log', handle_log_event)
 
-    # Optional: Run Roadmap extraction on startup to detect gaps
+    # Optional: Run Roadmap extraction and Agent cycle on startup to detect gaps
     try:
         orch = deps_get_orchestrator(event_bus)
         protocol = ProtocolService(orch.logger)
-        asyncio.create_task(protocol.extract_roadmap())
+        agent = AgentService(orch, protocol, orch.logger)
+
+        async def startup_maintenance():
+            await protocol.extract_roadmap()
+            # Wait a moment for roadmap to be written before agent cycle
+            await asyncio.sleep(2)
+            await agent.run_cycle()
+
+        asyncio.create_task(startup_maintenance())
     except Exception:
         pass
 
