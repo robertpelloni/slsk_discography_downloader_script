@@ -38,7 +38,8 @@ async def test_pilot_autonomous_protocol():
             "artist_names": ["GMS"],
             "depth": 0 # Depth 0 for speed in pilot
         }
-        resp = await client.post("/api/scan", json=scan_payload)
+        # Increase timeout for scan as it hits external APIs
+        resp = await client.post("/api/scan", json=scan_payload, timeout=60.0)
         assert resp.status_code == 200
         scan_result = resp.json()
         assert "tree" in scan_result

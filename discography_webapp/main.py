@@ -8,8 +8,6 @@ import asyncio
 import os
 import json
 import sys
-import time
-from typing import Optional
 
 try:
     from dotenv import load_dotenv
@@ -32,7 +30,7 @@ os.environ["PATH"] = bin_path + os.pathsep + os.environ["PATH"]
 
 from services.logger import manager
 from services.event_bus import EventBus
-from dependencies import orchestrators, get_orchestrator as deps_get_orchestrator
+from dependencies import USER_ID, orchestrators, get_orchestrator as deps_get_orchestrator
 from routers.core import router as core_router
 from routers.library import router as library_router
 from routers.protocol import router as protocol_router
@@ -107,42 +105,6 @@ async def index(request: Request):
             version = f.read().strip()
     return templates.TemplateResponse(request=request, name="index.html", context={"request": request, "version": version})
 
-# ─── API Routes (Remaining) ─────────────────────────────────────
-
-@app.get("/api/status")
-async def get_status():
-    orch = get_orchestrator()
-    progress_data = []
-    for target_dir, data in orch.album_tracker.items():
-        meta = data['metadata']
-        total = data['total']
-        done = data['done']
-        pct = (done / total * 100) if total > 0 else 0
-        elapsed = time.time() - data.get('start_time', time.time())
-        speed = ""
-        if done > 0 and elapsed > 0:
-            rate = done / elapsed
-            remaining = (total - done) / rate if rate > 0 else 0
-            speed = f"{rate:.1f} f/s, {int(remaining)}s left"
-
-        progress_data.append({
-            "album": meta['album'],
-            "artist": meta['artist'],
-            "total": total,
-            "done": done,
-            "percent": round(pct, 1),
-            "speed": speed
-        })
-
-    return {
-        "is_running": orch.is_running,
-        "is_paused": orch.is_paused,
-        "current_artist": orch.current_artist,
-        "progress": progress_data,
-        "queue_size": len(orch.queue_service.queue),
-        "completed_count": len(orch.queue_service.completed_albums)
-    }
-
 # ─── WebSockets ────────────────────────────────────────────────
 
 @app.websocket("/ws/{user_id}")
@@ -153,6 +115,9 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
             await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(websocket, user_id)
+    except Exception:
+        manager.disconnect(websocket, user_id)
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port)

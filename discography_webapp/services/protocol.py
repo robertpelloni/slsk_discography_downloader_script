@@ -102,7 +102,7 @@ class ProtocolService:
         # Sample logic: search for TODO comments in code
         try:
             todos = subprocess.check_output(
-                ["grep", "-r", "TODO", os.path.join(self.root_dir, "discography_webapp")],
+                ["grep", "-rI", "TODO", os.path.join(self.root_dir, "discography_webapp")],
                 text=True
             ).split("\n")
         except subprocess.CalledProcessError:
