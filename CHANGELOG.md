@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.9.9]
+- **AcoustID Audio Fingerprinting**: Integrated `pyacoustid` to identify unmatched files based on audio content.
+- **Performance Visualization**: Added live search benchmark visualization to the dashboard.
+- **Comprehensive Documentation**: Released `MANUAL.md` covering search boosts, audio forensics, and AI protocols.
+- **Refined Unit Testing**: Increased test coverage with dedicated AcoustID and protocol verification suites.
+
 ## [0.9.8]
 - **Protocol Integration Pilot**: Successfully integrated and validated the Autonomous AI Development Protocol in a live environment.
 - **Maintenance Safety**: Added checks for existing Git locks (`MERGE_HEAD`) to prevent corrupted repository states during automated reconciliation.

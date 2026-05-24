@@ -284,6 +284,23 @@
         </div>
     </div>
 
+    <!-- Performance Metrics -->
+    <div class="card">
+        <div class="settings-toggle" onclick="this.nextElementSibling.classList.toggle('open'); this.classList.toggle('open')">
+            <div class="card-title" style="margin-bottom: 0;">Performance Metrics (Search Boost)</div>
+        </div>
+        <div class="settings-body">
+            <p style="font-size: 12px; color: var(--text2); margin-bottom: 12px;">Compare Python aioslsk search latency vs. Rust FFI bridge.</p>
+            <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                <input type="text" class="input" id="benchQuery" placeholder="Benchmark Query" style="max-width: 200px;">
+                <button class="btn btn-primary btn-sm" onclick="runBenchmark()">Run Benchmark</button>
+            </div>
+            <div id="benchResult" style="font-size: 13px;">
+                <p style="color: var(--text2)">No benchmark data yet.</p>
+            </div>
+        </div>
+    </div>
+
     <!-- System Maintenance -->
     <div class="card">
         <div class="settings-toggle" onclick="this.nextElementSibling.classList.toggle('open'); this.classList.toggle('open')">
@@ -878,6 +895,34 @@ async function runMaintenance(url, msg) {
         const d = await r.json();
         appendLog('✨ ' + d.message);
     } catch(e) { appendLog('❌ Maintenance failed: ' + e); }
+}
+
+async function runBenchmark() {
+    const q = $('benchQuery').value || 'Infected Mushroom';
+    $('benchResult').innerHTML = '<p>Running search benchmark...</p>';
+    try {
+        const r = await fetch(`/api/benchmark?query=${encodeURIComponent(q)}`);
+        const d = await r.json();
+
+        let html = '<table style="width: 100%; border: 1px solid var(--border);">';
+        html += '<thead><tr><th>Implementation</th><th>Latency</th><th>Results</th></tr></thead><tbody>';
+
+        if (d.python) {
+            const py = d.python;
+            html += `<tr><td>Python (aioslsk)</td><td>${py.duration || py.error}s</td><td>${py.count || 0}</td></tr>`;
+        }
+        if (d.rust) {
+            const rs = d.rust;
+            html += `<tr><td>Rust (FFI Bridge)</td><td>${rs.duration || rs.error}s</td><td>${rs.count || 0}</td></tr>`;
+        }
+        html += '</tbody></table>';
+
+        if (d.improvement_percent) {
+            html += `<div style="margin-top: 10px; font-weight: 600; color: var(--success);">🚀 Rust Speedup: ${d.improvement_percent}%</div>`;
+        }
+
+        $('benchResult').innerHTML = html;
+    } catch(e) { $('benchResult').innerHTML = `<p style="color: var(--danger)">Benchmark failed: ${e}</p>`; }
 }
 
 function toggleArtist(idx) {

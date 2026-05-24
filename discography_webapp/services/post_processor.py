@@ -7,6 +7,7 @@ import subprocess
 from typing import Optional
 
 import mutagen
+from .acoustid_service import AcoustidService
 from mutagen.easyid3 import EasyID3
 from mutagen.flac import FLAC, Picture
 from mutagen.id3 import APIC, USLT
@@ -22,6 +23,13 @@ class PostProcessor:
         self.mb_service = mb_service
         self.config_service = config_service
         self.logger = logger
+        self.acoustid_service = None
+
+    def _get_acoustid(self):
+        if not self.acoustid_service:
+            api_key = self.config_service.get('acoustid_api_key', '')
+            self.acoustid_service = AcoustidService(api_key, self.logger)
+        return self.acoustid_service
 
     async def process_album(self, target_dir, metadata):
         """Post-process a downloaded album: rename files, tag, fetch cover art & lyrics."""
@@ -70,6 +78,29 @@ class PostProcessor:
 
         # 3. Match files to tracks
         matched = self._match_files_to_tracks(local_files, tracks, target_dir)
+
+        # 3b. Try AcoustID for unmatched files if enabled
+        if self.config_service.get('acoustid_enabled', False):
+            matched_files = {m[0] for m in matched}
+            unmatched = [f for f in local_files if f not in matched_files]
+            if unmatched:
+                self.logger.info(f"Attempting AcoustID identification for {len(unmatched)} unmatched files...")
+                for f in unmatched:
+                    ac_match = await self._get_acoustid().identify_file(os.path.join(target_dir, f))
+                    if ac_match:
+                        # Try to find this AcoustID recording ID in our MB track list
+                        mb_track = next((t for t in tracks if t.get('recording_id') == ac_match['recording_id']), None)
+                        if mb_track:
+                            self.logger.info(f"AcoustID matched {f} to MB track: {mb_track['title']}")
+                            matched.append((f, mb_track))
+                        elif self.config_service.get('acoustid_verify', False) == False:
+                            # If not strict, use AcoustID metadata even if not in this specific release
+                            self.logger.info(f"AcoustID identified {f} as {ac_match['title']} (not in current MB release)")
+                            matched.append((f, {
+                                'number': '0',
+                                'title': ac_match['title'],
+                                'recording_id': ac_match['recording_id']
+                            }))
 
         if not matched:
             self.logger.warning("No files could be matched to tracks. Leaving as-is.")
