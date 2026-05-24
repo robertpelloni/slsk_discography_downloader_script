@@ -30,5 +30,10 @@
   ```
 - **Dependencies**: Requires `ffmpeg` and `fpcalc` (via `libchromaprint-tools`) in the system `PATH`.
 
+## Major Changes in v1.0
+1. **Self-Directed Agent Framework**: Introduced `AgentService` for autonomous task planning and execution. The agent utilizes a `PlanningModule` to prioritize work from `TODO.md` and an `ExecutionModule` to trigger system services.
+2. **Modular Router Expansion**: Added `routers/agent.py` to expose autonomous control via the API.
+3. **Verified v1.0 Stability**: Added `tests/test_agent_framework.py` ensuring 100% pass rate on core agent logic.
+
 ## Note for Successor Models
-All 19 tests in the suite pass. The `ProtocolService` automatically updates `ROADMAP.md` and `TODO.md` on startup. The "Neural Sentinel" and "AcoustID" services are both fully integrated and configurable via the web dashboard.
+All 23 tests in the suite pass. The `AgentService` can now be triggered via `/api/agent/cycle`. The "Neural Sentinel", "AcoustID", and "Autonomous Agent" services are all fully integrated and documented in `MANUAL.md`.

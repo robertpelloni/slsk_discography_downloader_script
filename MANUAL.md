@@ -24,6 +24,12 @@ The system includes a codified maintenance protocol that keeps the codebase and 
 - **Sync & Reconcile:** Automatically merges feature branches and syncs with upstream changes.
 - **Roadmap Extraction:** Continuously analyzes the codebase to identify technical debt and future tasks.
 
+### 5. Core Self-Directed Agent Framework (v1.0)
+The application now features an autonomous agent capable of self-directed task management.
+- **Autonomous Planning:** Analyzes `TODO.md` and `ROADMAP.md` to prioritize objectives based on system state.
+- **Task Execution:** Programmatically triggers maintenance cycles, repository syncs, and documentation updates.
+- **Iterative Improvement:** Reviews its own execution outcomes and updates technical debt records.
+
 ---
 
 ## 🛠 Usage Guide

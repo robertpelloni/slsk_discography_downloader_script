@@ -677,7 +677,6 @@ class Orchestrator:
             # Skip if we already processed this exact artist in this scan batch
             if main['id'] in seen_ids:
                 continue
-            # Don't add to seen_ids here yet, the loop below will handle it
 
             related = []
             if depth > 0:
@@ -695,12 +694,15 @@ class Orchestrator:
 
             all_artists = [main] + related
             for artist in all_artists:
-                if artist['id'] in seen_ids:
+                aid = artist['id']
+                if aid in seen_ids:
                     continue
-                seen_ids.add(artist['id'])
+                seen_ids.add(aid)
+
                 self.logger.info(f"Fetching releases for {artist['name']}...")
                 rgs = await asyncio.to_thread(
-                    self.mb_service.get_discography, artist['id'])
+                    self.mb_service.get_discography, aid)
+
                 albums = []
                 for rg in rgs:
                     year = rg.get('first-release-date', '')[:4] or "Unknown"
@@ -713,8 +715,9 @@ class Orchestrator:
                         'exists_locally': existing is not None,
                         'track_count': existing['count'] if existing else 0
                     })
+
                 result_tree.append({
-                    'id': artist['id'],
+                    'id': aid,
                     'name': artist['name'],
                     'albums': albums
                 })
@@ -726,12 +729,10 @@ class Orchestrator:
         artists, then those with psytrance tags, then exact-name matches.
         """
         query_norm = normalize(query)
-        self.logger.info(f"Picking best artist for '{query}' from {len(artists)} results")
 
         # 1. High-confidence whitelist
         for a in artists:
             if normalize(a.get('name', '')) in KNOWN_PSYTRANCE_ARTISTS:
-                self.logger.info(f"  -> Selected '{a['name']}' (Whitelist match)")
                 return a
 
         # 1b. Disambiguation check for known abbreviations (e.g. GMS -> Growling Mad Scientists)
@@ -740,29 +741,24 @@ class Orchestrator:
                 full_norm = normalize(full)
                 for a in artists:
                     if normalize(a.get('name', '')) == full_norm:
-                        self.logger.info(f"  -> Selected '{a['name']}' (Alias disambiguation)")
                         return a
 
         # 2. Exact name match + genre check (Avoid ambiguity like GMS US Rapper)
         for a in artists:
             if normalize(a.get('name', '')) == query_norm and is_psytrance_artist(a):
-                self.logger.info(f"  -> Selected '{a['name']}' (Exact name + Genre match)")
                 return a
 
         # 3. Genre tag match (is_psytrance_artist returns has_positive and not has_negative)
         for a in artists:
             if is_psytrance_artist(a):
-                self.logger.info(f"  -> Selected '{a['name']}' (Genre tag match)")
                 return a
 
         # 4. Exact name match fallback
         for a in artists:
             if normalize(a.get('name', '')) == query_norm:
-                self.logger.info(f"  -> Selected '{a['name']}' (Exact name match fallback)")
                 return a
 
         # 5. Fallback to first result
-        self.logger.info(f"  -> Selected '{artists[0]['name']}' (First result fallback)")
         return artists[0]
 
     @staticmethod

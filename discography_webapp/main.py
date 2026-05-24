@@ -35,6 +35,7 @@ from routers.core import router as core_router
 from routers.library import router as library_router
 from routers.protocol import router as protocol_router
 from routers.benchmark import router as benchmark_router
+from routers.agent import router as agent_router
 from services.protocol import ProtocolService
 
 # Event bus
@@ -90,6 +91,7 @@ app.include_router(core_router)
 app.include_router(library_router)
 app.include_router(protocol_router)
 app.include_router(benchmark_router)
+app.include_router(agent_router)
 
 def get_orchestrator(user_id: int = 1):
     return deps_get_orchestrator(event_bus, user_id)
