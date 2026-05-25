@@ -1,11 +1,71 @@
 import asyncio
 import os
 import re
+import sqlite3
+import json
+import time
 from typing import List, Dict, Any, Optional
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DB_PATH = os.path.join(BASE_DIR, "data", "app.db")
+
+class LearningModule:
+    def __init__(self, logger, db_path: str = DB_PATH):
+        self.logger = logger
+        self.db_path = db_path
+        self._init_db()
+
+    def _init_db(self):
+        try:
+            os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS agent_experience (
+                        task_type TEXT,
+                        outcome TEXT,
+                        friction REAL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                conn.commit()
+        except Exception as e:
+            self.logger.error(f"LearningModule: DB init error: {e}")
+
+    def record_experience(self, task_type: str, outcome: str, duration: float):
+        """Log the outcome of a task to the experience database."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute(
+                    "INSERT INTO agent_experience (task_type, outcome, friction) VALUES (?, ?, ?)",
+                    (task_type, outcome, duration)
+                )
+                conn.commit()
+        except Exception as e:
+            self.logger.warning(f"LearningModule: Write error: {e}")
+
+    def get_friction_profile(self) -> Dict[str, float]:
+        """Calculate average friction (latency/failure rate) per task type."""
+        profile = {}
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                rows = conn.execute("""
+                    SELECT task_type, AVG(friction) as avg_friction,
+                    SUM(CASE WHEN outcome = 'failed' THEN 1 ELSE 0 END) * 1.0 / COUNT(*) as failure_rate
+                    FROM agent_experience
+                    GROUP BY task_type
+                """).fetchall()
+                for row in rows:
+                    # Friction score = avg_latency * (1 + failure_rate)
+                    profile[row['task_type']] = row['avg_friction'] * (1 + row['failure_rate'])
+        except Exception as e:
+            self.logger.warning(f"LearningModule: Read error: {e}")
+        return profile
+
 class PlanningModule:
-    def __init__(self, root_dir: str, logger):
+    def __init__(self, root_dir: str, learning_module: LearningModule, logger):
         self.root_dir = root_dir
+        self.learner = learning_module
         self.logger = logger
 
     def prioritize_objectives(self) -> List[Dict[str, Any]]:
@@ -34,8 +94,18 @@ class PlanningModule:
                     if "- [ ]" in line:
                         objectives.append({"task": f"Roadmap: {line.strip()[6:]}", "priority": 3, "type": "milestone"})
 
+        # 3. Apply Learned Insights (Self-Learning Loop)
+        friction_profile = self.learner.get_friction_profile()
+        for obj in objectives:
+            # If a task type has high friction (recurring failure/high latency), boost its priority
+            # to address technical debt faster.
+            friction = friction_profile.get(obj['type'], 0.0)
+            if friction > 5.0: # Arbitrary threshold for "high friction"
+                self.logger.info(f"PlanningModule: Boosting {obj['type']} priority due to learned friction ({friction:.2f})")
+                obj['priority'] -= 1
+
         # Sort by priority
-        objectives.sort(key=lambda x: x['priority'])
+        objectives.sort(key=lambda x: (x['priority'], -friction_profile.get(x['type'], 0)))
         return objectives
 
 class ExecutionModule:
@@ -44,36 +114,48 @@ class ExecutionModule:
         self.protocol = protocol_service
         self.logger = logger
 
-    async def execute_task(self, objective: Dict[str, Any]) -> bool:
+    async def execute_task(self, objective: Dict[str, Any]) -> Dict[str, Any]:
         """Map objective types to system actions."""
         self.logger.info(f"Agent executing: {objective['task']}")
+        start_time = time.time()
 
         try:
+            success = False
             if objective['type'] == 'functional':
                 # Example: If search task, maybe trigger a maintenance sync first
                 # sync_repository is an async method
                 await self.protocol.sync_repository()
-                return True
+                success = True
 
             elif objective['type'] == 'milestone':
                 # Trigger roadmap extraction to update status
                 await self.protocol.extract_roadmap()
-                return True
+                success = True
 
             elif objective['type'] == 'docs':
                 self.logger.info("Agent: Analyzing documentation needs...")
-                return True
+                success = True
 
-            return False
+            duration = time.time() - start_time
+            return {
+                "success": success,
+                "duration": duration,
+                "type": objective['type']
+            }
         except Exception as e:
             self.logger.error(f"Agent execution error: {e}")
-            return False
+            return {
+                "success": False,
+                "duration": time.time() - start_time,
+                "type": objective['type']
+            }
 
 class AgentService:
-    def __init__(self, orchestrator, protocol_service, logger):
+    def __init__(self, orchestrator, protocol_service, logger, db_path: str = DB_PATH, root_dir: Optional[str] = None):
         self.logger = logger
-        self.root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        self.planner = PlanningModule(self.root_dir, logger)
+        self.root_dir = root_dir or os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        self.learner = LearningModule(logger, db_path=db_path)
+        self.planner = PlanningModule(self.root_dir, self.learner, logger)
         self.executor = ExecutionModule(orchestrator, protocol_service, logger)
         self.is_busy = False
 
@@ -94,10 +176,20 @@ class AgentService:
 
             # 2. Execute (Handle top 2 for now to prevent runaway loops)
             for obj in objectives[:2]:
-                success = await self.executor.execute_task(obj)
-                results["tasks_executed"].append({"task": obj["task"], "success": success})
+                execution_result = await self.executor.execute_task(obj)
+                results["tasks_executed"].append({
+                    "task": obj["task"],
+                    "success": execution_result["success"]
+                })
 
-            # 3. Review (Re-run protocol to update workspace state)
+                # 3. Learn (Self-Learning Loop)
+                self.learner.record_experience(
+                    task_type=execution_result["type"],
+                    outcome="success" if execution_result["success"] else "failed",
+                    duration=execution_result["duration"]
+                )
+
+            # 4. Review (Re-run protocol to update workspace state)
             self.logger.info("Agent cycle review: updating technical debt...")
             await self.protocol_review()
 

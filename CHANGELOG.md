@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.0]
+- **Self-Learning Agent Module**: Integrated a new `LearningModule` that tracks task friction (latency/failure) in an experience log.
+- **Dynamic Prioritization**: Updated `PlanningModule` to autonomously boost the priority of high-friction task types.
+- **Adaptive Execution**: Enhanced the autonomous cycle with friction-aware execution and automatic technical debt reconciliation.
+- **Refined Test Suite**: Expanded framework tests to verify the priority-boosting logic and learned experience persistence.
+
 ## [1.0.0]
 - **Core Self-Directed Agent Framework**: Introduced autonomous planning and execution engine.
 - **Unified Maintenance Protocol**: Completed real-world repository sync and branch reconciliation.
