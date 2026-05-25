@@ -53,11 +53,12 @@ ARTIST_ALIASES = {
 # Psytrance / electronic tags for genre filtering of related artists
 PSYTRANCE_TAGS = {
     'psytrance', 'psychedelic trance', 'psychedelic', 'goa trance',
-    'goa', 'trance', 'electronic', 'techno', 'psy', 'full-on',
+    'goa', 'trance', 'techno', 'psy', 'full-on', 'full on',
     'progressive trance', 'darkpsy', 'suomisaundi', 'hi-tech',
     'psychill', 'downtempo', 'ambient', 'chillout', 'tribal',
     'industrial', 'hardcore', 'gabber', 'frenchcore',
-    'electronica', 'edm', 'dance', 'hard trance',
+    'electronica',
+    # Note: 'electronic', 'edm', 'dance' removed — too broad, matches synthpop/house
 }
 
 # Tags that represent a radical departure from the target scene
@@ -71,7 +72,7 @@ DISALLOWED_TAGS = {
 }
 
 # Names that exist in both psy/electronic and unrelated genres
-AMBIGUOUS_NAMES = {'chicago', 'avalon', 'quintessence', 'truth', 'esp', 'hydra'}
+AMBIGUOUS_NAMES = {'chicago', 'avalon', 'quintessence', 'truth', 'esp', 'hydra', 'volcano', 'outsiders', 'overlords', 'alien', 'slinky', 'lo-fi', 'sandman', 'delta', 'oasis'}
 
 # Artists known to be in the psytrance/electronic scene, even if MB tags are sparse
 # Built lazily via function to avoid forward-reference issues with normalize()
