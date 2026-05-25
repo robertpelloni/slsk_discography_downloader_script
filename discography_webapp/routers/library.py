@@ -14,8 +14,7 @@ AUDIO_EXT = {'.mp3', '.flac', '.m4a', '.ogg', '.wav'}
 
 @router.get("/api/stats")
 async def get_stats(orch=Depends(get_orch)):
-    orch.invalidate_cache()
-    index = orch._build_existing_index()
+    index = orch._build_existing_index()  # Uses cached index
     organized = 0
     flat = 0
     total_files = 0
