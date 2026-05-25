@@ -1,0 +1,108 @@
+{
+  "version": "0.99.1",
+  "timestamp": 1779729048145,
+  "sessionId": "current",
+  "stats": {
+    "totalCount": 8,
+    "sessionCount": 4,
+    "workingCount": 4,
+    "longTermCount": 0,
+    "observationCount": 4,
+    "uniqueObservationCount": 4,
+    "promptCount": 0,
+    "sessionSummaryCount": 0,
+    "session": 4,
+    "working": 4,
+    "long_term": 0,
+    "user": 0,
+    "agent": 0,
+    "project": 8,
+    "discovery": 2,
+    "decision": 0,
+    "progress": 0,
+    "warning": 2,
+    "fix": 0
+  },
+  "recentContext": [
+    {
+      "content": "JIT tool context for read_file:\nFocus query: read_file package.json\nRelevant files: package.json, .\nPotentially relevant observations:\n- list_directory completed — list_directory completed in 3ms. { \"content\": [] } (discovery · list_directory)\nUse only the parts that still match the current intent; ignore stale context.",
+      "metadata": {
+        "source": "pre_tool_context",
+        "tags": [
+          "tool-context",
+          "pre-tool",
+          "read_file"
+        ],
+        "toolName": "read_file",
+        "query": "read_file package.json",
+        "matchedPaths": [
+          "package.json",
+          "."
+        ],
+        "observationCount": 1,
+        "summaryCount": 0,
+        "preview": "JIT context: 1 observation · 2 file hits"
+      }
+    },
+    {
+      "content": "JIT tool context for list_directory:\nFocus query: list_directory .\nRelevant files: .\nNo strongly relevant prior memory was found for this tool call.",
+      "metadata": {
+        "source": "pre_tool_context",
+        "tags": [
+          "tool-context",
+          "pre-tool",
+          "list_directory"
+        ],
+        "toolName": "list_directory",
+        "query": "list_directory .",
+        "matchedPaths": [
+          "."
+        ],
+        "observationCount": 0,
+        "summaryCount": 0,
+        "preview": "JIT context: 1 file hit"
+      }
+    },
+    {
+      "content": "JIT tool context for list_directory:\nFocus query: list_directory .\nRelevant files: ., package.json\nPotentially relevant observations:\n- list_directory completed — list_directory completed in 3ms. { \"content\": [] } (discovery · list_directory)\n- read_file completed — read_file completed in 3ms. { \"content\": [] } (discovery · read_file)\nUse only the parts that still match the current intent; ignore stale context.",
+      "metadata": {
+        "source": "pre_tool_context",
+        "tags": [
+          "tool-context",
+          "pre-tool",
+          "list_directory"
+        ],
+        "toolName": "list_directory",
+        "query": "list_directory .",
+        "matchedPaths": [
+          ".",
+          "package.json"
+        ],
+        "observationCount": 2,
+        "summaryCount": 0,
+        "preview": "JIT context: 2 observations · 2 file hits"
+      }
+    },
+    {
+      "content": "JIT tool context for list_directory:\nFocus query: list_directory .\nRelevant files: ., package.json\nPotentially relevant observations:\n- list_directory failed — list_directory failed after 3ms. Council Denied Execution: [Council consensus stub] (warning · list_directory)\n- list_directory completed — list_directory completed in 3ms. { \"content\": [] } (discovery · list_directory)\n- read_file completed — read_file completed in 3ms. { \"content\": [] } (discovery · read_file)\nUse only the parts that still match the current intent; ignore stale context.",
+      "metadata": {
+        "source": "pre_tool_context",
+        "tags": [
+          "tool-context",
+          "pre-tool",
+          "list_directory"
+        ],
+        "toolName": "list_directory",
+        "query": "list_directory .",
+        "matchedPaths": [
+          ".",
+          "package.json"
+        ],
+        "observationCount": 3,
+        "summaryCount": 0,
+        "preview": "JIT context: 3 observations · 2 file hits"
+      }
+    }
+  ],
+  "notes": "Automatic background handoff"
+}

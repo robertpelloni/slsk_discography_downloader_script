@@ -11,9 +11,11 @@ class ConfigService:
     def __init__(self, user_id=None):
         self.user_id = user_id
         self.config: Dict[str, Any] = {
-            "slsk_user": "",
-            "slsk_pass": "",
-            "download_path": "downloads",
+            "slsk_user": os.environ.get("SLSK_USER", ""),
+            "slsk_pass": os.environ.get("SLSK_PASS", ""),
+            "slsk_boost_user": os.environ.get("SLSK_BOOST_USER", ""),
+            "slsk_boost_pass": os.environ.get("SLSK_BOOST_PASS", ""),
+            "download_path": os.environ.get("DOWNLOAD_PATH", "downloads"),
             "preferred_format": "flac",  # can be 'flac' or 'mp3'
             "acoustid_enabled": True,
             "acoustid_api_key": "8XaBELgH",  # default test key

@@ -67,6 +67,8 @@ class ManagedArtistRequest(BaseModel):
 class ConfigUpdateRequest(BaseModel):
     slsk_user: str
     slsk_pass: str
+    slsk_boost_user: Optional[str] = ""
+    slsk_boost_pass: Optional[str] = ""
     preferred_format: str
     acoustid_enabled: bool
     acoustid_api_key: str

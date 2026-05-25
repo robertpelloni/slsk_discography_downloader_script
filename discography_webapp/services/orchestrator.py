@@ -180,10 +180,9 @@ def is_psytrance_artist(artist_data):
     # 4. Side-project/collaborator safety net:
     # If they are connected to a known artist (detected via relation description in _filter_related_artists),
     # we allow them to stay even with NO tags, provided they don't have negative tags (checked above).
-    # Since this function only sees the artist data, we assume that if we are here
-    # and there are NO positive tags, it's only okay if it's a side project.
-    # Standard tag check:
-    return has_positive or (not tags)  # Permissive for sparsely-tagged artists
+    # Since this function only sees the artist data, we rely on the caller to handle the 
+    # side-project rule for artists with no tags.
+    return has_positive
 
 
 class Orchestrator:
@@ -943,14 +942,21 @@ class Orchestrator:
             self.logger.info("Connecting to Soulseek...")
             await self.slsk_service.connect(slsk_user, slsk_pass)
 
-            # Optional Rust Bridge Boost
+            # Optional Rust Bridge Boost — coordinated to avoid account kicking
             try:
                 from .rust_soulseek import RUST_AVAILABLE
                 if RUST_AVAILABLE:
-                    self.logger.info("Rust P2P Search Bridge available. Initializing boost...")
+                    # Prefer dedicated boost credentials to avoid kicking aioslsk
+                    boost_user = self.config_service.get('slsk_boost_user') or slsk_user
+                    boost_pass = self.config_service.get('slsk_boost_pass') or slsk_pass
+                    
                     from .rust_soulseek import RustSoulseekService
-                    self.rust_slsk = RustSoulseekService(slsk_user, slsk_pass)
-                    await self.rust_slsk.connect()
+                    self.rust_slsk = RustSoulseekService(boost_user, boost_pass)
+                    
+                    if boost_user == slsk_user:
+                        self.logger.info("Using primary account for Rust boost. Coordinated mode active.")
+                    else:
+                        self.logger.info(f"Using dedicated boost account: {boost_user}")
                 else:
                     self.rust_slsk = None
             except Exception as e:
@@ -1100,18 +1106,18 @@ class Orchestrator:
             else:
                 results = await self.slsk_service.search(query, timeout=timeout)
 
-                self.logger.info(f"  Got {len(results)} results")
+            self.logger.info(f"  Got {len(results)} results")
 
-                if not results:
-                    if attempt < len(queries) - 1:
-                        await asyncio.sleep(0.5)
-                    continue
+            if not results:
+                if attempt < len(queries) - 1:
+                    await asyncio.sleep(0.5)
+                continue
 
-                candidates = self._rank_candidates(results, artist_name=name)
-                if not candidates:
-                    if attempt < len(queries) - 1:
-                        await asyncio.sleep(0.5)
-                    continue
+            candidates = self._rank_candidates(results, artist_name=name)
+            if not candidates:
+                if attempt < len(queries) - 1:
+                    await asyncio.sleep(0.5)
+                continue
 
                 # Try top 5 candidates
                 for cidx, cand in enumerate(candidates[:5]):

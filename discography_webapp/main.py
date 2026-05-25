@@ -56,21 +56,21 @@ async def lifespan(app: FastAPI):
 
     event_bus.subscribe('log', handle_log_event)
 
-    # Optional: Run Roadmap extraction and Agent cycle on startup to detect gaps
-    try:
-        orch = deps_get_orchestrator(event_bus)
-        protocol = ProtocolService(orch.logger)
-        agent = AgentService(orch, protocol, orch.logger)
-
-        async def startup_maintenance():
-            await protocol.extract_roadmap()
-            # Wait a moment for roadmap to be written before agent cycle
-            await asyncio.sleep(2)
-            await agent.run_cycle()
-
-        asyncio.create_task(startup_maintenance())
-    except Exception:
-        pass
+    # Optional: Run Roadmap extraction and Agent cycle on startup
+    # DISABLED by default — these can block startup, overwrite files,
+    # and trigger git operations autonomously.  Use the API endpoints
+    # /api/agent/cycle and /api/maintenance/* to invoke on demand.
+    # try:
+    #     orch = deps_get_orchestrator(event_bus)
+    #     protocol = ProtocolService(orch.logger)
+    #     agent = AgentService(orch, protocol, orch.logger)
+    #     async def startup_maintenance():
+    #         await protocol.extract_roadmap()
+    #         await asyncio.sleep(2)
+    #         await agent.run_cycle()
+    #     asyncio.create_task(startup_maintenance())
+    # except Exception:
+    #     pass
 
     yield
     # Shutdown
@@ -119,7 +119,7 @@ async def index(request: Request):
 # ─── WebSockets ────────────────────────────────────────────────
 
 @app.websocket("/ws/{user_id}")
-async def websocket_endpoint(websocket: WebSocket, user_id: str):
+async def websocket_endpoint(websocket: WebSocket, user_id: int):
     await manager.connect(websocket, user_id)
     try:
         while True:

@@ -1,0 +1,339 @@
+{
+  "version": 1,
+  "savedAt": "2026-05-25T16:55:23.753Z",
+  "memories": [
+    {
+      "id": "9f1ceec33e4c382d",
+      "type": "working",
+      "namespace": "project",
+      "content": "list_directory completed\nlist_directory completed in 3ms. { \"content\": [] }\nFacts:\n- Tool: list_directory\n- Duration: 3ms\n- Files read: .\nFiles:\n- read: .",
+      "metadata": {
+        "source": "tool_execution",
+        "tags": [
+          "tool-execution",
+          "list_directory",
+          "success",
+          "list",
+          "directory",
+          "discovery"
+        ],
+        "durationMs": 3,
+        "success": true,
+        "structuredObservation": {
+          "type": "discovery",
+          "title": "list_directory completed",
+          "narrative": "list_directory completed in 3ms. { \"content\": [] }",
+          "facts": [
+            "Tool: list_directory",
+            "Duration: 3ms",
+            "Files read: ."
+          ],
+          "concepts": [
+            "tool-execution",
+            "list_directory",
+            "success",
+            "list",
+            "directory",
+            "discovery"
+          ],
+          "filesRead": [
+            "."
+          ],
+          "filesModified": [],
+          "toolName": "list_directory",
+          "contentHash": "1cb929939b4b2b151b8fb74b9c6d735375792a8c4e76a2cd0f2c3b457283930f",
+          "recordedAt": 1779643481364
+        },
+        "observationType": "discovery",
+        "observationHash": "1cb929939b4b2b151b8fb74b9c6d735375792a8c4e76a2cd0f2c3b457283930f",
+        "toolName": "list_directory",
+        "filesRead": [
+          "."
+        ],
+        "filesModified": [],
+        "rawInput": "{\n  \"path\": \".\"\n}",
+        "rawOutput": "{\n  \"content\": []\n}"
+      },
+      "createdAt": "2026-05-24T17:24:41.365Z",
+      "accessedAt": "2026-05-24T17:24:41.365Z",
+      "accessCount": 0
+    },
+    {
+      "id": "a2c73671d275991a",
+      "type": "working",
+      "namespace": "project",
+      "content": "read_file completed\nread_file completed in 3ms. { \"content\": [] }\nFacts:\n- Tool: read_file\n- Duration: 3ms\n- Files read: package.json\nFiles:\n- read: package.json",
+      "metadata": {
+        "source": "tool_execution",
+        "tags": [
+          "tool-execution",
+          "read_file",
+          "success",
+          "read",
+          "file",
+          "discovery"
+        ],
+        "durationMs": 3,
+        "success": true,
+        "structuredObservation": {
+          "type": "discovery",
+          "title": "read_file completed",
+          "narrative": "read_file completed in 3ms. { \"content\": [] }",
+          "facts": [
+            "Tool: read_file",
+            "Duration: 3ms",
+            "Files read: package.json"
+          ],
+          "concepts": [
+            "tool-execution",
+            "read_file",
+            "success",
+            "read",
+            "file",
+            "discovery"
+          ],
+          "filesRead": [
+            "package.json"
+          ],
+          "filesModified": [],
+          "toolName": "read_file",
+          "contentHash": "2288f93edd6617d6c4424f8377546aff429f95f450519f96af685ca2c917d81c",
+          "recordedAt": 1779643713684
+        },
+        "observationType": "discovery",
+        "observationHash": "2288f93edd6617d6c4424f8377546aff429f95f450519f96af685ca2c917d81c",
+        "toolName": "read_file",
+        "filesRead": [
+          "package.json"
+        ],
+        "filesModified": [],
+        "rawInput": "{\n  \"path\": \"package.json\"\n}",
+        "rawOutput": "{\n  \"content\": []\n}"
+      },
+      "createdAt": "2026-05-24T17:28:33.684Z",
+      "accessedAt": "2026-05-24T17:28:33.684Z",
+      "accessCount": 0
+    },
+    {
+      "id": "6cda3333888b4703",
+      "type": "working",
+      "namespace": "project",
+      "content": "list_directory failed\nlist_directory failed after 3ms. Council Denied Execution: [Council consensus stub]\nFacts:\n- Tool: list_directory\n- Duration: 3ms\n- Files read: .\n- Failure: Council Denied Execution: [Council consensus stub]\nFiles:\n- read: .",
+      "metadata": {
+        "source": "tool_execution",
+        "tags": [
+          "tool-execution",
+          "list_directory",
+          "failure",
+          "list",
+          "directory",
+          "warning"
+        ],
+        "durationMs": 3,
+        "success": false,
+        "structuredObservation": {
+          "type": "warning",
+          "title": "list_directory failed",
+          "narrative": "list_directory failed after 3ms. Council Denied Execution: [Council consensus stub]",
+          "facts": [
+            "Tool: list_directory",
+            "Duration: 3ms",
+            "Files read: .",
+            "Failure: Council Denied Execution: [Council consensus stub]"
+          ],
+          "concepts": [
+            "tool-execution",
+            "list_directory",
+            "failure",
+            "list",
+            "directory",
+            "warning"
+          ],
+          "filesRead": [
+            "."
+          ],
+          "filesModified": [],
+          "toolName": "list_directory",
+          "contentHash": "284beafd396e50b3a5a7329ec34863e781029e38e071629c93d9266f80ab2dc3",
+          "recordedAt": 1779646081313
+        },
+        "observationType": "warning",
+        "observationHash": "284beafd396e50b3a5a7329ec34863e781029e38e071629c93d9266f80ab2dc3",
+        "toolName": "list_directory",
+        "filesRead": [
+          "."
+        ],
+        "filesModified": [],
+        "rawInput": "{\n  \"path\": \".\"\n}",
+        "rawOutput": "{}"
+      },
+      "createdAt": "2026-05-24T18:08:01.314Z",
+      "accessedAt": "2026-05-24T18:08:01.314Z",
+      "accessCount": 0
+    },
+    {
+      "id": "b0a656f4fcf9620b",
+      "type": "working",
+      "namespace": "project",
+      "content": "list_directory failed\nlist_directory failed after 2ms. Council Denied Execution: [Council consensus stub]\nFacts:\n- Tool: list_directory\n- Duration: 2ms\n- Files read: .\n- Failure: Council Denied Execution: [Council consensus stub]\nFiles:\n- read: .",
+      "metadata": {
+        "source": "tool_execution",
+        "tags": [
+          "tool-execution",
+          "list_directory",
+          "failure",
+          "list",
+          "directory",
+          "warning"
+        ],
+        "durationMs": 2,
+        "success": false,
+        "structuredObservation": {
+          "type": "warning",
+          "title": "list_directory failed",
+          "narrative": "list_directory failed after 2ms. Council Denied Execution: [Council consensus stub]",
+          "facts": [
+            "Tool: list_directory",
+            "Duration: 2ms",
+            "Files read: .",
+            "Failure: Council Denied Execution: [Council consensus stub]"
+          ],
+          "concepts": [
+            "tool-execution",
+            "list_directory",
+            "failure",
+            "list",
+            "directory",
+            "warning"
+          ],
+          "filesRead": [
+            "."
+          ],
+          "filesModified": [],
+          "toolName": "list_directory",
+          "contentHash": "77484d0124a50fd9081a0d8664cc73780a0fac171909d2bc3380a63e34ab71a9",
+          "recordedAt": 1779647930366
+        },
+        "observationType": "warning",
+        "observationHash": "77484d0124a50fd9081a0d8664cc73780a0fac171909d2bc3380a63e34ab71a9",
+        "toolName": "list_directory",
+        "filesRead": [
+          "."
+        ],
+        "filesModified": [],
+        "rawInput": "{\n  \"path\": \".\"\n}",
+        "rawOutput": "{}"
+      },
+      "createdAt": "2026-05-24T18:38:50.366Z",
+      "accessedAt": "2026-05-24T18:38:50.366Z",
+      "accessCount": 0
+    },
+    {
+      "id": "434e2b532e3df443",
+      "type": "session",
+      "namespace": "project",
+      "content": "JIT tool context for list_directory:\nFocus query: list_directory .\nRelevant files: ., package.json\nPotentially relevant observations:\n- list_directory failed — list_directory failed after 3ms. Council Denied Execution: [Council consensus stub] (warning · list_directory)\n- list_directory completed — list_directory completed in 3ms. { \"content\": [] } (discovery · list_directory)\n- read_file completed — read_file completed in 3ms. { \"content\": [] } (discovery · read_file)\nUse only the parts that still match the current intent; ignore stale context.",
+      "metadata": {
+        "source": "pre_tool_context",
+        "tags": [
+          "tool-context",
+          "pre-tool",
+          "list_directory"
+        ],
+        "toolName": "list_directory",
+        "query": "list_directory .",
+        "matchedPaths": [
+          ".",
+          "package.json"
+        ],
+        "observationCount": 3,
+        "summaryCount": 0,
+        "preview": "JIT context: 3 observations · 2 file hits"
+      },
+      "createdAt": "2026-05-25T16:55:12.108Z",
+      "accessedAt": "2026-05-25T16:55:12.108Z",
+      "accessCount": 0,
+      "ttl": 1800000
+    },
+    {
+      "id": "e7c02cf20eb45cd5",
+      "type": "session",
+      "namespace": "project",
+      "content": "JIT tool context for list_directory:\nFocus query: list_directory .\nRelevant files: ., package.json\nPotentially relevant observations:\n- list_directory completed — list_directory completed in 3ms. { \"content\": [] } (discovery · list_directory)\n- read_file completed — read_file completed in 3ms. { \"content\": [] } (discovery · read_file)\nUse only the parts that still match the current intent; ignore stale context.",
+      "metadata": {
+        "source": "pre_tool_context",
+        "tags": [
+          "tool-context",
+          "pre-tool",
+          "list_directory"
+        ],
+        "toolName": "list_directory",
+        "query": "list_directory .",
+        "matchedPaths": [
+          ".",
+          "package.json"
+        ],
+        "observationCount": 2,
+        "summaryCount": 0,
+        "preview": "JIT context: 2 observations · 2 file hits"
+      },
+      "createdAt": "2026-05-25T16:55:12.129Z",
+      "accessedAt": "2026-05-25T16:55:12.129Z",
+      "accessCount": 0,
+      "ttl": 1800000
+    },
+    {
+      "id": "962d80449e89e46b",
+      "type": "session",
+      "namespace": "project",
+      "content": "JIT tool context for read_file:\nFocus query: read_file package.json\nRelevant files: package.json, .\nPotentially relevant observations:\n- list_directory completed — list_directory completed in 3ms. { \"content\": [] } (discovery · list_directory)\nUse only the parts that still match the current intent; ignore stale context.",
+      "metadata": {
+        "source": "pre_tool_context",
+        "tags": [
+          "tool-context",
+          "pre-tool",
+          "read_file"
+        ],
+        "toolName": "read_file",
+        "query": "read_file package.json",
+        "matchedPaths": [
+          "package.json",
+          "."
+        ],
+        "observationCount": 1,
+        "summaryCount": 0,
+        "preview": "JIT context: 1 observation · 2 file hits"
+      },
+      "createdAt": "2026-05-25T16:55:12.130Z",
+      "accessedAt": "2026-05-25T16:55:12.130Z",
+      "accessCount": 0,
+      "ttl": 1800000
+    },
+    {
+      "id": "4b566290962d5e18",
+      "type": "session",
+      "namespace": "project",
+      "content": "JIT tool context for list_directory:\nFocus query: list_directory .\nRelevant files: .\nNo strongly relevant prior memory was found for this tool call.",
+      "metadata": {
+        "source": "pre_tool_context",
+        "tags": [
+          "tool-context",
+          "pre-tool",
+          "list_directory"
+        ],
+        "toolName": "list_directory",
+        "query": "list_directory .",
+        "matchedPaths": [
+          "."
+        ],
+        "observationCount": 0,
+        "summaryCount": 0,
+        "preview": "JIT context: 1 file hit"
+      },
+      "createdAt": "2026-05-25T16:55:12.130Z",
+      "accessedAt": "2026-05-25T16:55:12.130Z",
+      "accessCount": 0,
+      "ttl": 1800000
+    }
+  ]
+}

@@ -99,3 +99,33 @@ def test_psytrance_filtering():
 
     # Disallowed tag
     assert is_psytrance_artist({'name': 'Britney Spears', 'tag-list': [{'name': 'pop'}]}) is False
+
+def test_build_queries(orchestrator):
+    queries = orchestrator._build_queries("GMS", "No Rules", "2002")
+    assert "GMS No Rules" in queries
+    assert "GMS 2002 No Rules" in queries
+    assert "Growling Mad Scientists No Rules" in queries # Alias check
+
+def test_filter_related_artists(orchestrator):
+    related = [
+        {'id': '1', 'name': 'Artist A', 'tag-list': [{'name': 'psytrance'}]},
+        {'id': '2', 'name': 'Artist B', 'tag-list': [{'name': 'pop'}]},
+        {'id': '3', 'name': 'Artist C', 'tag-list': []}
+    ]
+    filtered = orchestrator._filter_related_artists(related, "GMS")
+    
+    # Artist A should be kept (psytrance tag)
+    # Artist B should be removed (pop tag)
+    # Artist C should be removed (no tags and not a known side project of GMS)
+    
+    names = [a['name'] for a in filtered]
+    assert 'Artist A' in names
+    assert 'Artist B' not in names
+    assert 'Artist C' not in names
+
+    # Test side-project rule: Artist D has no tags but is a member of GMS
+    related_with_member = [
+        {'id': '4', 'name': 'Artist D', 'tag-list': [], 'relation': 'member of GMS'}
+    ]
+    filtered_member = orchestrator._filter_related_artists(related_with_member, "GMS")
+    assert 'Artist D' in [a['name'] for a in filtered_member]

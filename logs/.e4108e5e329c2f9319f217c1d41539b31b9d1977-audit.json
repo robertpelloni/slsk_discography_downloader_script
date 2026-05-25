@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "C:\\Users\\hyper\\workspace\\slsk_discography_downloader_script\\logs\\.e4108e5e329c2f9319f217c1d41539b31b9d1977-audit.json",
+    "files": [
+        {
+            "date": 1779728183763,
+            "name": "C:\\Users\\hyper\\workspace\\slsk_discography_downloader_script\\logs\\mcp-puppeteer-2026-05-25.log",
+            "hash": "57600285e4242e0f1957be2c43b5f9ce49c8c3e212723cbab9e03e93ad92981a"
+        }
+    ],
+    "hashType": "sha256"
+}

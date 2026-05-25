@@ -14,9 +14,18 @@ def queue_service(tmp_path):
     service = QueueService(user_id=1)
     yield service
 
+    # Ensure all connections are closed and collected before deleting
+    import gc
+    import time
+    gc.collect()
+    time.sleep(0.1)
+
     queue_mod.DB_PATH = original_db_path
     if os.path.exists(db_file):
-        os.remove(db_file)
+        try:
+            os.remove(db_file)
+        except PermissionError:
+            pass # Ignore if still locked on Windows, it's a temp file anyway
 
 def test_managed_artists(queue_service):
     queue_service.add_managed_artist("mbid1", "Artist 1")

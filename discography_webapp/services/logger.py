@@ -35,11 +35,15 @@ class SafeFormatter(logging.Formatter):
     def format(self, record):
         try:
             msg = super().format(record)
-        except UnicodeEncodeError:
-            # Replace unencodable characters
-            record.msg = str(record.msg).encode('ascii', errors='replace').decode('ascii')
-            msg = super().format(record)
-        return msg
+            # Map common psytrance symbols to safe ASCII versions if they might fail
+            # although uvicorn/ch handles most if reconfigured
+            return msg
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            if isinstance(record.msg, str):
+                # Replace unencodable characters
+                safe_msg = record.msg.encode('ascii', errors='replace').decode('ascii')
+                record.msg = safe_msg
+            return super().format(record)
 
 
 class WebSocketHandler(logging.Handler):
