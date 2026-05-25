@@ -22,3 +22,15 @@ metamcp.db
 .borg_startup_marker
 discography_webapp/rust_bridge/target/
 discography_webapp/rust_bridge/bob_soulseek_rs/target/
+
+# Hypercode AI artifacts
+.hypercode/
+.hypercode-session.json
+.hypercode_startup_marker
+
+# Data directory (databases, logs, etc)
+data/
+audit-*.jsonl
+
+# Rust compiled binary
+*.pyd
