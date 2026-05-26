@@ -1122,24 +1122,14 @@ class Orchestrator:
                 self.logger.info(
                     f"  Searching ({attempt+1}/{len(queries)}): {query}")
 
-            # Rust Search Boost
-            self.logger.info(f" [DEBUG] rust_slsk={self.rust_slsk!r}")
-            if self.rust_slsk:
+                # Search Soulseek (Rust boost disabled — causes segfaults)
+                self.logger.info(f" Searching '{query}' (timeout={timeout}s)...")
                 try:
-                    self.logger.info("  (Using Rust Search Boost)")
-                    results = await self.rust_slsk.search(query)
-                except Exception as e:
-                    self.logger.warning(f"  Rust search failed: {e}. Falling back to Python.")
                     results = await self.slsk_service.search(query, timeout=timeout)
-            else:
-                    self.logger.info(f" Calling search for '{query}' (timeout={timeout}s)...")
-                    try:
-                        results = await self.slsk_service.search(query, timeout=timeout)
-                    except Exception as search_err:
-                        self.logger.warning(f" Search error for '{query}': {search_err}")
-                        results = []
-
-            self.logger.info(f"  Got {len(results)} results for '{query}'")
+                except Exception as search_err:
+                    self.logger.warning(f" Search error for '{query}': {search_err}")
+                    results = []
+                self.logger.info(f" Got {len(results)} results for '{query}'")
 
             if not results:
                 if attempt < len(queries) - 1:
