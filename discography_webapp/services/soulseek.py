@@ -57,6 +57,14 @@ class SoulseekService:
             shares=SharesSettings(
                 download=self.download_path
             ),
+            network=NetworkSettings(
+                peer=PeerSettings(
+                    connect_mode=PeerConnectMode.FALLBACK
+                )
+            ),
+            searches=SearchSettings(
+                max_results=200
+            ),
         )
 
         self.client = SoulSeekClient(settings)

@@ -50,6 +50,14 @@ async def lifespan(app: FastAPI):
     event_bus.set_loop(asyncio.get_running_loop())
     app.state.event_bus = event_bus
 
+    # Set custom async exception handler to prevent aioslsk errors from crashing
+    loop = asyncio.get_running_loop()
+    loop.set_exception_handler(lambda loop, ctx: (
+        print(f"[ASYNC EXCEPTION] {ctx.get('message', '')} | {ctx.get('exception', '')}", flush=True)
+        if ctx.get('exception') else
+        print(f"[ASYNC WARNING] {ctx.get('message', '')}", flush=True)
+    ))
+
     async def handle_log_event(payload):
         user_id = payload.get('user_id')
         message = payload.get('message')
