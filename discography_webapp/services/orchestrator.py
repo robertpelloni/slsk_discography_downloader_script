@@ -1123,6 +1123,15 @@ class Orchestrator:
                     f"  Searching ({attempt+1}/{len(queries)}): {query}")
 
                 # Search Soulseek (Rust boost disabled — causes segfaults)
+                # Ensure connection is alive before searching
+                if not self.slsk_service.is_connected:
+                    self.logger.info(" Reconnecting to Soulseek...")
+                    try:
+                        await self.slsk_service.connect(self.slsk_user, self.slsk_pass)
+                    except Exception as conn_err:
+                        self.logger.warning(f" Reconnect failed: {conn_err}")
+                        results = []
+                        continue
                 self.logger.info(f" Searching '{query}' (timeout={timeout}s)...")
                 try:
                     results = await self.slsk_service.search(query, timeout=timeout)

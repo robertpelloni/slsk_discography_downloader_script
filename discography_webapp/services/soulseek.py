@@ -152,9 +152,33 @@ class SoulseekService:
             except Exception:
                 pass
 
+        except OSError as e:
+            # Socket errors (e.g., [Errno 22] Invalid argument) mean the
+            # connection is dead. Reconnect and retry ONCE.
+            print(f"Soulseek: Socket error during search: {e}")
+            self.is_connected = False
+            try:
+                if self.username and self.password:
+                    await self.connect(self.username, self.password)
+                    print(f"Soulseek: Reconnected, retrying search...")
+                    # Retry the search after reconnect
+                    search_request = await self.client.searches.search(query)
+                    max_results = 500
+                    for _ in range(timeout):
+                        if len(search_request.results) >= max_results:
+                            break
+                        await asyncio.sleep(1)
+                    results = list(search_request.results)[:max_results]
+                    try:
+                        self.client.searches.remove_request(search_request)
+                    except Exception:
+                        pass
+            except Exception as retry_err:
+                print(f"Soulseek: Reconnect+retry failed: {retry_err}")
+                return []
         except Exception as e:
             # Try to reconnect if search fails
-            print(f"Search error: {e}")
+            print(f"Soulseek: Search error: {e}")
             self.is_connected = False
             try:
                 if self.username and self.password:
