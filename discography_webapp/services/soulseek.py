@@ -118,7 +118,7 @@ class SoulseekService:
             return False
 
     async def search(self, query: str, timeout: int = 20) -> List[Dict[str, Any]]:
-        print(f"Soulseek: search('{query}', timeout={timeout}) called, connected={self.is_connected}")
+        import sys; print(f"SLK_SEARCH: query={query!r} timeout={timeout} connected={self.is_connected}", file=sys.stderr, flush=True)
         if not self.is_connected or not self.client:
             print(f"Soulseek: NOT CONNECTED, raising exception")
             raise Exception("Soulseek not connected")

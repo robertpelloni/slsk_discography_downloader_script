@@ -1131,6 +1131,7 @@ class Orchestrator:
                     self.logger.warning(f"  Rust search failed: {e}. Falling back to Python.")
                     results = await self.slsk_service.search(query, timeout=timeout)
             else:
+                    self.logger.info(f" Calling search for '{query}' (timeout={timeout}s)...")
                     try:
                         results = await self.slsk_service.search(query, timeout=timeout)
                     except Exception as search_err:
@@ -1316,10 +1317,16 @@ class Orchestrator:
             groups[key]['files'].append(res)
 
         scored = []
+        ext_debug = {}
+        no_audio_count = 0
         for key, data in groups.items():
+            for f in data['files'][:3]:
+                e = f.get('extension', '?')
+                ext_debug[e] = ext_debug.get(e, 0) + 1
             audio = [f for f in data['files']
                      if f['extension'] in AUDIO_EXTENSIONS]
             if not audio:
+                no_audio_count += 1
                 continue
 
             score = 0
