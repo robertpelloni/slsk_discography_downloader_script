@@ -140,6 +140,7 @@ class SoulseekService:
                 await asyncio.sleep(1)
 
             results = list(search_request.results)[:max_results]
+            print(f"Soulseek: Search '{safe_query}' got {len(results)} raw results")
 
             # Remove the search request to stop aioslsk from accumulating
             # more results and spawning more peer connection attempts

@@ -1133,7 +1133,7 @@ class Orchestrator:
             else:
                 results = await self.slsk_service.search(query, timeout=timeout)
 
-            self.logger.info(f"  Got {len(results)} results")
+            self.logger.info(f"  Got {len(results)} results for '{query}'")
 
             if not results:
                 if attempt < len(queries) - 1:
@@ -1363,6 +1363,11 @@ class Orchestrator:
             scored.append(data)
 
         scored.sort(key=lambda x: x['score'], reverse=True)
+        # Debug: log extension distribution and candidate count
+        if ext_debug:
+            self.logger.debug(f" Rank: {len(groups)} groups, {len(scored)} candidates, exts={ext_debug}")
+        if not scored and groups:
+            self.logger.warning(f" Rank: 0 candidates from {len(groups)} groups! Extensions seen: {ext_debug}")
         return scored
 
     # ─── Sequential Downloader ────────────────────────────────────
