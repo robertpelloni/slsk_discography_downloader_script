@@ -1000,6 +1000,9 @@ class Orchestrator:
                 self.logger.warning(f"Failed to initialize Rust boost: {e}")
                 self.rust_slsk = None
 
+            # DISABLED: Rust search boost causes segfault crashes (no Python traceback)
+            # Re-enable once bob_soulseek_rs is audited for memory safety
+            self.rust_slsk = None
             self.logger.info("Connected.")
 
             if selection:
