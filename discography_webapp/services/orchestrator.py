@@ -1146,6 +1146,7 @@ class Orchestrator:
                 continue
 
             candidates = self._rank_candidates(results, artist_name=name)
+            self.logger.info(f" Ranked {len(candidates)} candidates from {len(results)} results for '{query}'")
             if not candidates:
                 if attempt < len(queries) - 1:
                     await asyncio.sleep(0.5)
