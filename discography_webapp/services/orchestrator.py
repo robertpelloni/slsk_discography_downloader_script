@@ -1131,7 +1131,11 @@ class Orchestrator:
                     self.logger.warning(f"  Rust search failed: {e}. Falling back to Python.")
                     results = await self.slsk_service.search(query, timeout=timeout)
             else:
-                results = await self.slsk_service.search(query, timeout=timeout)
+                    try:
+                        results = await self.slsk_service.search(query, timeout=timeout)
+                    except Exception as search_err:
+                        self.logger.warning(f" Search error for '{query}': {search_err}")
+                        results = []
 
             self.logger.info(f"  Got {len(results)} results for '{query}'")
 

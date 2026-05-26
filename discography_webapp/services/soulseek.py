@@ -118,12 +118,15 @@ class SoulseekService:
             return False
 
     async def search(self, query: str, timeout: int = 20) -> List[Dict[str, Any]]:
+        print(f"Soulseek: search('{query}', timeout={timeout}) called, connected={self.is_connected}")
         if not self.is_connected or not self.client:
+            print(f"Soulseek: NOT CONNECTED, raising exception")
             raise Exception("Soulseek not connected")
 
         # Check if connection is still alive
         await self._ensure_connected()
         if not self.is_connected:
+            print(f"Soulseek: CONNECTION LOST after health check")
             raise Exception("Soulseek connection lost")
 
         safe_query = query.encode('ascii', errors='replace').decode('ascii')
