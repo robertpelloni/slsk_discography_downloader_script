@@ -630,6 +630,8 @@ class Orchestrator:
         seen_ids = set()
 
         for artist_name in artist_names:
+            if self.should_stop:
+                break
             actual_query = artist_name
             # If it's a known short alias, prefer the full name for searching to avoid ambiguity (e.g. GMS)
             norm = normalize(artist_name)
@@ -702,8 +704,13 @@ class Orchestrator:
                         f"  Filtered related: {before} → {after} "
                         f"(removed {before - after} non-genre artists)")
 
+            if self.should_stop:
+                break
+
             all_artists = [main] + related
             for artist in all_artists:
+                if self.should_stop:
+                    break
                 aid = artist['id']
                 if aid in seen_ids:
                     continue
