@@ -25,6 +25,10 @@ class SoulseekService:
                 Settings as SlskSettings,
                 CredentialsSettings,
                 SharesSettings,
+    NetworkSettings,
+    PeerSettings,
+    PeerConnectMode,
+    SearchSettings,
             )
             HAS_AIOSLSK = True
         except ImportError:
