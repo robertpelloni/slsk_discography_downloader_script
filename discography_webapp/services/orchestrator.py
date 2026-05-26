@@ -640,8 +640,13 @@ class Orchestrator:
                     break
 
             self.logger.info(f"Scanning: {artist_name} (depth={depth})")
-            artists = await asyncio.to_thread(
-                self.mb_service.search_artist, actual_query)
+            try:
+                artists = await asyncio.wait_for(
+                    asyncio.to_thread(self.mb_service.search_artist, actual_query),
+                    timeout=30)
+            except asyncio.TimeoutError:
+                self.logger.warning(f"Timeout searching for {artist_name}")
+                artists = []
 
             # If no results, or none match the psytrance scene, try
             # alternative query forms (remove spaces, use aliases)
@@ -653,8 +658,13 @@ class Orchestrator:
                 for alt in alt_queries:
                     self.logger.info(
                         f"  Retrying search as: {alt}")
-                    alt_results = await asyncio.to_thread(
-                        self.mb_service.search_artist, alt)
+                    try:
+                        alt_results = await asyncio.wait_for(
+                            asyncio.to_thread(self.mb_service.search_artist, alt),
+                            timeout=30)
+                    except asyncio.TimeoutError:
+                        self.logger.warning(f"Timeout searching for {alt}")
+                        alt_results = []
                     if alt_results and any(
                             is_psytrance_artist(a) or
                             normalize(a.get('name', '')) in KNOWN_PSYTRANCE_ARTISTS
@@ -700,8 +710,13 @@ class Orchestrator:
                 seen_ids.add(aid)
 
                 self.logger.info(f"Fetching releases for {artist['name']}...")
-                rgs = await asyncio.to_thread(
-                    self.mb_service.get_discography, aid)
+                try:
+                    rgs = await asyncio.wait_for(
+                        asyncio.to_thread(self.mb_service.get_discography, aid),
+                        timeout=60)
+                except asyncio.TimeoutError:
+                    self.logger.warning(f"Timeout fetching discography for {artist['name']}")
+                    continue
 
                 albums = []
                 for rg in rgs:
@@ -843,51 +858,72 @@ class Orchestrator:
         self.is_paused = False
 
         try:
+            consecutive_failures = 0
+            max_consecutive_failures = 3
+
             while not self.should_stop:
-                self.invalidate_cache()
-                self.logger.info("Scanning library for gaps...")
-                result_tree = await self.scan_artists(artist_names, depth)
+                # Only invalidate cache on first pass or after a successful download
+                if consecutive_failures == 0:
+                    self.invalidate_cache()
+                    self.logger.info("Scanning library for gaps...")
+                    result_tree = await self.scan_artists(artist_names, depth)
 
-                if not result_tree:
-                    self.logger.warning("No artists found.")
-                    break
+                    if not result_tree:
+                        self.logger.warning("No artists found.")
+                        break
 
-                missing = []
-                total_missing = 0
-                for artist_node in result_tree:
-                    missing_albums = [a for a in artist_node['albums']
-                                      if not a['exists_locally']]
-                    if missing_albums:
-                        missing.append({
-                            'id': artist_node['id'],
-                            'name': artist_node['name'],
-                            'albums': missing_albums
-                        })
-                        total_missing += len(missing_albums)
+                    missing = []
+                    total_missing = 0
+                    for artist_node in result_tree:
+                        missing_albums = [a for a in artist_node['albums']
+                                          if not a['exists_locally']]
+                        if missing_albums:
+                            missing.append({
+                                'id': artist_node['id'],
+                                'name': artist_node['name'],
+                                'albums': missing_albums
+                            })
+                            total_missing += len(missing_albums)
 
-                if not missing:
-                    self.logger.info("✨ Library is complete — no gaps found!")
-                    break
+                    if not missing:
+                        self.logger.info("✨ Library is complete — no gaps found!")
+                        break
 
-                self.logger.info(
-                    f"Found {total_missing} missing albums across {len(missing)} artists.")
+                    self.logger.info(
+                        f"Found {total_missing} missing albums across {len(missing)} artists.")
 
-                # Run a single download pass
-                await self._run_job_impl(
-                    artist_names=artist_names,
-                    slsk_user=slsk_user,
-                    slsk_pass=slsk_pass,
-                    dry_run=dry_run,
-                    related_artist_depth=depth,
-                    selection=missing
-                )
+                # Run a single download pass (depth=0 since selection already includes related)
+                try:
+                    await self._run_job_impl(
+                        artist_names=artist_names,
+                        slsk_user=slsk_user,
+                        slsk_pass=slsk_pass,
+                        dry_run=dry_run,
+                        related_artist_depth=0,
+                        selection=missing
+                    )
+                    consecutive_failures = 0  # Reset on success
+                except Exception as e:
+                    consecutive_failures += 1
+                    err_str = str(e).lower()
+                    is_auth_failure = any(kw in err_str for kw in 
+                        ['invalidpass', 'authentication failed', 'login failed', 'invalid password', 'invalid credentials'])
+                    self.logger.error(f"Download pass error (attempt {consecutive_failures}/{max_consecutive_failures}): {e}")
+                    if is_auth_failure:
+                        self.logger.error("Soulseek authentication failed — please update credentials. Stopping.")
+                        break
+                    if consecutive_failures >= max_consecutive_failures:
+                        self.logger.error(f"Too many consecutive failures ({max_consecutive_failures}). Stopping.")
+                        break
 
                 if self.should_stop:
                     break
 
-                self.logger.info("Pass complete. Cooldown for 10 minutes before retrying remaining gaps...")
+                cooldown = 300  # 5 minutes (reduced from 10)
+                self.logger.info(f"Pass complete. Cooldown for {cooldown//60} minutes before retrying remaining gaps...")
+
                 # Wait in small increments to remain responsive to stop signals
-                for _ in range(600):
+                for _ in range(cooldown):
                     if self.should_stop:
                         break
                     await asyncio.sleep(1)
