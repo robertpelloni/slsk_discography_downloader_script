@@ -1,3 +1,5 @@
+import faulthandler; faulthandler.enable()
+import sys
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse

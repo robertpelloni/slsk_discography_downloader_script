@@ -986,29 +986,9 @@ class Orchestrator:
             self.logger.info("Connecting to Soulseek...")
             await self.slsk_service.connect(slsk_user, slsk_pass)
 
-            # Optional Rust Bridge Boost — coordinated to avoid account kicking
-            try:
-                from .rust_soulseek import RUST_AVAILABLE
-                if RUST_AVAILABLE:
-                    # Prefer dedicated boost credentials to avoid kicking aioslsk
-                    boost_user = self.config_service.get('slsk_boost_user') or slsk_user
-                    boost_pass = self.config_service.get('slsk_boost_pass') or slsk_pass
-                    
-                    from .rust_soulseek import RustSoulseekService
-                    self.rust_slsk = RustSoulseekService(boost_user, boost_pass)
-                    
-                    if boost_user == slsk_user:
-                        self.logger.info("Using primary account for Rust boost. Coordinated mode active.")
-                    else:
-                        self.logger.info(f"Using dedicated boost account: {boost_user}")
-                else:
-                    self.rust_slsk = None
-            except Exception as e:
-                self.logger.warning(f"Failed to initialize Rust boost: {e}")
-                self.rust_slsk = None
-
-            # DISABLED: Rust search boost causes segfault crashes (no Python traceback)
-            # Re-enable once bob_soulseek_rs is audited for memory safety
+                        # Rust Bridge Boost DISABLED — causes segfault crashes
+            # bob_soulseek_rs FFI module kills the Python process with no traceback.
+            # Re-enable only after full memory safety audit of the Rust module.
             self.rust_slsk = None
             self.logger.info("Connected.")
 
