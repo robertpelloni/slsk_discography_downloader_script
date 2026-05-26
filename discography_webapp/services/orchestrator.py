@@ -1123,6 +1123,7 @@ class Orchestrator:
                     f"  Searching ({attempt+1}/{len(queries)}): {query}")
 
             # Rust Search Boost
+            self.logger.info(f" [DEBUG] rust_slsk={self.rust_slsk!r}")
             if self.rust_slsk:
                 try:
                     self.logger.info("  (Using Rust Search Boost)")
