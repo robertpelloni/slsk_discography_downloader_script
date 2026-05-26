@@ -87,7 +87,7 @@ class SoulseekService:
         if not self.client:
             self.is_connected = False
             return False
-        
+
         try:
             # Try to check if the network is still alive
             network = self.client.network
@@ -118,17 +118,24 @@ class SoulseekService:
 
         try:
             search_request = await self.client.searches.search(query)
-            
-            # Collect results as they arrive instead of just sleeping
-            await asyncio.sleep(timeout)
 
-            results = list(search_request.results)
-            
-            # If no results, wait a bit more and check again
-            if not results and timeout <= 10:
-                await asyncio.sleep(5)
-                results = list(search_request.results)
-                
+            # Collect results with early termination once we have enough
+            # (avoid accumulating 20k+ results that exhaust memory/connections)
+            max_results = 500
+            for _ in range(timeout):
+                if len(search_request.results) >= max_results:
+                    break
+                await asyncio.sleep(1)
+
+            results = list(search_request.results)[:max_results]
+
+            # Remove the search request to stop aioslsk from accumulating
+            # more results and spawning more peer connection attempts
+            try:
+                self.client.searches.remove_request(search_request)
+            except Exception:
+                pass
+
         except Exception as e:
             # Try to reconnect if search fails
             print(f"Search error: {e}")
@@ -141,51 +148,144 @@ class SoulseekService:
             return []
 
         parsed = []
+
+
         for res in results:
+
+
             try:
+
+
                 username = res.username
+
+
                 avg_speed = res.avg_speed
+
+
                 has_slots = res.has_free_slots
 
+
                 for item in res.shared_items:
+
+
                     try:
+
+
                         # Bitrate
+
+
                         bitrate = 0
+
+
                         try:
+
+
                             attrs = item.get_attribute_map()
+
+
                             from aioslsk.protocol.attributes import AttributeKey
+
+
                             if AttributeKey.BITRATE in attrs:
+
+
                                 bitrate = attrs[AttributeKey.BITRATE]
+
+
                         except Exception:
+
+
                             pass
+
 
                         # Extension - always store with leading dot
+
+
                         ext = ""
+
+
                         try:
+
+
                             ext = item.extension.lower() if item.extension else ""
+
+
                         except Exception:
+
+
                             pass
+
+
                         if not ext and item.filename:
+
+
                             ext = os.path.splitext(item.filename)[1].lower()
+
+
                         # Ensure leading dot
+
+
                         if ext and not ext.startswith('.'):
+
+
                             ext = '.' + ext
 
+
                         parsed.append({
+
+
                             'filename': item.filename,
+
+
                             'user': username,
+
+
                             'size': item.filesize,
+
+
                             'speed': avg_speed,
+
+
                             'slots': has_slots,
+
+
                             'bitrate': bitrate,
+
+
                             'extension': ext,
+
+
                         })
+
+
+                        if len(parsed) >= 1000:
+
+
+                            break
+
+
                     except Exception:
+
+
                         continue
+
+
+                if len(parsed) >= 1000:
+
+
+                    break
+
+
             except Exception:
+
+
                 continue
 
+
+
         print(f"Parsed {len(parsed)} results")
+
+
         return parsed
 
     async def disconnect(self):
