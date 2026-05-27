@@ -1144,6 +1144,7 @@ class Orchestrator:
                 if attempt < len(queries) - 1:
                     await asyncio.sleep(0.5)
                 continue
+            print(f"PAST_NOT_RESULTS: query={query!r} len_results={len(results)}", file=sys.stderr, flush=True)
 
             candidates = self._rank_candidates(results, artist_name=name)
             self.logger.info(f" Ranked {len(candidates)} candidates from {len(results)} results for '{query}'")
@@ -1307,6 +1308,7 @@ class Orchestrator:
         preferred = self.config_service.get('preferred_format', 'flac')
         artist_norms = normalize_artist_aliases(
             artist_name) if artist_name else set()
+        self.logger.info(f"RANK_START: {len(results)} results for artist={artist_name}")
 
         groups = {}
         for res in results:
@@ -1379,6 +1381,7 @@ class Orchestrator:
         self.logger.info(f" Rank: {len(groups)} groups → {len(scored)} candidates, {no_audio_count} no-audio, exts={ext_debug}")
         if not scored and groups:
             self.logger.warning(f" Rank: 0 candidates from {len(groups)} groups! Extensions: {ext_debug}")
+        self.logger.info(f"RANK_END: returning {len(scored)} candidates")
         return scored
 
     # ─── Sequential Downloader ────────────────────────────────────

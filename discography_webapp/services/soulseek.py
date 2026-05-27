@@ -136,7 +136,7 @@ class SoulseekService:
 
             # Collect results with early termination once we have enough
             # (avoid accumulating 20k+ results that exhaust memory/connections)
-            max_results = 500
+            max_results = 200
             for _ in range(timeout):
                 if len(search_request.results) >= max_results:
                     break
@@ -163,7 +163,7 @@ class SoulseekService:
                     print(f"Soulseek: Reconnected, retrying search...")
                     # Retry the search after reconnect
                     search_request = await self.client.searches.search(query)
-                    max_results = 500
+                    max_results = 200
                     for _ in range(timeout):
                         if len(search_request.results) >= max_results:
                             break
@@ -298,7 +298,7 @@ class SoulseekService:
                         })
 
 
-                        if len(parsed) >= 1000:
+                        if len(parsed) >= 200:
 
 
                             break
@@ -310,7 +310,7 @@ class SoulseekService:
                         continue
 
 
-                if len(parsed) >= 1000:
+                if len(parsed) >= 200:
 
 
                     break
