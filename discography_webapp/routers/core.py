@@ -64,7 +64,14 @@ class ManagedArtistRequest(BaseModel):
     name: str
     is_secondary: bool = False
 
+class PlaylistDownloadRequest(BaseModel):
+    playlist_name: str = Field(..., min_length=1)
+    songs: List[str]
+    number_tracks: bool = True
+    dry_run: bool = False
+
 class ConfigUpdateRequest(BaseModel):
+
     slsk_user: str
     slsk_pass: str
     slsk_boost_user: Optional[str] = ""
@@ -134,6 +141,30 @@ async def start_job(request: StartJobRequest, background_tasks: BackgroundTasks,
         return JSONResponse(status_code=400, content={"message": "Soulseek credentials not configured."})
     background_tasks.add_task(orch.start_download, request.artist_names, user, password, request.dry_run, request.depth, request.selection)
     return {"message": "Job started", "artists": request.artist_names}
+
+@router.post("/api/start_playlist")
+async def start_playlist_job(request: PlaylistDownloadRequest, background_tasks: BackgroundTasks, orch=Depends(get_orch)):
+    if orch.is_running:
+        return JSONResponse(status_code=400, content={"message": "A job is already running."})
+    user = orch.config_service.get('slsk_user')
+    password = orch.config_service.get('slsk_pass')
+    if not user or not password:
+        return JSONResponse(status_code=400, content={"message": "Soulseek credentials not configured."})
+    
+    songs = [s.strip() for s in request.songs if s.strip()]
+    if not songs:
+        return JSONResponse(status_code=400, content={"message": "No songs provided."})
+        
+    background_tasks.add_task(
+        orch.start_playlist_download, 
+        request.playlist_name, 
+        songs, 
+        request.number_tracks, 
+        user, 
+        password, 
+        request.dry_run
+    )
+    return {"message": f"Playlist job started: {request.playlist_name}", "songs_count": len(songs)}
 
 @router.post("/api/autonomous_fill")
 async def autonomous_fill(request: StartJobRequest, background_tasks: BackgroundTasks, orch=Depends(get_orch)):

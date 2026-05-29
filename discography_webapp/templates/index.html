@@ -205,6 +205,30 @@
         </div>
     </div>
 
+    <!-- Playlist Download Panel -->
+    <div class="card">
+        <div class="card-title">Playlist / Single Tracks</div>
+        <div class="form-row" style="margin-bottom: 12px;">
+            <div class="form-group flex-1">
+                <label>Playlist / Folder Name</label>
+                <input type="text" class="input" id="playlistName" placeholder="e.g. Summer Mix 2026">
+            </div>
+        </div>
+        <div class="form-row" style="margin-bottom: 12px;">
+            <div class="form-group" style="width: 100%;">
+                <label>List of Songs (one per line, e.g. 'Artist - Track Title')</label>
+                <textarea class="input" id="playlistSongs" rows="5" placeholder="Radiohead - Creep&#10;GMS - Juice"></textarea>
+            </div>
+        </div>
+        <div class="form-row" style="justify-content: space-between; align-items: center;">
+            <div class="check-row" style="margin-top: 0;">
+                <label><input type="checkbox" id="playlistNumberTracks" checked> Number tracks sequentially (01 - , 02 - , ...)</label>
+            </div>
+            <button class="btn btn-primary" id="playlistStartBtn" onclick="startPlaylistJob()">▶ Download Playlist</button>
+        </div>
+    </div>
+
+
     <!-- Artist Manager -->
     <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -665,6 +689,36 @@ async function startJob(fromReview = false) {
         const d = await r.json();
         if (!r.ok) { alert(d.message); setButtons(false); }
     } catch(e) { alert('Network error'); setButtons(false); }
+}
+
+async function startPlaylistJob() {
+    const playlistName = $('playlistName').value.trim();
+    const songsText = $('playlistSongs').value.trim();
+    const numberTracks = $('playlistNumberTracks').checked;
+    
+    if (!playlistName) return alert('Enter a playlist / folder name.');
+    if (!songsText) return alert('Enter at least one song.');
+    
+    const songs = songsText.split('\n').filter(s => s.trim().length > 0);
+    
+    logBox.innerHTML = '';
+    setButtons(true);
+    $('playlistStartBtn').disabled = true;
+    
+    try {
+        const r = await fetch('/api/start_playlist', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                playlist_name: playlistName,
+                songs: songs,
+                number_tracks: numberTracks,
+                dry_run: $('dryRun').checked
+            })
+        });
+        const d = await r.json();
+        if (!r.ok) { alert(d.message); setButtons(false); }
+    } catch(e) { alert('Network error'); setButtons(false); }
+    $('playlistStartBtn').disabled = false;
 }
 
 async function scanArtist() {

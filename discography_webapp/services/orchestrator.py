@@ -2,6 +2,7 @@ import asyncio
 import os
 import re
 import shutil
+import sys
 import time
 from typing import List, Dict, Any, Optional
 
@@ -943,6 +944,162 @@ class Orchestrator:
             self.logger.info("=== Autonomous Filler Stopped ===")
 
     # ─── Main Download Engine ─────────────────────────────────────
+
+    async def start_playlist_download(self, playlist_name: str, songs: list, number_tracks: bool, slsk_user: str, slsk_pass: str, dry_run: bool = False):
+        """Downloads a list of individual tracks into a specific playlist folder."""
+        if self.is_running:
+            self.logger.warning("Job already running.")
+            return
+
+        self.is_running = True
+        self.should_stop = False
+        self.is_paused = False
+
+        if slsk_user != self.slsk_user or slsk_pass != self.slsk_pass:
+            self.config_service.set('slsk_user', slsk_user)
+            self.config_service.set('slsk_pass', slsk_pass)
+            self.slsk_user = slsk_user
+            self.slsk_pass = slsk_pass
+
+        target_dir = os.path.join("downloads", "Playlists", sanitize_name(playlist_name))
+        if not dry_run:
+            os.makedirs(target_dir, exist_ok=True)
+
+        try:
+            self.logger.info("Connecting to Soulseek...")
+            await self.slsk_service.connect(slsk_user, slsk_pass)
+            self.logger.info(f"Connected. Starting playlist download: {playlist_name}")
+
+            for idx, song in enumerate(songs):
+                if self.should_stop:
+                    break
+                while self.is_paused and not self.should_stop:
+                    await asyncio.sleep(1)
+
+                song = song.strip()
+                if not song:
+                    continue
+
+                self.logger.info(f"  ↓ [{idx+1}/{len(songs)}] {song}")
+                
+                query = f"{song} FLAC"
+                timeout = 15
+                
+                if not self.slsk_service.is_connected:
+                    try:
+                        await self.slsk_service.connect(self.slsk_user, self.slsk_pass)
+                    except Exception as e:
+                        self.logger.warning(f"  Reconnect failed: {e}")
+                
+                results = []
+                try:
+                    results = await self.slsk_service.search(query, timeout=timeout)
+                except Exception as e:
+                    self.logger.warning(f"  Search error: {e}")
+
+                # If no FLAC results, try MP3 or general
+                if not results:
+                    try:
+                        results = await self.slsk_service.search(song, timeout=timeout)
+                    except Exception as e:
+                        pass
+
+                self.logger.info(f"  Got {len(results)} results")
+                if not results:
+                    self.logger.warning(f"  ✗ Failed: {song} (no results)")
+                    continue
+
+                # Rank candidates (adapt for single track)
+                preferred = self.config_service.get('preferred_format', 'flac')
+                scored = []
+                for res in results:
+                    ext = res.get('extension', '').lower()
+                    if ext not in AUDIO_EXTENSIONS:
+                        continue
+                    score = 0
+                    if preferred == 'flac':
+                        if ext == '.flac': score += 100
+                        elif ext == '.mp3': score += 50
+                    else:
+                        if ext == '.mp3': score += 100
+                        elif ext == '.flac': score += 50
+                    
+                    if res.get('slots'): score += 20
+                    # Try to match the song name in the filename loosely
+                    clean_song = normalize(song)
+                    clean_file = normalize(os.path.basename(res['filename']))
+                    if clean_song in clean_file:
+                        score += 50
+                    
+                    res['score'] = score
+                    scored.append(res)
+                
+                scored.sort(key=lambda x: x['score'], reverse=True)
+
+                success = False
+                for cand in scored[:5]:
+                    if success or self.should_stop:
+                        break
+                    user = cand['user']
+                    if user in self.blacklisted_users:
+                        continue
+
+                    remote_path = cand['filename']
+                    orig_filename = os.path.basename(remote_path)
+                    safe_filename = re.sub(r'[<>:"|?*]', '', orig_filename)
+                    
+                    if number_tracks:
+                        # Prefix with 01, 02, etc.
+                        prefix = f"{idx+1:02d} - "
+                        final_filename = prefix + safe_filename
+                    else:
+                        final_filename = safe_filename
+                        
+                    local_target = os.path.join(target_dir, final_filename)
+                    
+                    if os.path.exists(local_target) and os.path.getsize(local_target) > MIN_FILE_SIZE:
+                        self.logger.info(f"  ✓ Skip (exists): {final_filename}")
+                        success = True
+                        break
+                        
+                    if dry_run:
+                        self.logger.info(f"  [Dry Run] Would download → {final_filename}")
+                        success = True
+                        break
+
+                    self.logger.info(f"  Downloading from {user}...")
+                    try:
+                        transfer = await self.slsk_service.download_file(user, remote_path)
+                        done = await self._wait_for_transfer(transfer, timeout=120)
+                        if done == 'complete':
+                            local_path = getattr(transfer, 'local_path', None)
+                            if local_path and os.path.exists(local_path):
+                                shutil.move(local_path, local_target)
+                                self.logger.info(f"  ✓ Done: {final_filename}")
+                                success = True
+                        elif done == 'failed':
+                            self.logger.warning(f"  ✗ Transfer failed")
+                        else:
+                            self.logger.warning(f"  ⏱ Timeout")
+                    except Exception as e:
+                        self.logger.warning(f"  Download error: {e}")
+
+                if not success:
+                    self.logger.warning(f"  ✗ Failed: {song} (could not download)")
+
+            if self.should_stop:
+                self.logger.info("Playlist download stopped by user.")
+            else:
+                self.logger.info("Playlist download complete.")
+
+        except Exception as e:
+            self.logger.error(f"Playlist download error: {e}")
+        finally:
+            try:
+                await self.slsk_service.disconnect()
+            except Exception:
+                pass
+            self.is_running = False
 
     async def start_download(self, artist_names, slsk_user, slsk_pass,
                               dry_run=False, related_artist_depth=1,
