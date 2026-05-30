@@ -1513,13 +1513,22 @@ class Orchestrator:
             elif num_files > 20:
                 score -= (num_files - 20) * 15
 
-            # Artist folder match with aliases
+            # Artist folder/filename match with aliases
+            artist_match = False
             if artist_norms:
                 folder_norm = re.sub(r'[^a-z0-9]', '', data['folder'].lower())
                 if any(a_norm in folder_norm for a_norm in artist_norms):
-                    score += 50
+                    score += 100
+                    artist_match = True
                 else:
-                    score -= 80
+                    # Also check individual filenames for artist name
+                    for f in audio[:5]:
+                        fname_norm = re.sub(r'[^a-z0-9]', '', os.path.basename(f['filename']).lower())
+                        if any(a_norm in fname_norm for a_norm in artist_norms):
+                            artist_match = True
+                            break
+                if not artist_match:
+                    score -= 200  # Strong penalty for artist mismatch
 
             # Free slots bonus
             if any(f.get('slots') for f in audio):
@@ -1530,6 +1539,14 @@ class Orchestrator:
             scored.append(data)
 
         scored.sort(key=lambda x: x['score'], reverse=True)
+
+        # Filter out low-quality candidates (likely wrong artist/album)
+        min_candidate_score = 0
+        before_filter = len(scored)
+        scored = [c for c in scored if c['score'] >= min_candidate_score]
+        if len(scored) < before_filter:
+            self.logger.info(f" Filtered {before_filter - len(scored)} low-score candidates (score < {min_candidate_score})")
+
         # Debug: log extension distribution and candidate count
         self.logger.info(f" Rank: {len(groups)} groups → {len(scored)} candidates, {no_audio_count} no-audio, exts={ext_debug}")
         if not scored and groups:
