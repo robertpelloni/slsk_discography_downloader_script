@@ -864,6 +864,7 @@ class Orchestrator:
         self.is_running = True
         self.should_stop = False
         self.is_paused = False
+        self._failed_album_counts = {}  # Reset failure counts for new session
 
         try:
             consecutive_failures = 0
@@ -1429,6 +1430,11 @@ class Orchestrator:
         return queries[attempt] if attempt < len(queries) else title
 
     def _is_session_completed(self, artist, album):
+        # Check if album has failed too many times this session
+        key = f"{artist}|{album}"
+        fail_count = self._failed_album_counts.get(key, 0)
+        if fail_count >= self._max_album_failures:
+            return True  # Treat as "completed" (skip) to stop retrying
         return any(
             c['artist'] == artist and c['album'] == album
             and c['status'] in ('Downloaded', 'Queued')
@@ -1685,7 +1691,7 @@ class Orchestrator:
 
             if audio_count > 0:
                 self.logger.info(
-                    f"  ✓ Album complete: {os.path.basename(target_dir)}")
+                    f"  ✓ All files received: {os.path.basename(target_dir)}")
 
                 # Post-processing can raise "Fake FLAC detected"
                 try:
