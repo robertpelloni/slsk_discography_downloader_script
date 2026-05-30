@@ -73,7 +73,7 @@ DISALLOWED_TAGS = {
 }
 
 # Names that exist in both psy/electronic and unrelated genres
-AMBIGUOUS_NAMES = {'chicago', 'avalon', 'quintessence', 'truth', 'esp', 'hydra', 'volcano', 'outsiders', 'overlords', 'alien', 'slinky', 'lo-fi', 'sandman', 'delta', 'oasis'}
+AMBIGUOUS_NAMES = {'chicago', 'avalon', 'quintessence', 'truth', 'esp', 'hydra', 'volcano', 'outsiders', 'overlords', 'alien', 'slinky', 'lo-fi', 'sandman', 'delta', 'oasis', 'electricsun', 'solstice', 'magik', 'bionix'}
 
 # Artists known to be in the psytrance/electronic scene, even if MB tags are sparse
 # Built lazily via function to avoid forward-reference issues with normalize()
