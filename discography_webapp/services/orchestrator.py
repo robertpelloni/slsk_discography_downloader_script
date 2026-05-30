@@ -208,6 +208,8 @@ class Orchestrator:
         self._existing_cache = None
         self._attempted_albums = set()  # Track (artist_norm, album_norm) to skip dupes
         self.rust_slsk = None
+        self._failed_album_counts = {}  # Track per-album failures to avoid infinite retries
+        self._max_album_failures = 3    # Skip album after this many failures per session
         self.slsk_user = self.config_service.get('slsk_user', '')
         self.slsk_pass = self.config_service.get('slsk_pass', '')
 
@@ -1251,17 +1253,30 @@ class Orchestrator:
                 self.logger.info(f"  ⊘ Skip {title} (completed this session)")
                 continue
 
-            # ── Check 2: Already on disk
-            existing = self.album_exists_on_disk(name, title, year)
-            if existing:
+        # ── Check 2: Already on disk (and actually completed)
+        existing = self.album_exists_on_disk(name, title, year)
+        if existing:
+            # Check if this was a completed download, not an interrupted one
+            was_completed = any(
+                c['artist'] == name and c['album'] == title
+                and c['status'] in ('Downloaded', 'Existing', 'Queued')
+                for c in self.completed_albums
+            )
+            if was_completed or not existing.get('dir', '').startswith('downloads'):
+                # Truly existing or in library - skip
                 self.logger.info(
-                    f"  ⊘ Skip {title} ({existing['count']} tracks on disk)")
+                    f"                    ⊘ Skip {title} ({existing['count']} tracks on disk)")
                 self.queue_service.add_completed({
                     'artist': name, 'album': title,
                     'year': year, 'path': existing['dir'],
                     'status': 'Existing'
                 })
                 continue
+            else:
+                # Directory in downloads/ but not completed - interrupted download, retry
+                self.logger.info(
+                    f"                    ↻ Retry {title} ({existing['count']} tracks, not completed)")
+                self._cleanup_dir(existing['dir'])
 
             self.logger.info(f"  ↓ [{idx+1}/{len(rgs)}] {title} ({year})")
 
@@ -1367,6 +1382,12 @@ class Orchestrator:
             if not success:
                 if not self.should_stop:
                     self.logger.warning(f"  ✗ Failed: {title}")
+                    # Track failure count to prevent infinite retries
+                    fail_key = f"{name}|{title}"
+                    self._failed_album_counts[fail_key] = self._failed_album_counts.get(fail_key, 0) + 1
+                    fail_count = self._failed_album_counts[fail_key]
+                    if fail_count >= self._max_album_failures:
+                        self.logger.info(f"                    ⊘ Skipping {title} after {fail_count} failures this session")
                 self._cleanup_dir(target_dir)
             else:
                 self.logger.info(f"  ✓ Album complete: {year} - {title}")
