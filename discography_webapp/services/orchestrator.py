@@ -1253,30 +1253,30 @@ class Orchestrator:
                 self.logger.info(f"  ⊘ Skip {title} (completed this session)")
                 continue
 
-        # ── Check 2: Already on disk (and actually completed)
-        existing = self.album_exists_on_disk(name, title, year)
-        if existing:
-            # Check if this was a completed download, not an interrupted one
-            was_completed = any(
-                c['artist'] == name and c['album'] == title
-                and c['status'] in ('Downloaded', 'Existing', 'Queued')
-                for c in self.completed_albums
-            )
-            if was_completed or not existing.get('dir', '').startswith('downloads'):
-                # Truly existing or in library - skip
-                self.logger.info(
-                    f"                    ⊘ Skip {title} ({existing['count']} tracks on disk)")
-                self.queue_service.add_completed({
-                    'artist': name, 'album': title,
-                    'year': year, 'path': existing['dir'],
-                    'status': 'Existing'
-                })
-                continue
-            else:
-                # Directory in downloads/ but not completed - interrupted download, retry
-                self.logger.info(
-                    f"                    ↻ Retry {title} ({existing['count']} tracks, not completed)")
-                self._cleanup_dir(existing['dir'])
+            # ── Check 2: Already on disk (and actually completed)
+            existing = self.album_exists_on_disk(name, title, year)
+            if existing:
+                # Check if this was a completed download, not an interrupted one
+                was_completed = any(
+                    c['artist'] == name and c['album'] == title
+                    and c['status'] in ('Downloaded', 'Existing', 'Queued')
+                    for c in self.completed_albums
+                )
+                if was_completed or not existing.get('dir', '').startswith('downloads'):
+                    # Truly existing or in library - skip
+                    self.logger.info(
+                        f"                    ⊘ Skip {title} ({existing['count']} tracks on disk)")
+                    self.queue_service.add_completed({
+                        'artist': name, 'album': title,
+                        'year': year, 'path': existing['dir'],
+                        'status': 'Existing'
+                    })
+                    continue
+                else:
+                    # Directory in downloads/ but not completed - interrupted download, retry
+                    self.logger.info(
+                        f"                    ↻ Retry {title} ({existing['count']} tracks, not completed)")
+                    self._cleanup_dir(existing['dir'])
 
             self.logger.info(f"  ↓ [{idx+1}/{len(rgs)}] {title} ({year})")
 
