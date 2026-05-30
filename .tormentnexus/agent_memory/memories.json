@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "savedAt": "2026-05-30T21:57:17.827Z",
+  "savedAt": "2026-05-30T22:09:31.823Z",
   "memories": [
     {
       "id": "2c8d2c4587d17b8b",
@@ -1489,6 +1489,2721 @@
       },
       "createdAt": "2026-05-30T21:57:15.429Z",
       "accessedAt": "2026-05-30T21:57:15.429Z",
+      "accessCount": 0
+    },
+    {
+      "id": "3e9980a180fd53db",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "> - **Directory Names**: Renaming workspace folders (e.g. `c:\\Users\\hyper\\workspace\\borg` -> `c:\\Users\\hyper\\workspace\\TormentNexus`, packages, TUI systems).",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "b15bf98f-9c48-4323-bfd8-190e9b355a4d",
+        "sessionId": "imported:antigravity:e606cbc04dd4",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/implementation_plan.md",
+        "tags": [
+          "antigravity",
+          "memory",
+          "ui"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T21:59:39.957Z",
+      "accessedAt": "2026-05-30T21:59:39.957Z",
+      "accessCount": 0
+    },
+    {
+      "id": "c6d3174bd47796f9",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "> 2. **Lockfiles & Exclusions**: Should we automatically exclude lockfiles (`pnpm-lock.yaml`), dependencies (`node_modules`), and git repository directories (`.git`) to prevent metadata corruption?",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "b15bf98f-9c48-4323-bfd8-190e9b355a4d",
+        "sessionId": "imported:antigravity:e606cbc04dd4",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/implementation_plan.md",
+        "tags": [
+          "antigravity",
+          "instruction"
+        ],
+        "section": "instructions",
+        "memoryKind": "instruction",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T21:59:43.028Z",
+      "accessedAt": "2026-05-30T21:59:43.028Z",
+      "accessCount": 0
+    },
+    {
+      "id": "3df1460a7bad7a45",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "> 3. **Casing Parity**: Should we maintain the original casing convention for the replacement? (e.g., `hypercode` -> `tormentnexus`, `Hypercode` -> `TormentNexus`, `HYPERCODE` -> `TORMENTNEXUS`)?",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "b15bf98f-9c48-4323-bfd8-190e9b355a4d",
+        "sessionId": "imported:antigravity:e606cbc04dd4",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/implementation_plan.md",
+        "tags": [
+          "antigravity",
+          "instruction"
+        ],
+        "section": "instructions",
+        "memoryKind": "instruction",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:00:23.148Z",
+      "accessedAt": "2026-05-30T22:00:23.148Z",
+      "accessCount": 0
+    },
+    {
+      "id": "653c2e6bbec169f4",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "#### [NEW] [refactor_to_tormentnexus.py](file:///C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/refactor_to_tormentnexus.py)",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "b15bf98f-9c48-4323-bfd8-190e9b355a4d",
+        "sessionId": "imported:antigravity:e606cbc04dd4",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/implementation_plan.md",
+        "tags": [
+          "antigravity",
+          "memory"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:00:25.476Z",
+      "accessedAt": "2026-05-30T22:00:25.476Z",
+      "accessCount": 0
+    },
+    {
+      "id": "6da252e847148f07",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "#### [NEW] [migrate_db_to_tormentnexus.py](file:///C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/migrate_db_to_tormentnexus.py)",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "b15bf98f-9c48-4323-bfd8-190e9b355a4d",
+        "sessionId": "imported:antigravity:e606cbc04dd4",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/implementation_plan.md",
+        "tags": [
+          "antigravity",
+          "memory",
+          "database"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:00:28.106Z",
+      "accessedAt": "2026-05-30T22:00:28.106Z",
+      "accessCount": 0
+    },
+    {
+      "id": "3301f33d09c30303",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Writing specialized scraper for new directories toolsdk-mcp-registry and mcparmory/registry (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Writing specialized scraper for new directories toolsdk-mcp-registry and mcparmory/registry",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "565b8e1c-d38c-45c3-8a7b-487828d10aea",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/scrape_toolsdk_and_mcparmory.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:eb7b3fea8835",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:eb7b3fea8835",
+          "name": "Writing specialized scraper for new directories toolsdk-mcp-registry and mcparmory/registry",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780156716883.4175,
+          "stoppedAt": 1780178430536,
+          "lastActivityAt": 1780156716883.4175,
+          "logTail": [
+            "Writing specialized scraper for new directories toolsdk-mcp-registry and mcparmory/registry"
+          ],
+          "recordedAt": 1780178430555,
+          "contentHash": "session-38092601"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:00:30.555Z",
+      "accessedAt": "2026-05-30T22:00:30.555Z",
+      "accessCount": 0
+    },
+    {
+      "id": "7477738f32b48e8e",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Writing script to probe git tree structures of newly discovered directories/registries (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Writing script to probe git tree structures of newly discovered directories/registries",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "eb76b816-af89-48fc-a752-20c8bc712b15",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/probe_git_registries.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:62742d8872f8",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:62742d8872f8",
+          "name": "Writing script to probe git tree structures of newly discovered directories/registries",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780156706229.5825,
+          "stoppedAt": 1780178432998,
+          "lastActivityAt": 1780156706229.5825,
+          "logTail": [
+            "Writing script to probe git tree structures of newly discovered directories/registries"
+          ],
+          "recordedAt": 1780178433339,
+          "contentHash": "session-580153794"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:00:33.340Z",
+      "accessedAt": "2026-05-30T22:00:33.340Z",
+      "accessCount": 0
+    },
+    {
+      "id": "264f3404aaee92a5",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Writing script to probe git tree structures of newly discovered directories/registries",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "eb76b816-af89-48fc-a752-20c8bc712b15",
+        "sessionId": "imported:antigravity:62742d8872f8",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/probe_git_registries.py.metadata.json",
+        "tags": [
+          "antigravity",
+          "memory"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:00:35.190Z",
+      "accessedAt": "2026-05-30T22:00:35.190Z",
+      "accessCount": 0
+    },
+    {
+      "id": "56821e6ed0436f66",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Writing script to check if specific newly discovered registries are in the registered database (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Writing script to check if specific newly discovered registries are in the registered database",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "d2e60197-a9b0-4ce9-add6-4895cecfbeb8",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/check_directories_registered.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:814fa5be5bab",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:814fa5be5bab",
+          "name": "Writing script to check if specific newly discovered registries are in the registered database",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780156699180.2915,
+          "stoppedAt": 1780178436938,
+          "lastActivityAt": 1780156699180.2915,
+          "logTail": [
+            "Writing script to check if specific newly discovered registries are in the registered database"
+          ],
+          "recordedAt": 1780178436961,
+          "contentHash": "session-1489485649"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:00:36.962Z",
+      "accessedAt": "2026-05-30T22:00:36.962Z",
+      "accessCount": 0
+    },
+    {
+      "id": "16d8992ae06c000e",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Writing script to check if specific newly discovered registries are in the registered database",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "d2e60197-a9b0-4ce9-add6-4895cecfbeb8",
+        "sessionId": "imported:antigravity:814fa5be5bab",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/check_directories_registered.py.metadata.json",
+        "tags": [
+          "antigravity",
+          "memory",
+          "database"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:00:38.738Z",
+      "accessedAt": "2026-05-30T22:00:38.738Z",
+      "accessCount": 0
+    },
+    {
+      "id": "fa4c50caa41beec5",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Writing refined directory search script to handle unicode and filter specifically for directory/registry URLs (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Writing refined directory search script to handle unicode and filter specifically for directory/registry URLs",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "6d175b3a-c4ac-4e10-81be-c69778bae8b3",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/find_mcp_directories.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:9475d38f42eb",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:9475d38f42eb",
+          "name": "Writing refined directory search script to handle unicode and filter specifically for directory/registry URLs",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780156691043.517,
+          "stoppedAt": 1780178440496,
+          "lastActivityAt": 1780156691043.517,
+          "logTail": [
+            "Writing refined directory search script to handle unicode and filter specifically for directory/registry URLs"
+          ],
+          "recordedAt": 1780178440509,
+          "contentHash": "session-1602569794"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:00:40.509Z",
+      "accessedAt": "2026-05-30T22:00:40.509Z",
+      "accessCount": 0
+    },
+    {
+      "id": "386b753935f3e8ed",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Writing backlog MCP server assimilation script to scan links_backlog and register new servers to published_mcp_servers (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Writing backlog MCP server assimilation script to scan links_backlog and register new servers to published_mcp_servers",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "75df464a-c6ac-4682-b511-01e9e260a6ca",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/assimilate_backlog_mcp_servers.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:a1a5d8a67a4b",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:a1a5d8a67a4b",
+          "name": "Writing backlog MCP server assimilation script to scan links_backlog and register new servers to published_mcp_servers",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780156209781.2053,
+          "stoppedAt": 1780178442491,
+          "lastActivityAt": 1780156209781.2053,
+          "logTail": [
+            "Writing backlog MCP server assimilation script to scan links_backlog and register new servers to published_mcp_servers"
+          ],
+          "recordedAt": 1780178442509,
+          "contentHash": "session-1032616891"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:00:42.509Z",
+      "accessedAt": "2026-05-30T22:00:42.509Z",
+      "accessCount": 0
+    },
+    {
+      "id": "a3ca47bb6a8b6939",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Writing script to search links_backlog in borg.db for MCP related entries (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Writing script to search links_backlog in borg.db for MCP related entries",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "5a8df4f1-f32c-4fbd-8623-a65615ce7e33",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/check_db_backlog_mcp.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:0b3faa17eedb",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:0b3faa17eedb",
+          "name": "Writing script to search links_backlog in borg.db for MCP related entries",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780156198844.8142,
+          "stoppedAt": 1780178445166,
+          "lastActivityAt": 1780156198844.8142,
+          "logTail": [
+            "Writing script to search links_backlog in borg.db for MCP related entries"
+          ],
+          "recordedAt": 1780178445185,
+          "contentHash": "session-534983409"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:00:45.185Z",
+      "accessedAt": "2026-05-30T22:00:45.185Z",
+      "accessCount": 0
+    },
+    {
+      "id": "ccb575c3695ef281",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Python script to recursively crawl and ingest new Awesome MCP lists, Awesome Skills repositories, and System Prompts fro (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Python script to recursively crawl and ingest new Awesome MCP lists, Awesome Skills repositories, and System Prompts from the backlog.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "a5a256f8-ab3b-4e65-a97c-24557d310e0f",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/scrape_deep_backlog.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:81edc7a83291",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:81edc7a83291",
+          "name": "Python script to recursively crawl and ingest new Awesome MCP lists, Awesome Skills repositories, and System Prompts fro",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780150726817.5544,
+          "stoppedAt": 1780178447360,
+          "lastActivityAt": 1780150726817.5544,
+          "logTail": [
+            "Python script to recursively crawl and ingest new Awesome MCP lists, Awesome Skills repositories, and System Prompts from the backlog."
+          ],
+          "recordedAt": 1780178447377,
+          "contentHash": "session-1147701061"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:00:47.378Z",
+      "accessedAt": "2026-05-30T22:00:47.378Z",
+      "accessCount": 0
+    },
+    {
+      "id": "393134e722b41f6d",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Python script to parse, extract, and register all 41 skills from SKILL.md into the local skills registry folder. (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Python script to parse, extract, and register all 41 skills from SKILL.md into the local skills registry folder.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "ed97eb11-f55b-4ae7-bee2-242851e3c7ef",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/assimilate_skills.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:fcd3d5d44e57",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:fcd3d5d44e57",
+          "name": "Python script to parse, extract, and register all 41 skills from SKILL.md into the local skills registry folder.",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780150543486.7856,
+          "stoppedAt": 1780178449535,
+          "lastActivityAt": 1780150543486.7856,
+          "logTail": [
+            "Python script to parse, extract, and register all 41 skills from SKILL.md into the local skills registry folder."
+          ],
+          "recordedAt": 1780178449557,
+          "contentHash": "session-526262947"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:00:49.557Z",
+      "accessedAt": "2026-05-30T22:00:49.557Z",
+      "accessCount": 0
+    },
+    {
+      "id": "8d69f08be583bdee",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Python script to comprehensively parse, normalize, and assimilate all database and text resources into links_backlog in (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Python script to comprehensively parse, normalize, and assimilate all database and text resources into links_backlog in borg.db.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "45b025fb-f115-4bc8-a0a4-9becaa770e8d",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/assimilate_resources.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:1f6538c814a3",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:1f6538c814a3",
+          "name": "Python script to comprehensively parse, normalize, and assimilate all database and text resources into links_backlog in",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780150314074.3076,
+          "stoppedAt": 1780178451656,
+          "lastActivityAt": 1780150314074.3076,
+          "logTail": [
+            "Python script to comprehensively parse, normalize, and assimilate all database and text resources into links_backlog in borg.db."
+          ],
+          "recordedAt": 1780178451676,
+          "contentHash": "session-25501983"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:00:51.676Z",
+      "accessedAt": "2026-05-30T22:00:51.676Z",
+      "accessCount": 0
+    },
+    {
+      "id": "c55fbda607291bb6",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Python script to scrape and register Fabric prompts from GitHub. (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Python script to scrape and register Fabric prompts from GitHub.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "3359ac1f-e7b9-441c-af7d-87efa009eb0a",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/scrape_prompt_engineering.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:1635b4c135b3",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:1635b4c135b3",
+          "name": "Python script to scrape and register Fabric prompts from GitHub.",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780147848118.8442,
+          "stoppedAt": 1780178453876,
+          "lastActivityAt": 1780147848118.8442,
+          "logTail": [
+            "Python script to scrape and register Fabric prompts from GitHub."
+          ],
+          "recordedAt": 1780178453895,
+          "contentHash": "session-1218450486"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:00:53.895Z",
+      "accessedAt": "2026-05-30T22:00:53.895Z",
+      "accessCount": 0
+    },
+    {
+      "id": "b77a39d83ae4b648",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Python script to scrape and index curated Awesome MCP lists into published_mcp_servers. (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Python script to scrape and index curated Awesome MCP lists into published_mcp_servers.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "65ddab86-23eb-498d-8454-67b62ec46606",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/scrape_mcp_curations.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:418582cec404",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:418582cec404",
+          "name": "Python script to scrape and index curated Awesome MCP lists into published_mcp_servers.",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780147815629.1375,
+          "stoppedAt": 1780178456162,
+          "lastActivityAt": 1780147815629.1375,
+          "logTail": [
+            "Python script to scrape and index curated Awesome MCP lists into published_mcp_servers."
+          ],
+          "recordedAt": 1780178456571,
+          "contentHash": "session-957584186"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:00:56.571Z",
+      "accessedAt": "2026-05-30T22:00:56.571Z",
+      "accessCount": 0
+    },
+    {
+      "id": "853d26aacccbeca9",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Python script to search both databases and text files for new MCP server repositories and ingest them. (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Python script to search both databases and text files for new MCP server repositories and ingest them.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "6656ac08-58d0-4eb8-8acd-47596a9554d3",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/scrape_additional_mcp_directories.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:0a5c32843e21",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:0a5c32843e21",
+          "name": "Python script to search both databases and text files for new MCP server repositories and ingest them.",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780146128942.1492,
+          "stoppedAt": 1780178458172,
+          "lastActivityAt": 1780146128942.1492,
+          "logTail": [
+            "Python script to search both databases and text files for new MCP server repositories and ingest them."
+          ],
+          "recordedAt": 1780178458587,
+          "contentHash": "session-1696886793"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:00:58.588Z",
+      "accessedAt": "2026-05-30T22:00:58.588Z",
+      "accessCount": 0
+    },
+    {
+      "id": "39146ad8c088854c",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Python script to fetch system prompts recursively from the x1xhlol/system-prompts-and-models-of-ai-tools repository and (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Python script to fetch system prompts recursively from the x1xhlol/system-prompts-and-models-of-ai-tools repository and register them.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "f148db63-491d-4b45-88c3-66e82e7325ce",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/scrape_system_prompts.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:4a937c24584f",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:4a937c24584f",
+          "name": "Python script to fetch system prompts recursively from the x1xhlol/system-prompts-and-models-of-ai-tools repository and",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780146094079.5059,
+          "stoppedAt": 1780178460193,
+          "lastActivityAt": 1780146094079.5059,
+          "logTail": [
+            "Python script to fetch system prompts recursively from the x1xhlol/system-prompts-and-models-of-ai-tools repository and register them."
+          ],
+          "recordedAt": 1780178460207,
+          "contentHash": "session-1363966973"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:01:00.208Z",
+      "accessedAt": "2026-05-30T22:01:00.208Z",
+      "accessCount": 0
+    },
+    {
+      "id": "a94583c6853a1e9e",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Python script to download and parse prompts.chat, importing json correctly to avoid NameError. (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Python script to download and parse prompts.chat, importing json correctly to avoid NameError.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "5de2c7e3-5dce-4bdc-94d0-e997fd71154f",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/scrape_prompt_libraries.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:7dd381ecd515",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:7dd381ecd515",
+          "name": "Python script to download and parse prompts.chat, importing json correctly to avoid NameError.",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780145979109.1199,
+          "stoppedAt": 1780178591445,
+          "lastActivityAt": 1780145979109.1199,
+          "logTail": [
+            "Python script to download and parse prompts.chat, importing json correctly to avoid NameError."
+          ],
+          "recordedAt": 1780178591481,
+          "contentHash": "session-298460818"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:03:11.481Z",
+      "accessedAt": "2026-05-30T22:03:11.481Z",
+      "accessCount": 0
+    },
+    {
+      "id": "2fd6d0edaeb3d0f7",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Python script to download and parse prompts.chat, importing json correctly to avoid NameError.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "5de2c7e3-5dce-4bdc-94d0-e997fd71154f",
+        "sessionId": "imported:antigravity:7dd381ecd515",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/scrape_prompt_libraries.py.metadata.json",
+        "tags": [
+          "antigravity",
+          "instruction",
+          "networking"
+        ],
+        "section": "instructions",
+        "memoryKind": "instruction",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:03:13.488Z",
+      "accessedAt": "2026-05-30T22:03:13.488Z",
+      "accessCount": 0
+    },
+    {
+      "id": "7b6cba70dd29897f",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Scratch test script to verify ProviderRegistry using absolute file imports. (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Scratch test script to verify ProviderRegistry using absolute file imports.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "9627ed12-0d16-44be-8dbf-83683e76befb",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/test_free_refresher.mjs.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:a11d7d9c629e",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:a11d7d9c629e",
+          "name": "Scratch test script to verify ProviderRegistry using absolute file imports.",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780144562611.603,
+          "stoppedAt": 1780178595081,
+          "lastActivityAt": 1780144562611.603,
+          "logTail": [
+            "Scratch test script to verify ProviderRegistry using absolute file imports."
+          ],
+          "recordedAt": 1780178595107,
+          "contentHash": "session-678552402"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:03:15.107Z",
+      "accessedAt": "2026-05-30T22:03:15.107Z",
+      "accessCount": 0
+    },
+    {
+      "id": "fcc409b7331e152a",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Scratch test script to verify ProviderRegistry using absolute file imports.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "9627ed12-0d16-44be-8dbf-83683e76befb",
+        "sessionId": "imported:antigravity:a11d7d9c629e",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/test_free_refresher.mjs.metadata.json",
+        "tags": [
+          "antigravity",
+          "memory",
+          "networking",
+          "validation"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:03:16.814Z",
+      "accessedAt": "2026-05-30T22:03:16.814Z",
+      "accessCount": 0
+    },
+    {
+      "id": "dfd74a36e347fc74",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Concurrent scraper script for crawling all 1,798 server pages listed in mcp.directory sitemap and mining their package d (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Concurrent scraper script for crawling all 1,798 server pages listed in mcp.directory sitemap and mining their package details, config recipes, categories, and repositories",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "f830d65a-de00-477d-9691-9c055ac857d3",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/scrape_mcp_directory_site.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:e35f69c3d0e5",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:e35f69c3d0e5",
+          "name": "Concurrent scraper script for crawling all 1,798 server pages listed in mcp.directory sitemap and mining their package d",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780090758773.4773,
+          "stoppedAt": 1780178598337,
+          "lastActivityAt": 1780090758773.4773,
+          "logTail": [
+            "Concurrent scraper script for crawling all 1,798 server pages listed in mcp.directory sitemap and mining their package details, config recipes, categories, and repositories"
+          ],
+          "recordedAt": 1780178598350,
+          "contentHash": "session-1789698303"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:03:18.350Z",
+      "accessedAt": "2026-05-30T22:03:18.350Z",
+      "accessCount": 0
+    },
+    {
+      "id": "c5e371580c62dd3b",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Comprehensive MCP metadata enricher — hits official registry with correct cursor pagination, enriches GitHub repos for s (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Comprehensive MCP metadata enricher — hits official registry with correct cursor pagination, enriches GitHub repos for stars/language/env vars, extracts Smithery config schemas, and adds new columns for richer metadata",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "c626b247-0cf8-48b2-a744-4f1f02fbfb3d",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/enrich_metadata.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:72f8e86f2836",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:72f8e86f2836",
+          "name": "Comprehensive MCP metadata enricher — hits official registry with correct cursor pagination, enriches GitHub repos for s",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780072698925.5364,
+          "stoppedAt": 1780178600008,
+          "lastActivityAt": 1780072698925.5364,
+          "logTail": [
+            "Comprehensive MCP metadata enricher — hits official registry with correct cursor pagination, enriches GitHub repos for stars/language/env vars, extracts Smithery config schemas, and adds new columns for richer metadata"
+          ],
+          "recordedAt": 1780178600023,
+          "contentHash": "session-1810974562"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:03:20.023Z",
+      "accessedAt": "2026-05-30T22:03:20.023Z",
+      "accessCount": 0
+    },
+    {
+      "id": "712dee83fb63767b",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Fixed enrichment check script (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Fixed enrichment check script",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "22a4a617-4bb1-4119-982b-5c6e48d982f3",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/check_enrichment.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:89fc4b019264",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:89fc4b019264",
+          "name": "Fixed enrichment check script",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780072490664.2495,
+          "stoppedAt": 1780178601678,
+          "lastActivityAt": 1780072490664.2495,
+          "logTail": [
+            "Fixed enrichment check script"
+          ],
+          "recordedAt": 1780178601698,
+          "contentHash": "session-1090936926"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:03:21.698Z",
+      "accessedAt": "2026-05-30T22:03:21.698Z",
+      "accessCount": 0
+    },
+    {
+      "id": "729b35a628d5a53c",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Fixed enrichment check script",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "22a4a617-4bb1-4119-982b-5c6e48d982f3",
+        "sessionId": "imported:antigravity:89fc4b019264",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/check_enrichment.py.metadata.json",
+        "tags": [
+          "antigravity",
+          "memory"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:03:23.565Z",
+      "accessedAt": "2026-05-30T22:03:23.565Z",
+      "accessCount": 0
+    },
+    {
+      "id": "0e21ded830fd7668",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Metadata audit script (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Metadata audit script",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "399bc82e-29ce-4ea4-826c-9b82362fc841",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/audit_metadata.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:641e7d436694",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:641e7d436694",
+          "name": "Metadata audit script",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780072432298.9036,
+          "stoppedAt": 1780178605560,
+          "lastActivityAt": 1780072432298.9036,
+          "logTail": [
+            "Metadata audit script"
+          ],
+          "recordedAt": 1780178605577,
+          "contentHash": "session-2128303056"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:03:25.577Z",
+      "accessedAt": "2026-05-30T22:03:25.577Z",
+      "accessCount": 0
+    },
+    {
+      "id": "bfb935de81679cb9",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Scraper for atlas.json layers structure (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Scraper for atlas.json layers structure",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "49b122cd-1e02-4591-90ab-1185a898044f",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/scrape_atlas_json.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:6731ce3658d7",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:6731ce3658d7",
+          "name": "Scraper for atlas.json layers structure",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780071631832.5503,
+          "stoppedAt": 1780178607641,
+          "lastActivityAt": 1780071631832.5503,
+          "logTail": [
+            "Scraper for atlas.json layers structure"
+          ],
+          "recordedAt": 1780178607658,
+          "contentHash": "session-549091295"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:03:27.658Z",
+      "accessedAt": "2026-05-30T22:03:27.658Z",
+      "accessCount": 0
+    },
+    {
+      "id": "5525afc40888eea8",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Deep bobbybookmarks file scraper — extracts GitHub links from all MD, TXT files and atlas.json (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Deep bobbybookmarks file scraper — extracts GitHub links from all MD, TXT files and atlas.json",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "5d2081b8-c2d2-4c22-9a50-a54c087e10e5",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/scrape_bobby_files.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:fbc59d70fd5f",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:fbc59d70fd5f",
+          "name": "Deep bobbybookmarks file scraper — extracts GitHub links from all MD, TXT files and atlas.json",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780071552502.511,
+          "stoppedAt": 1780178609702,
+          "lastActivityAt": 1780071552502.511,
+          "logTail": [
+            "Deep bobbybookmarks file scraper — extracts GitHub links from all MD, TXT files and atlas.json"
+          ],
+          "recordedAt": 1780178609733,
+          "contentHash": "session-1031894879"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:03:29.734Z",
+      "accessedAt": "2026-05-30T22:03:29.734Z",
+      "accessCount": 0
+    },
+    {
+      "id": "0fc4ea96fbd121ef",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Final wave scraper targeting korchasa, best-of-mcp, registry.mcp.so, vibehackers, MCPNest, Docker Hub, and extended GitH (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Final wave scraper targeting korchasa, best-of-mcp, registry.mcp.so, vibehackers, MCPNest, Docker Hub, and extended GitHub topics",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "114f812b-2270-4438-b7b6-8905a47bb5cc",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/scrape_final_wave.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:9f12216fc7d6",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:9f12216fc7d6",
+          "name": "Final wave scraper targeting korchasa, best-of-mcp, registry.mcp.so, vibehackers, MCPNest, Docker Hub, and extended GitH",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780071479804.0122,
+          "stoppedAt": 1780178611807,
+          "lastActivityAt": 1780071479804.0122,
+          "logTail": [
+            "Final wave scraper targeting korchasa, best-of-mcp, registry.mcp.so, vibehackers, MCPNest, Docker Hub, and extended GitHub topics"
+          ],
+          "recordedAt": 1780178611835,
+          "contentHash": "session-693248229"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:03:31.835Z",
+      "accessedAt": "2026-05-30T22:03:31.835Z",
+      "accessCount": 0
+    },
+    {
+      "id": "37c2c4af262b8027",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Deep scraper targeting atlas.db full extraction, GitHub search extensions, NPM deep pagination, and directory tree walki (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Deep scraper targeting atlas.db full extraction, GitHub search extensions, NPM deep pagination, and directory tree walking",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "73eed6c5-7c85-4836-862f-9bfa062644ce",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/scrape_deep.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:b8a1124ca79f",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:b8a1124ca79f",
+          "name": "Deep scraper targeting atlas.db full extraction, GitHub search extensions, NPM deep pagination, and directory tree walki",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780071340177.2754,
+          "stoppedAt": 1780178614030,
+          "lastActivityAt": 1780071340177.2754,
+          "logTail": [
+            "Deep scraper targeting atlas.db full extraction, GitHub search extensions, NPM deep pagination, and directory tree walking"
+          ],
+          "recordedAt": 1780178614056,
+          "contentHash": "session-1848603668"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:03:34.056Z",
+      "accessedAt": "2026-05-30T22:03:34.056Z",
+      "accessCount": 0
+    },
+    {
+      "id": "5b96abad11771990",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Official MCP registry scraper plus ever-works mega-list and additional sources (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Official MCP registry scraper plus ever-works mega-list and additional sources",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "7620efb4-2b5a-49a8-986a-6cc2f8e6f00a",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/scrape_official_registry.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:82e1f6826ae9",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:82e1f6826ae9",
+          "name": "Official MCP registry scraper plus ever-works mega-list and additional sources",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780071243392.0566,
+          "stoppedAt": 1780178616249,
+          "lastActivityAt": 1780071243392.0566,
+          "logTail": [
+            "Official MCP registry scraper plus ever-works mega-list and additional sources"
+          ],
+          "recordedAt": 1780178616266,
+          "contentHash": "session-1751171091"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:03:36.266Z",
+      "accessedAt": "2026-05-30T22:03:36.266Z",
+      "accessCount": 0
+    },
+    {
+      "id": "1dbc58f270f9df56",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Extended round-2 scraper covering additional NPM orgs, JSON lists, cursor.directory, Composio, OpenTools, Plugged.in, an (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Extended round-2 scraper covering additional NPM orgs, JSON lists, cursor.directory, Composio, OpenTools, Plugged.in, and MCPPedia",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "52443ccb-0b33-488d-b657-55a344228609",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/scrape_extended.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:7d1b4d21cad0",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:7d1b4d21cad0",
+          "name": "Extended round-2 scraper covering additional NPM orgs, JSON lists, cursor.directory, Composio, OpenTools, Plugged.in, an",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780071116566.3289,
+          "stoppedAt": 1780178618381,
+          "lastActivityAt": 1780071116566.3289,
+          "logTail": [
+            "Extended round-2 scraper covering additional NPM orgs, JSON lists, cursor.directory, Composio, OpenTools, Plugged.in, and MCPPedia"
+          ],
+          "recordedAt": 1780178618401,
+          "contentHash": "session-1941069551"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:03:38.401Z",
+      "accessedAt": "2026-05-30T22:03:38.401Z",
+      "accessCount": 0
+    },
+    {
+      "id": "2311f31b809df04b",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Comprehensive MCP directory scraper hitting PulseMCP, Glama, mcp.so, MCPHub, and other registries (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Comprehensive MCP directory scraper hitting PulseMCP, Glama, mcp.so, MCPHub, and other registries",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "c62ab4f5-d223-4aa1-a4ad-5db0bc3808f7",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/scrape_mcp_directories.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:aaeb8356c76b",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:aaeb8356c76b",
+          "name": "Comprehensive MCP directory scraper hitting PulseMCP, Glama, mcp.so, MCPHub, and other registries",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780070955934.1665,
+          "stoppedAt": 1780178620405,
+          "lastActivityAt": 1780070955934.1665,
+          "logTail": [
+            "Comprehensive MCP directory scraper hitting PulseMCP, Glama, mcp.so, MCPHub, and other registries"
+          ],
+          "recordedAt": 1780178620419,
+          "contentHash": "session-1247379186"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:03:40.419Z",
+      "accessedAt": "2026-05-30T22:03:40.419Z",
+      "accessCount": 0
+    },
+    {
+      "id": "96f981105d33beb8",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Find top MCP domains in atlas.db (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Find top MCP domains in atlas.db",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "46b2db5c-538e-4c9c-b303-78aff11dee02",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/find_domains.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:1714f9a07e57",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:1714f9a07e57",
+          "name": "Find top MCP domains in atlas.db",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780070820080.775,
+          "stoppedAt": 1780178622339,
+          "lastActivityAt": 1780070820080.775,
+          "logTail": [
+            "Find top MCP domains in atlas.db"
+          ],
+          "recordedAt": 1780178622358,
+          "contentHash": "session-698384993"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:03:42.358Z",
+      "accessedAt": "2026-05-30T22:03:42.358Z",
+      "accessCount": 0
+    },
+    {
+      "id": "915dbb97009326a5",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Advanced database scraper to extract and import all 6,759 GitHub repositories from atlas.db into published_mcp_servers i (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Advanced database scraper to extract and import all 6,759 GitHub repositories from atlas.db into published_mcp_servers in borg.db.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "7894814f-6734-4e90-b469-460368e20e7b",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/ingest_all_atlas_github.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:2dfb9cd3bd14",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:2dfb9cd3bd14",
+          "name": "Advanced database scraper to extract and import all 6,759 GitHub repositories from atlas.db into published_mcp_servers i",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780069801461.765,
+          "stoppedAt": 1780178624288,
+          "lastActivityAt": 1780069801461.765,
+          "logTail": [
+            "Advanced database scraper to extract and import all 6,759 GitHub repositories from atlas.db into published_mcp_servers in borg.db."
+          ],
+          "recordedAt": 1780178624313,
+          "contentHash": "session-83347390"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:03:44.314Z",
+      "accessedAt": "2026-05-30T22:03:44.314Z",
+      "accessCount": 0
+    },
+    {
+      "id": "e0611487afb537d2",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Advanced database scraper to extract and import all 6,759 GitHub repositories from atlas.db into published_mcp_servers in borg.db.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "7894814f-6734-4e90-b469-460368e20e7b",
+        "sessionId": "imported:antigravity:2dfb9cd3bd14",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/ingest_all_atlas_github.py.metadata.json",
+        "tags": [
+          "antigravity",
+          "memory",
+          "networking",
+          "database",
+          "mcp"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:03:46.294Z",
+      "accessedAt": "2026-05-30T22:03:46.294Z",
+      "accessCount": 0
+    },
+    {
+      "id": "17e93cf64521c0fe",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Ingestion script to extract additional MCP repository targets from bobbybookmarks raw text files and sync them to borg.d (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Ingestion script to extract additional MCP repository targets from bobbybookmarks raw text files and sync them to borg.db.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "a755477c-88cf-4060-8354-52a175315b89",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/ingest_text_lists.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:51dadc1c2578",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:51dadc1c2578",
+          "name": "Ingestion script to extract additional MCP repository targets from bobbybookmarks raw text files and sync them to borg.d",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780069725186.6594,
+          "stoppedAt": 1780178628086,
+          "lastActivityAt": 1780069725186.6594,
+          "logTail": [
+            "Ingestion script to extract additional MCP repository targets from bobbybookmarks raw text files and sync them to borg.db."
+          ],
+          "recordedAt": 1780178628105,
+          "contentHash": "session-1567201120"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:03:48.105Z",
+      "accessedAt": "2026-05-30T22:03:48.105Z",
+      "accessCount": 0
+    },
+    {
+      "id": "10da52ab2591c91e",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Trigger script to execute live MCP catalog ingestion across all built-in adapters (Smithery, Glama, NPM, Github, etc.) w (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Trigger script to execute live MCP catalog ingestion across all built-in adapters (Smithery, Glama, NPM, Github, etc.) with absolute path.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "871def1f-d723-4d80-a1a6-7b6937fb3b3f",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/trigger_ingest.ts.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:2af51572257a",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:2af51572257a",
+          "name": "Trigger script to execute live MCP catalog ingestion across all built-in adapters (Smithery, Glama, NPM, Github, etc.) w",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780068776592.9336,
+          "stoppedAt": 1780178758496,
+          "lastActivityAt": 1780068776592.9336,
+          "logTail": [
+            "Trigger script to execute live MCP catalog ingestion across all built-in adapters (Smithery, Glama, NPM, Github, etc.) with absolute path."
+          ],
+          "recordedAt": 1780178758518,
+          "contentHash": "session-1699730203"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:05:58.518Z",
+      "accessedAt": "2026-05-30T22:05:58.518Z",
+      "accessCount": 0
+    },
+    {
+      "id": "604eda4cbcb9cf8d",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Trigger script to execute live MCP catalog ingestion across all built-in adapters (Smithery, Glama, NPM, Github, etc.) with absolute path.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "871def1f-d723-4d80-a1a6-7b6937fb3b3f",
+        "sessionId": "imported:antigravity:2af51572257a",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/trigger_ingest.ts.metadata.json",
+        "tags": [
+          "antigravity",
+          "memory",
+          "mcp",
+          "ui"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:06:00.429Z",
+      "accessedAt": "2026-05-30T22:06:00.429Z",
+      "accessCount": 0
+    },
+    {
+      "id": "41d5b074b1988f08",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Scraper script to extract repository links from awesome-mcp-servers raw markdowns and upsert them as canonical servers i (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Scraper script to extract repository links from awesome-mcp-servers raw markdowns and upsert them as canonical servers into borg.db.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "fd13503b-bb1b-46c4-9789-9cee0a7cde1a",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/scrape_awesome_lists.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:61ba82056dbf",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:61ba82056dbf",
+          "name": "Scraper script to extract repository links from awesome-mcp-servers raw markdowns and upsert them as canonical servers i",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780068655127.078,
+          "stoppedAt": 1780178762397,
+          "lastActivityAt": 1780068655127.078,
+          "logTail": [
+            "Scraper script to extract repository links from awesome-mcp-servers raw markdowns and upsert them as canonical servers into borg.db."
+          ],
+          "recordedAt": 1780178762412,
+          "contentHash": "session-1420682630"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:06:02.412Z",
+      "accessedAt": "2026-05-30T22:06:02.412Z",
+      "accessCount": 0
+    },
+    {
+      "id": "c8da0d0288114a23",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Database synchronization script to ingest new MCP servers, extract features (tools), generate baseline recipes, and dedu (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Database synchronization script to ingest new MCP servers, extract features (tools), generate baseline recipes, and deduplicate matching servers, sessions, memories, and prompts inside borg.db.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "1dda3185-593a-4f91-9033-e0bd7b4244ef",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/sync_mcp_catalog.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:7b48e502ce76",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:7b48e502ce76",
+          "name": "Database synchronization script to ingest new MCP servers, extract features (tools), generate baseline recipes, and dedu",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780067980878.4165,
+          "stoppedAt": 1780178764246,
+          "lastActivityAt": 1780067980878.4165,
+          "logTail": [
+            "Database synchronization script to ingest new MCP servers, extract features (tools), generate baseline recipes, and deduplicate matching servers, sessions, memories, and prompts inside borg.db."
+          ],
+          "recordedAt": 1780178764273,
+          "contentHash": "session-411509461"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:06:04.274Z",
+      "accessedAt": "2026-05-30T22:06:04.274Z",
+      "accessCount": 0
+    },
+    {
+      "id": "44aef10dff883adf",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Search atlas.db for MCP entries (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Search atlas.db for MCP entries",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "2ce4b375-091e-4b74-b5cc-59a62826c940",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/read_db.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:ffc1da5841a2",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:ffc1da5841a2",
+          "name": "Search atlas.db for MCP entries",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780067872199.347,
+          "stoppedAt": 1780178766122,
+          "lastActivityAt": 1780067872199.347,
+          "logTail": [
+            "Search atlas.db for MCP entries"
+          ],
+          "recordedAt": 1780178766140,
+          "contentHash": "session-1515718424"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:06:06.140Z",
+      "accessedAt": "2026-05-30T22:06:06.140Z",
+      "accessCount": 0
+    },
+    {
+      "id": "b47e44298351f823",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Wrote a comprehensive program for the private scratch pad to connect to the Hypercode MCP server stdio interface, list a (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Wrote a comprehensive program for the private scratch pad to connect to the Hypercode MCP server stdio interface, list all tools, and call specific target tools with fully populated arguments, capturing Pass/Fail results.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "848d21da-8b1c-43cb-9ca4-93e2339e8c0b",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/test_all_tools.mjs.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:70285134f579",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:70285134f579",
+          "name": "Wrote a comprehensive program for the private scratch pad to connect to the Hypercode MCP server stdio interface, list a",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780065035786.0376,
+          "stoppedAt": 1780178768154,
+          "lastActivityAt": 1780065035786.0376,
+          "logTail": [
+            "Wrote a comprehensive program for the private scratch pad to connect to the Hypercode MCP server stdio interface, list all tools, and call specific target tools with fully populated arguments, capturing Pass/Fail results."
+          ],
+          "recordedAt": 1780178768173,
+          "contentHash": "session-1121544217"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:06:08.174Z",
+      "accessedAt": "2026-05-30T22:06:08.174Z",
+      "accessCount": 0
+    },
+    {
+      "id": "7d9080f960fd8880",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "*\u0002��#\u0000\u0001\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001\u0007version\u00011\u0000 (claude-code) ended with status imported.\nWorking directory: C:/Users/hyper/AppData/Roaming/Claude/Session Storage\nLog tail: � \u0000\u0001'\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000�� | � \u0000\u0001'\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u001e�u�b\u0000\u0001'\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001 next-map-id\u000291\u0001Anamespace-d2d51c9d_5c36_484f_9904_e6bc98c8c626-https://claude.ai/\u000290z�(Kd\u0000\u0001)\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001 next-map-id\u000292\u0001Cnamespace-d2d51c9d_5c36_484f_9904_e6bc98c8c626-https://a.claude.ai/\u000291\"{m� \u0000\u0001+\u0002\u0000\u0000\u0000 | Y\u0000\u0001/\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001$map-92-SSS-shouldShowDesktopTutorial\bt\u0000r\u0000u\u0000e\u0000\u0001\u0013map-92-_dd_prev_p4n\bt\u0000r\u0000u\u0000e\u00005Cq}d\u0000\u00011\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001 next-map-id\u000294\u0001Cnamespace-b6f795ab_0b6c_4a25_baf3_4ad0a777dfe9-https://a.claude.ai/\u000293*�2\"\u0000\u00013\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0014map-92-intercom-testN",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "claude-code",
+        "importedSessionId": "cff4cbe9-e37f-4dfe-94c0-f0061d7492a2",
+        "sourcePath": "C:/Users/hyper/AppData/Roaming/Claude/Session Storage/000003.log",
+        "sessionFormat": "log",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "claude-code",
+          "imported"
+        ],
+        "sessionId": "imported:claude-code:5f7c70a8112a",
+        "structuredSessionSummary": {
+          "sessionId": "imported:claude-code:5f7c70a8112a",
+          "name": "*\u0002��#\u0000\u0001\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001\u0007version\u00011\u0000",
+          "cliType": "claude-code",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/AppData/Roaming/Claude/Session Storage",
+          "restartCount": 0,
+          "startedAt": 1780058193699.2986,
+          "stoppedAt": 1780178770266,
+          "lastActivityAt": 1780058193699.2986,
+          "logTail": [
+            "� \u0000\u0001'\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000��",
+            "� \u0000\u0001'\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u001e�u�b\u0000\u0001'\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001 next-map-id\u000291\u0001Anamespace-d2d51c9d_5c36_484f_9904_e6bc98c8c626-https://claude.ai/\u000290z�(Kd\u0000\u0001)\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001 next-map-id\u000292\u0001Cnamespace-d2d51c9d_5c36_484f_9904_e6bc98c8c626-https://a.claude.ai/\u000291\"{m� \u0000\u0001+\u0002\u0000\u0000\u0000",
+            "Y\u0000\u0001/\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001$map-92-SSS-shouldShowDesktopTutorial\bt\u0000r\u0000u\u0000e\u0000\u0001\u0013map-92-_dd_prev_p4n\bt\u0000r\u0000u\u0000e\u00005Cq}d\u0000\u00011\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001 next-map-id\u000294\u0001Cnamespace-b6f795ab_0b6c_4a25_baf3_4ad0a777dfe9-https://a.claude.ai/\u000293*�2\"\u0000\u00013\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0014map-92-intercom-testN"
+          ],
+          "recordedAt": 1780178770352,
+          "contentHash": "session-147109333"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:06:10.352Z",
+      "accessedAt": "2026-05-30T22:06:10.352Z",
+      "accessCount": 0
+    },
+    {
+      "id": "0ca9a7fff62e6bd2",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "map-21-_mf\u0000 map-21-id8Z\u00169b\u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001 next-map-id\u000223\u0001Anamespace-49c23fff_edec_43d9_9a2e_c10a859ab393-https://claude.ai/\u000222�q4�=\u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0001$map-22-SSS-shouldShowDesktopTutorial",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "claude-code",
+        "importedSessionId": "cff4cbe9-e37f-4dfe-94c0-f0061d7492a2",
+        "sessionId": "imported:claude-code:5f7c70a8112a",
+        "path": "C:/Users/hyper/AppData/Roaming/Claude/Session Storage/000003.log",
+        "tags": [
+          "claude-code",
+          "instruction",
+          "networking"
+        ],
+        "section": "instructions",
+        "memoryKind": "instruction",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:06:12.237Z",
+      "accessedAt": "2026-05-30T22:06:12.237Z",
+      "accessCount": 0
+    },
+    {
+      "id": "7205b168828143fb",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "f\u0000a\u0000l\u0000s\u0000e\u00006K��\"\u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0014map-28-intercom-test�,W�b\u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001 next-map-id\u000230\u0001Anamespace-2b0d9911_4f4f_424b_99ee_ef4bfbba32b5-https://claude.ai/\u000229A˻\u0012=\u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0001$map-29-SSS-shouldShowDesktopTutorial",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "claude-code",
+        "importedSessionId": "cff4cbe9-e37f-4dfe-94c0-f0061d7492a2",
+        "sessionId": "imported:claude-code:5f7c70a8112a",
+        "path": "C:/Users/hyper/AppData/Roaming/Claude/Session Storage/000003.log",
+        "tags": [
+          "claude-code",
+          "instruction",
+          "networking",
+          "validation"
+        ],
+        "section": "instructions",
+        "memoryKind": "instruction",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:06:13.971Z",
+      "accessedAt": "2026-05-30T22:06:13.971Z",
+      "accessCount": 0
+    },
+    {
+      "id": "2de30876ec7ff71d",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "f\u0000a\u0000l\u0000s\u0000e\u0000\u0017>��\"\u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0014map-29-intercom-test �1%b\u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001 next-map-id\u000231\u0001Anamespace-bef62ca3_e463_4697_8849_ca3df3de05c2-https://claude.ai/\u000230����S\u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001$map-30-SSS-shouldShowDesktopTutorial",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "claude-code",
+        "importedSessionId": "cff4cbe9-e37f-4dfe-94c0-f0061d7492a2",
+        "sessionId": "imported:claude-code:5f7c70a8112a",
+        "path": "C:/Users/hyper/AppData/Roaming/Claude/Session Storage/000003.log",
+        "tags": [
+          "claude-code",
+          "instruction",
+          "networking",
+          "validation"
+        ],
+        "section": "instructions",
+        "memoryKind": "instruction",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:06:16.180Z",
+      "accessedAt": "2026-05-30T22:06:16.180Z",
+      "accessCount": 0
+    },
+    {
+      "id": "13f7eefd1348b1e8",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "f\u0000a\u0000l\u0000s\u0000e\u0000\u0000\u0014map-33-intercom-test�\u0000�� \u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0000�� \u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u00000|�7u\u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0000Anamespace-a88845b9_45ca_44fa_a55f_7f0ace8f77fe-https://claude.ai/\u0000$map-33-SSS-shouldShowDesktopTutorial��;�b\u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001 next-map-id\u000235\u0001Anamespace",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "claude-code",
+        "importedSessionId": "cff4cbe9-e37f-4dfe-94c0-f0061d7492a2",
+        "sessionId": "imported:claude-code:5f7c70a8112a",
+        "path": "C:/Users/hyper/AppData/Roaming/Claude/Session Storage/000003.log",
+        "tags": [
+          "claude-code",
+          "instruction",
+          "networking",
+          "validation"
+        ],
+        "section": "instructions",
+        "memoryKind": "instruction",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:06:18.248Z",
+      "accessedAt": "2026-05-30T22:06:18.248Z",
+      "accessCount": 0
+    },
+    {
+      "id": "8b65debcd642a38c",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "f\u0000a\u0000l\u0000s\u0000e\u0000\u0000\u0014map-34-intercom-test1�E \u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u00001�E \u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000����u\u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0000Anamespace-4bc077e9_b8b2_43bd_8089_6943483d5d3a-https://claude.ai/\u0000$map-34-SSS-shouldShowDesktopTutorial!rHXb\u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001 next-map-id\u000236\u0001Anamespace-1",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "claude-code",
+        "importedSessionId": "cff4cbe9-e37f-4dfe-94c0-f0061d7492a2",
+        "sessionId": "imported:claude-code:5f7c70a8112a",
+        "path": "C:/Users/hyper/AppData/Roaming/Claude/Session Storage/000003.log",
+        "tags": [
+          "claude-code",
+          "instruction",
+          "networking",
+          "validation"
+        ],
+        "section": "instructions",
+        "memoryKind": "instruction",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:06:20.005Z",
+      "accessedAt": "2026-05-30T22:06:20.005Z",
+      "accessCount": 0
+    },
+    {
+      "id": "34d9ac59488f9214",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "f\u0000a\u0000l\u0000s\u0000e\u0000\u0000\u0014map-35-intercom-test��\u0006� \u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000��\u0006� \u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000`?o�u\u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0000Anamespace-16138b95_f484_4162_8c69_92abc8001d7b-https://claude.ai/\u0000$map-35-SSS-shouldShowDesktopTutorial^��b\u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001 next-map-id\u000237\u0001Anamespace-",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "claude-code",
+        "importedSessionId": "cff4cbe9-e37f-4dfe-94c0-f0061d7492a2",
+        "sessionId": "imported:claude-code:5f7c70a8112a",
+        "path": "C:/Users/hyper/AppData/Roaming/Claude/Session Storage/000003.log",
+        "tags": [
+          "claude-code",
+          "instruction",
+          "networking",
+          "validation"
+        ],
+        "section": "instructions",
+        "memoryKind": "instruction",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:06:21.951Z",
+      "accessedAt": "2026-05-30T22:06:21.951Z",
+      "accessCount": 0
+    },
+    {
+      "id": "36307751d3289cc6",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Write a scratch script to test sync on bobeditpro and print any traceback (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/ea958c79-e13d-43e2-a9ba-4461511b6bd2/scratch\nLog tail: Write a scratch script to test sync on bobeditpro and print any traceback",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "b550b16d-f875-40cf-b50d-a08295eeb59a",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/ea958c79-e13d-43e2-a9ba-4461511b6bd2/scratch/test_bobeditpro.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:ad1f96018b71",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:ad1f96018b71",
+          "name": "Write a scratch script to test sync on bobeditpro and print any traceback",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/ea958c79-e13d-43e2-a9ba-4461511b6bd2/scratch",
+          "restartCount": 0,
+          "startedAt": 1779753281836.6748,
+          "stoppedAt": 1780178783860,
+          "lastActivityAt": 1779753281836.6748,
+          "logTail": [
+            "Write a scratch script to test sync on bobeditpro and print any traceback"
+          ],
+          "recordedAt": 1780178783882,
+          "contentHash": "session-314796894"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:06:23.882Z",
+      "accessedAt": "2026-05-30T22:06:23.882Z",
+      "accessCount": 0
+    },
+    {
+      "id": "a1ef585c7c5938a8",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Completed tasks list for the Git sync and comparative pipeline tests. (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9\nLog tail: Completed tasks list for the Git sync and comparative pipeline tests.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "366c2d0b-cb15-4624-8c95-7af23267fced",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9/task.md.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:296a7d877eb5",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:296a7d877eb5",
+          "name": "Completed tasks list for the Git sync and comparative pipeline tests.",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9",
+          "restartCount": 0,
+          "startedAt": 1779727274473.3608,
+          "stoppedAt": 1780178785579,
+          "lastActivityAt": 1779727274473.3608,
+          "logTail": [
+            "Completed tasks list for the Git sync and comparative pipeline tests."
+          ],
+          "recordedAt": 1780178785607,
+          "contentHash": "session-1799519849"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:06:25.607Z",
+      "accessedAt": "2026-05-30T22:06:25.607Z",
+      "accessCount": 0
+    },
+    {
+      "id": "626113522276e455",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "# Task List: Udio Browser Automation Remix, Git Sync, & Comparative Testing (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9\nLog tail: # Task List: Udio Browser Automation Remix, Git Sync, & Comparative Testing | - `[x]` stage and commit local master changes (lazy loading, local video updates, popup confirmation bypasses) | - `[x]` Fetch remote branches and resolve divergent history conflicts in `gemini_generator.py` and `udio_remaker.py` | - `[x]` Merge `origin/master` into `master` and push up to GitHub | - `[x]` Update all local feature branches (`feat/comprehensive-docs...` and `feature/web-ui...`) by merging `master` into them and pushing to GitHub | - `[x]` Implement `stretch_midi` method in `MidiRenderer` class | - `[x]` Support `--udio-neg-prompt` CLI parser argument and propagate to `process_single_midi` | - `[x]` Inject React-aware Variance slider (high variance e.g. `0.85`) and Style Reduction (negative prompt) settings via browser automation | - `[x]` Rerun the comparative testing matrix (5 tests: Standard Replicate, Udio CDP Stretched + Transient, House Structural Quantizer, Sonic Vacuum dry render, Psy-Visualizer audio-reactive waveform) | - `[x]` Save comparison output MP4 videos in output workspaces",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "0b6c9341-5d5f-4618-abf6-ce1c3f6c50f0",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9/task.md",
+        "sessionFormat": "md",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:375ff5d17cf9",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:375ff5d17cf9",
+          "name": "# Task List: Udio Browser Automation Remix, Git Sync, & Comparative Testing",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9",
+          "restartCount": 0,
+          "startedAt": 1779727274471.8242,
+          "stoppedAt": 1780178787698,
+          "lastActivityAt": 1779727274471.8242,
+          "logTail": [
+            "# Task List: Udio Browser Automation Remix, Git Sync, & Comparative Testing",
+            "- `[x]` stage and commit local master changes (lazy loading, local video updates, popup confirmation bypasses)",
+            "- `[x]` Fetch remote branches and resolve divergent history conflicts in `gemini_generator.py` and `udio_remaker.py`",
+            "- `[x]` Merge `origin/master` into `master` and push up to GitHub",
+            "- `[x]` Update all local feature branches (`feat/comprehensive-docs...` and `feature/web-ui...`) by merging `master` into them and pushing to GitHub",
+            "- `[x]` Implement `stretch_midi` method in `MidiRenderer` class",
+            "- `[x]` Support `--udio-neg-prompt` CLI parser argument and propagate to `process_single_midi`",
+            "- `[x]` Inject React-aware Variance slider (high variance e.g. `0.85`) and Style Reduction (negative prompt) settings via browser automation",
+            "- `[x]` Rerun the comparative testing matrix (5 tests: Standard Replicate, Udio CDP Stretched + Transient, House Structural Quantizer, Sonic Vacuum dry render, Psy-Visualizer audio-reactive waveform)",
+            "- `[x]` Save comparison output MP4 videos in output workspaces"
+          ],
+          "recordedAt": 1780178787750,
+          "contentHash": "session-1121319460"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:06:27.750Z",
+      "accessedAt": "2026-05-30T22:06:27.750Z",
+      "accessCount": 0
+    },
+    {
+      "id": "f94a13a873d27129",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "- `[x]` Support `--udio-neg-prompt` CLI parser argument and propagate to `process_single_midi`",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "0b6c9341-5d5f-4618-abf6-ce1c3f6c50f0",
+        "sessionId": "imported:antigravity:375ff5d17cf9",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9/task.md",
+        "tags": [
+          "antigravity",
+          "memory",
+          "networking"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:06:30.008Z",
+      "accessedAt": "2026-05-30T22:06:30.008Z",
+      "accessCount": 0
+    },
+    {
+      "id": "c1160502bf77698f",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "- `[x]` Rerun the comparative testing matrix (5 tests: Standard Replicate, Udio CDP Stretched + Transient, House Structural Quantizer, Sonic Vacuum dry render, Psy-Visualizer audio-reactive waveform)",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "0b6c9341-5d5f-4618-abf6-ce1c3f6c50f0",
+        "sessionId": "imported:antigravity:375ff5d17cf9",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9/task.md",
+        "tags": [
+          "antigravity",
+          "instruction",
+          "validation"
+        ],
+        "section": "instructions",
+        "memoryKind": "instruction",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:06:31.922Z",
+      "accessedAt": "2026-05-30T22:06:31.922Z",
+      "accessCount": 0
+    },
+    {
+      "id": "0576b815e6bda929",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "`0.85`) and Style Reduction (negative prompt) settings via browser automation - `[x]` Rerun the comparative testing matrix (5 tests: Standard Replicate, Udio CDP Stretched + Transient, House Structural Quantizer, Sonic V",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "0b6c9341-5d5f-4618-abf6-ce1c3f6c50f0",
+        "sessionId": "imported:antigravity:375ff5d17cf9",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9/task.md",
+        "tags": [
+          "antigravity",
+          "instruction",
+          "validation"
+        ],
+        "section": "instructions",
+        "memoryKind": "instruction",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:06:34.044Z",
+      "accessedAt": "2026-05-30T22:06:34.044Z",
+      "accessCount": 0
+    },
+    {
+      "id": "d79e0fadf2a4a43a",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Walkthrough documenting the comparative results of our 5 e2e test pipeline runs, demonstrating local preprocessors, visu (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9\nLog tail: Walkthrough documenting the comparative results of our 5 e2e test pipeline runs, demonstrating local preprocessors, visualizers, and Udio/Replicate API integrations.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "0282f09a-46e8-4c64-a2ed-661e1d61c84c",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9/walkthrough.md.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:4f163834ca7a",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:4f163834ca7a",
+          "name": "Walkthrough documenting the comparative results of our 5 e2e test pipeline runs, demonstrating local preprocessors, visu",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9",
+          "restartCount": 0,
+          "startedAt": 1779727271487.8535,
+          "stoppedAt": 1780178795943,
+          "lastActivityAt": 1779727271487.8535,
+          "logTail": [
+            "Walkthrough documenting the comparative results of our 5 e2e test pipeline runs, demonstrating local preprocessors, visualizers, and Udio/Replicate API integrations."
+          ],
+          "recordedAt": 1780178795958,
+          "contentHash": "session-1385105805"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:06:35.958Z",
+      "accessedAt": "2026-05-30T22:06:35.958Z",
+      "accessCount": 0
+    },
+    {
+      "id": "f2a2cb839a8420e0",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "# comparative_test_walkthrough.md (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9\nLog tail: * **Credit & Quota Safeguards**: The pipeline successfully detected Replicate billing exhaustion (`402 Payment Required`) and Gemini rate limit exhaustions (`429 RESOURCE_EXHAUSTED`), falling back immediately to high-quality base audio rend | * **Asset Compilation**: When Google Imagen 3 returned a model availability error (`404 NOT_FOUND`), the pipeline instantly generated a beautiful local gradient cover art (`Emmanuel_fallback_art.png`) to ensure zero-loss execution. | --- | ## 📂 Generated Artifact Outputs | All outputs are fully rendered and stored in the following comparison workspaces: | * **Case 1 Standard**: [Emmanuel.mp4](file:///c:/Users/hyper/workspace/bobmani/hymnmania/output_test_replicate/Emmanuel.mp4) | * **Case 2 Transient + Udio**: [Emmanuel.mp4](file:///c:/Users/hyper/workspace/bobmani/hymnmania/output_test_udio/Emmanuel.mp4) | * **Case 3 House Quantized**: [Emmanuel.mp4](file:///c:/Users/hyper/workspace/bobmani/hymnmania/output_test_house/Emmanuel.mp4) | * **Case 4 Sonic Vacuum**: [Emmanuel.mp4](file:///c:/Users/hyper/workspace/bobmani/hymnmania/output_test_vacuum/Emmanuel.mp4) | * **Case 5 Psy-Visualizer**: [Emmanuel.mp4](file:///c:/Users/hyper/workspace/bobmani/hymnmania/output_test_psy/Emmanuel.mp4)",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "06473171-fca4-4a4d-9386-ca74b96b697e",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9/walkthrough.md",
+        "sessionFormat": "md",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:1c37f095224a",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:1c37f095224a",
+          "name": "# comparative_test_walkthrough.md",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9",
+          "restartCount": 0,
+          "startedAt": 1779727271486.2703,
+          "stoppedAt": 1780178929324,
+          "lastActivityAt": 1779727271486.2703,
+          "logTail": [
+            "* **Credit & Quota Safeguards**: The pipeline successfully detected Replicate billing exhaustion (`402 Payment Required`) and Gemini rate limit exhaustions (`429 RESOURCE_EXHAUSTED`), falling back immediately to high-quality base audio rend",
+            "* **Asset Compilation**: When Google Imagen 3 returned a model availability error (`404 NOT_FOUND`), the pipeline instantly generated a beautiful local gradient cover art (`Emmanuel_fallback_art.png`) to ensure zero-loss execution.",
+            "---",
+            "## 📂 Generated Artifact Outputs",
+            "All outputs are fully rendered and stored in the following comparison workspaces:",
+            "* **Case 1 Standard**: [Emmanuel.mp4](file:///c:/Users/hyper/workspace/bobmani/hymnmania/output_test_replicate/Emmanuel.mp4)",
+            "* **Case 2 Transient + Udio**: [Emmanuel.mp4](file:///c:/Users/hyper/workspace/bobmani/hymnmania/output_test_udio/Emmanuel.mp4)",
+            "* **Case 3 House Quantized**: [Emmanuel.mp4](file:///c:/Users/hyper/workspace/bobmani/hymnmania/output_test_house/Emmanuel.mp4)",
+            "* **Case 4 Sonic Vacuum**: [Emmanuel.mp4](file:///c:/Users/hyper/workspace/bobmani/hymnmania/output_test_vacuum/Emmanuel.mp4)",
+            "* **Case 5 Psy-Visualizer**: [Emmanuel.mp4](file:///c:/Users/hyper/workspace/bobmani/hymnmania/output_test_psy/Emmanuel.mp4)"
+          ],
+          "recordedAt": 1780178929395,
+          "contentHash": "session-235943542"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:08:49.396Z",
+      "accessedAt": "2026-05-30T22:08:49.396Z",
+      "accessCount": 0
+    },
+    {
+      "id": "67c0c08d0ea931a3",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "| **Test Case 1** | `--remake-priority replicate` | Standard | Deep House | Beat Pulsing | **Success.** Standard MIDI render complete. Cloud Replicate MusicGen fell back cleanly to base audio (billing exhausted). Gemini fell back to offline",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "06473171-fca4-4a4d-9386-ca74b96b697e",
+        "sessionId": "imported:antigravity:1c37f095224a",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9/walkthrough.md",
+        "tags": [
+          "antigravity",
+          "instruction",
+          "validation"
+        ],
+        "section": "instructions",
+        "memoryKind": "instruction",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:08:51.417Z",
+      "accessedAt": "2026-05-30T22:08:51.417Z",
+      "accessCount": 0
+    },
+    {
+      "id": "d9cf6b48c50c1252",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "| **Test Case 2** | `--remake-priority udio` | **Transient Pulsing** (Woodblock Program 115) + **28s Stretcher** | Deep House | Beat Pulsing | **Success.** MIDI stretched to exactly 28.0s. Rendered transient woodblock reference. Edge CDP au",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "06473171-fca4-4a4d-9386-ca74b96b697e",
+        "sessionId": "imported:antigravity:1c37f095224a",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9/walkthrough.md",
+        "tags": [
+          "antigravity",
+          "instruction",
+          "database",
+          "validation"
+        ],
+        "section": "instructions",
+        "memoryKind": "instruction",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:08:53.472Z",
+      "accessedAt": "2026-05-30T22:08:53.472Z",
+      "accessCount": 0
+    },
+    {
+      "id": "2b40b60fc4b6d74d",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "| **Test Case 3** | `--house-quantizer` | **House Structural Quantizer** (Snaps events to 124 BPM electronic grid) | Deep House | Beat Pulsing | **Success.** Snapped classical timings to a strict house groove. Rendered base WAV successfully",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "06473171-fca4-4a4d-9386-ca74b96b697e",
+        "sessionId": "imported:antigravity:1c37f095224a",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9/walkthrough.md",
+        "tags": [
+          "antigravity",
+          "instruction",
+          "validation"
+        ],
+        "section": "instructions",
+        "memoryKind": "instruction",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:08:55.338Z",
+      "accessedAt": "2026-05-30T22:08:55.338Z",
+      "accessCount": 0
+    },
+    {
+      "id": "aaa7b4b9de9505fe",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "| **Test Case 4** | `--sonic-vacuum` | **Sonic Vacuum** (Dry piano rendering for cleaner prompt inspiration) | Deep House | Beat Pulsing | **Success.** Sonic Vacuum processed the MIDI to a dry, reverb-free piano base. Generated clean base W",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "06473171-fca4-4a4d-9386-ca74b96b697e",
+        "sessionId": "imported:antigravity:1c37f095224a",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9/walkthrough.md",
+        "tags": [
+          "antigravity",
+          "instruction",
+          "validation"
+        ],
+        "section": "instructions",
+        "memoryKind": "instruction",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:08:57.233Z",
+      "accessedAt": "2026-05-30T22:08:57.233Z",
+      "accessCount": 0
+    },
+    {
+      "id": "714f8d0462936b57",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "* **Implementation**: Extended `trigger_generation()` to programmatically inject the React-aware native setter for the **Variance range slider** and the **Style Reduction (avoid styles)** text input.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "06473171-fca4-4a4d-9386-ca74b96b697e",
+        "sessionId": "imported:antigravity:1c37f095224a",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9/walkthrough.md",
+        "tags": [
+          "antigravity",
+          "instruction"
+        ],
+        "section": "instructions",
+        "memoryKind": "instruction",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:08:59.232Z",
+      "accessedAt": "2026-05-30T22:08:59.232Z",
+      "accessCount": 0
+    },
+    {
+      "id": "f47e89883ab4ec22",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "* **Asset Compilation**: When Google Imagen 3 returned a model availability error (`404 NOT_FOUND`), the pipeline instantly generated a beautiful local gradient cover art (`Emmanuel_fallback_art.png`) to ensure zero-loss execution.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "06473171-fca4-4a4d-9386-ca74b96b697e",
+        "sessionId": "imported:antigravity:1c37f095224a",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9/walkthrough.md",
+        "tags": [
+          "antigravity",
+          "memory"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:09:01.349Z",
+      "accessedAt": "2026-05-30T22:09:01.349Z",
+      "accessCount": 0
+    },
+    {
+      "id": "153c1b4047ce7ace",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "# 🏆 Borg Intelligence Atlas — Top 100 Bookmarks Per Category (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/52158b92-7ef2-4f0f-8090-fd7015f6d909\nLog tail: ### 10. [Get the Pinecone Vector Database | Pinecone](https://www.pinecone.io/lp/get-vector-database/&hsa_acc=3111363649&hsa_cam=16569728076&hsa_grp=135276647900&hsa_ad=587750423880&hsa_src=g&hsa_tgt=kwd-1976865318&hsa_kw=vector%20database& | - **Description**: Pinecone is a fully managed, scalable vector database designed for high-performance similarity search applications. | - **Verdict**: ⭐ Excellent | ### 11. [Cosmos - Your AI Content Engine](https://golivecosmos.com) ⚡87 | - **Description**: Cosmos - Your AI Content Engine â Now live: always-on automations Never stop shipping with always-on content automations in your brand voice | ### 12. [Installation | Laravel 12.x - The clean stack for Artisans and agents](https://laravel.com/docs/12.x/installation) ⚡87 | - **Description**: Installation | Laravel 12.x - The clean stack for Artisans and agents",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "695476ff-eea5-4ed2-ab87-d5592da07107",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/52158b92-7ef2-4f0f-8090-fd7015f6d909/important_bookmarks.md",
+        "sessionFormat": "md",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:6eeb986fcd85",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:6eeb986fcd85",
+          "name": "# 🏆 Borg Intelligence Atlas — Top 100 Bookmarks Per Category",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/52158b92-7ef2-4f0f-8090-fd7015f6d909",
+          "restartCount": 0,
+          "startedAt": 1779726847051.344,
+          "stoppedAt": 1780178943426,
+          "lastActivityAt": 1779726847051.344,
+          "logTail": [
+            "### 10. [Get the Pinecone Vector Database | Pinecone](https://www.pinecone.io/lp/get-vector-database/&hsa_acc=3111363649&hsa_cam=16569728076&hsa_grp=135276647900&hsa_ad=587750423880&hsa_src=g&hsa_tgt=kwd-1976865318&hsa_kw=vector%20database&",
+            "- **Description**: Pinecone is a fully managed, scalable vector database designed for high-performance similarity search applications.",
+            "- **Verdict**: ⭐ Excellent",
+            "### 11. [Cosmos - Your AI Content Engine](https://golivecosmos.com) ⚡87",
+            "- **Description**: Cosmos - Your AI Content Engine â Now live: always-on automations Never stop shipping with always-on content automations in your brand voice",
+            "### 12. [Installation | Laravel 12.x - The clean stack for Artisans and agents](https://laravel.com/docs/12.x/installation) ⚡87",
+            "- **Description**: Installation | Laravel 12.x - The clean stack for Artisans and agents"
+          ],
+          "recordedAt": 1780178943555,
+          "contentHash": "session-1723658640"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:09:03.555Z",
+      "accessedAt": "2026-05-30T22:09:03.555Z",
+      "accessCount": 0
+    },
+    {
+      "id": "2e7db71d722feb25",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "### 3. [usefulsensors/moonshine](https://github.com/usefulsensors/moonshine) ⚡95",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "695476ff-eea5-4ed2-ab87-d5592da07107",
+        "sessionId": "imported:antigravity:6eeb986fcd85",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/52158b92-7ef2-4f0f-8090-fd7015f6d909/important_bookmarks.md",
+        "tags": [
+          "antigravity",
+          "memory",
+          "networking"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:09:05.753Z",
+      "accessedAt": "2026-05-30T22:09:05.753Z",
+      "accessCount": 0
+    },
+    {
+      "id": "74aeaff0f4b6ec4e",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "- **Description**: A Python-based RedBook Search Comment MCP Server for enhancing user interaction with Xiaohongshu notes.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "695476ff-eea5-4ed2-ab87-d5592da07107",
+        "sessionId": "imported:antigravity:6eeb986fcd85",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/52158b92-7ef2-4f0f-8090-fd7015f6d909/important_bookmarks.md",
+        "tags": [
+          "antigravity",
+          "memory",
+          "database",
+          "mcp"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:09:07.780Z",
+      "accessedAt": "2026-05-30T22:09:07.780Z",
+      "accessCount": 0
+    },
+    {
+      "id": "3f11973971cb2907",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "- **Description**: A Python toolkit for extracting clean, focused documentation from web pages using AI-ready formats.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "695476ff-eea5-4ed2-ab87-d5592da07107",
+        "sessionId": "imported:antigravity:6eeb986fcd85",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/52158b92-7ef2-4f0f-8090-fd7015f6d909/important_bookmarks.md",
+        "tags": [
+          "antigravity",
+          "memory",
+          "mcp",
+          "ui"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:09:09.801Z",
+      "accessedAt": "2026-05-30T22:09:09.801Z",
+      "accessCount": 0
+    },
+    {
+      "id": "a597486d6c5942d2",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "- **Description**: Telegram MCP enables AI assistants to manage dialogs, messages, drafts, and read statuses securely within Telegram.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "695476ff-eea5-4ed2-ab87-d5592da07107",
+        "sessionId": "imported:antigravity:6eeb986fcd85",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/52158b92-7ef2-4f0f-8090-fd7015f6d909/important_bookmarks.md",
+        "tags": [
+          "antigravity",
+          "memory",
+          "mcp"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:09:12.143Z",
+      "accessedAt": "2026-05-30T22:09:12.143Z",
+      "accessCount": 0
+    },
+    {
+      "id": "732c7a85aced954e",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "- **Description**: A developer-focused platform enabling seamless integration of Hypernym AI's semantic analysis and compression tools into AI workflows.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "695476ff-eea5-4ed2-ab87-d5592da07107",
+        "sessionId": "imported:antigravity:6eeb986fcd85",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/52158b92-7ef2-4f0f-8090-fd7015f6d909/important_bookmarks.md",
+        "tags": [
+          "antigravity",
+          "memory",
+          "mcp"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:09:13.978Z",
+      "accessedAt": "2026-05-30T22:09:13.978Z",
+      "accessCount": 0
+    },
+    {
+      "id": "658098ec47b64f40",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "- **Description**: A TypeScript-based Nextcloud MCP Server with Smithery deployment support, enabling LLM interactions across various Nextcloud apps.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "695476ff-eea5-4ed2-ab87-d5592da07107",
+        "sessionId": "imported:antigravity:6eeb986fcd85",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/52158b92-7ef2-4f0f-8090-fd7015f6d909/important_bookmarks.md",
+        "tags": [
+          "antigravity",
+          "memory",
+          "networking",
+          "mcp"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-30T22:09:15.884Z",
+      "accessedAt": "2026-05-30T22:09:15.884Z",
+      "accessCount": 0
+    },
+    {
+      "id": "259657d5aa2ac834",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Update query script to generate top 100 standout bookmarks per layer (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/52158b92-7ef2-4f0f-8090-fd7015f6d909/scratch\nLog tail: Update query script to generate top 100 standout bookmarks per layer",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "6e7edbf2-221a-4a96-84a6-f3ed7dc8d405",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/52158b92-7ef2-4f0f-8090-fd7015f6d909/scratch/query_top_bookmarks.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:c4db05889634",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:c4db05889634",
+          "name": "Update query script to generate top 100 standout bookmarks per layer",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/52158b92-7ef2-4f0f-8090-fd7015f6d909/scratch",
+          "restartCount": 0,
+          "startedAt": 1779726845110.498,
+          "stoppedAt": 1780178958001,
+          "lastActivityAt": 1779726845110.498,
+          "logTail": [
+            "Update query script to generate top 100 standout bookmarks per layer"
+          ],
+          "recordedAt": 1780178958018,
+          "contentHash": "session-1159574094"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:09:18.018Z",
+      "accessedAt": "2026-05-30T22:09:18.018Z",
+      "accessCount": 0
+    },
+    {
+      "id": "e7232f3ed01bd5a0",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "# Checklist: Repository Synchronization & Intelligent Merge (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/ea958c79-e13d-43e2-a9ba-4461511b6bd2\nLog tail: - `[ ]` Run `sync_forks.py` to reconcile forks with upstream parents | - `[ ]` **Step 5: Regenerate Submodule Dashboard** | - `[ ]` Run `generate_submodule_dashboard.py` to populate correct and clean hashes | - `[ ]` **Step 6: Version & Changelog Governance** | - `[ ]` Bump version `3.64.0` to `3.65.0` in `VERSION` | - `[ ]` Update `CHANGELOG.md` and `ROADMAP.md` | - `[ ]` **Step 7: Build Verification** | - `[ ]` Run `build_all.py` to compile the workspace without cleaning binaries | - `[ ]` **Step 8: Document Session Handoff** | - `[ ]` Write detailed summary to `HANDOFF.md` | - `[ ]` **Step 9: Commit and Push root workspace** | - `[ ]` Push all pointer updates and documentation changes to main",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "d6c98bbf-a487-4851-91e7-1dea55efef7d",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/ea958c79-e13d-43e2-a9ba-4461511b6bd2/task.md",
+        "sessionFormat": "md",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:71ea0f972323",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:71ea0f972323",
+          "name": "# Checklist: Repository Synchronization & Intelligent Merge",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/ea958c79-e13d-43e2-a9ba-4461511b6bd2",
+          "restartCount": 0,
+          "startedAt": 1779726826613.225,
+          "stoppedAt": 1780178960178,
+          "lastActivityAt": 1779726826613.225,
+          "logTail": [
+            "- `[ ]` Run `sync_forks.py` to reconcile forks with upstream parents",
+            "- `[ ]` **Step 5: Regenerate Submodule Dashboard**",
+            "- `[ ]` Run `generate_submodule_dashboard.py` to populate correct and clean hashes",
+            "- `[ ]` **Step 6: Version & Changelog Governance**",
+            "- `[ ]` Bump version `3.64.0` to `3.65.0` in `VERSION`",
+            "- `[ ]` Update `CHANGELOG.md` and `ROADMAP.md`",
+            "- `[ ]` **Step 7: Build Verification**",
+            "- `[ ]` Run `build_all.py` to compile the workspace without cleaning binaries",
+            "- `[ ]` **Step 8: Document Session Handoff**",
+            "- `[ ]` Write detailed summary to `HANDOFF.md`",
+            "- `[ ]` **Step 9: Commit and Push root workspace**",
+            "- `[ ]` Push all pointer updates and documentation changes to main"
+          ],
+          "recordedAt": 1780178960194,
+          "contentHash": "session-1363284098"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:09:20.194Z",
+      "accessedAt": "2026-05-30T22:09:20.194Z",
+      "accessCount": 0
+    },
+    {
+      "id": "d02fe371f30c76a9",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Task tracker for the executive repository sync protocol. (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/ea958c79-e13d-43e2-a9ba-4461511b6bd2\nLog tail: Task tracker for the executive repository sync protocol.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "f93ba03d-9a1f-4f82-bfbf-a6f70415f428",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/ea958c79-e13d-43e2-a9ba-4461511b6bd2/task.md.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:af14c5545d19",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:af14c5545d19",
+          "name": "Task tracker for the executive repository sync protocol.",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/ea958c79-e13d-43e2-a9ba-4461511b6bd2",
+          "restartCount": 0,
+          "startedAt": 1779726760419.8662,
+          "stoppedAt": 1780178962556,
+          "lastActivityAt": 1779726760419.8662,
+          "logTail": [
+            "Task tracker for the executive repository sync protocol."
+          ],
+          "recordedAt": 1780178962571,
+          "contentHash": "session-613141981"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:09:22.571Z",
+      "accessedAt": "2026-05-30T22:09:22.571Z",
+      "accessCount": 0
+    },
+    {
+      "id": "adcc72efe097ae78",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Create scratch script to find all slider-like elements on the Udio page with parent contexts (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9/scratch\nLog tail: Create scratch script to find all slider-like elements on the Udio page with parent contexts",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "abe21d87-ff11-4df7-9fc2-38fbb0f2276b",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9/scratch/find_all_sliders_with_parents.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:06e677d00fe7",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:06e677d00fe7",
+          "name": "Create scratch script to find all slider-like elements on the Udio page with parent contexts",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9/scratch",
+          "restartCount": 0,
+          "startedAt": 1779392930054.6602,
+          "stoppedAt": 1780178964646,
+          "lastActivityAt": 1779392930054.6602,
+          "logTail": [
+            "Create scratch script to find all slider-like elements on the Udio page with parent contexts"
+          ],
+          "recordedAt": 1780178964670,
+          "contentHash": "session-1196442766"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:09:24.671Z",
+      "accessedAt": "2026-05-30T22:09:24.671Z",
+      "accessCount": 0
+    },
+    {
+      "id": "eef5904bf92b6838",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Create scratch script to search for keywords in element attributes (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9/scratch\nLog tail: Create scratch script to search for keywords in element attributes",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "03e444b4-9f3a-4a3a-be1b-a9c9bd0737ab",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9/scratch/search_all_attributes.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:4c0b3de20dd5",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:4c0b3de20dd5",
+          "name": "Create scratch script to search for keywords in element attributes",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9/scratch",
+          "restartCount": 0,
+          "startedAt": 1779392921025.6113,
+          "stoppedAt": 1780178966817,
+          "lastActivityAt": 1779392921025.6113,
+          "logTail": [
+            "Create scratch script to search for keywords in element attributes"
+          ],
+          "recordedAt": 1780178966834,
+          "contentHash": "session-1245361244"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:09:26.834Z",
+      "accessedAt": "2026-05-30T22:09:26.834Z",
+      "accessCount": 0
+    },
+    {
+      "id": "db3fd855c4eade35",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Create scratch script to print the surrounding HTML tree of the uploaded audio card (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9/scratch\nLog tail: Create scratch script to print the surrounding HTML tree of the uploaded audio card",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "69c07ccb-e815-4f59-b86a-234b8662dff3",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9/scratch/print_around_audio.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:b8f5e2ff21cf",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:b8f5e2ff21cf",
+          "name": "Create scratch script to print the surrounding HTML tree of the uploaded audio card",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/89418015-0458-4171-857c-6e3ddfff93e9/scratch",
+          "restartCount": 0,
+          "startedAt": 1779392913916.2993,
+          "stoppedAt": 1780178969211,
+          "lastActivityAt": 1779392913916.2993,
+          "logTail": [
+            "Create scratch script to print the surrounding HTML tree of the uploaded audio card"
+          ],
+          "recordedAt": 1780178969229,
+          "contentHash": "session-1262052657"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-30T22:09:29.229Z",
+      "accessedAt": "2026-05-30T22:09:29.229Z",
       "accessCount": 0
     }
   ]
