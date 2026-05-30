@@ -111,6 +111,22 @@ _KNOWN_PSYTRANCE_NAMES = [
     'Mandelbrot', 'Electric S.U.N.', 'Eli Biton Tal', 'Celli Firmi',
     'Sebastian Claro', 'Tony 2 Toes', 'Sound Farmers', 'Jakan',
     'Jakaan', 'Dennis Stellovic', 'Ido Liran', 'Ari Linker',
+    'Tristan',
+    'Killerwatts',
+    'Sonic Species',
+    'Menog',
+    'Mekkanikka',
+    'Oli G',
+    'Waio',
+    'Phaxe',
+    'Morphic Resonance',
+    'E-Clip',
+    'Liquid Soul',
+    'Neelix',
+    'Flegma',
+    'Nerso',
+    'Zyce',
+    'Aquafeel',
 ]
 
 
