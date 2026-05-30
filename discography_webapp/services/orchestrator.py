@@ -1528,7 +1528,7 @@ class Orchestrator:
                             artist_match = True
                             break
                 if not artist_match:
-                    score -= 200  # Strong penalty for artist mismatch
+                    score -= 500  # Very strong penalty for artist mismatch
 
             # Free slots bonus
             if any(f.get('slots') for f in audio):
