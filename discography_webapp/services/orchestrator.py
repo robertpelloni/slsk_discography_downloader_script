@@ -1787,7 +1787,7 @@ class Orchestrator:
                     await self._finalize_album(td)
             await asyncio.sleep(1)
 
-    def check_album_completion(self, target_dir):
+    async def check_album_completion(self, target_dir):
         await self._finalize_album(target_dir)
 
     def select_best_candidates(self, results):
