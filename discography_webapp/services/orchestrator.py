@@ -865,11 +865,13 @@ class Orchestrator:
             rel = artist.get('relation', '')
             if 'member' in rel.lower() or 'involving' in rel.lower():
                 # Conservative: only keep if the main artist IS in the whitelist
+                # BUT: ambiguous names always require tag verification
+                if normalize(name) in AMBIGUOUS_NAMES:
+                    self.logger.info(f'⊘ Skip {name} (ambiguous name without genre tags)')
+                    continue
                 if normalize(main_artist_name) in KNOWN_PSYTRANCE_ARTISTS:
                     filtered.append(artist)
                     continue
-            
-            # Default skip if it didn't meet any criteria
             # self.logger.info(f"  ⊘ Skip {name} (unverified genre/connection)")
         return filtered
 
