@@ -763,7 +763,7 @@ class Orchestrator:
                         'year': year,
                         'exists_locally': existing is not None or any(
                             c['artist'] == artist['name'] and c['album'] == title
-                            and c['status'] in ('Downloaded', 'Existing', 'Queued')
+                            and c['status'] in ('Downloaded', 'Existing', 'Queued', 'Skipped')
                             for c in self.completed_albums
                         ),
                         'track_count': existing['count'] if existing else 0
@@ -1286,6 +1286,12 @@ class Orchestrator:
             # ── Check 1: Already completed this session
             if self._is_session_completed(name, title):
                 self.logger.info(f"  ⊘ Skip {title} (completed this session)")
+                # Add to completed so gap scanner won't re-find it
+                if not any(c['artist'] == name and c['album'] == title for c in self.completed_albums):
+                    self.completed_albums.append({
+                        'artist': name, 'album': title, 'year': year,
+                        'path': '', 'status': 'Skipped'
+                    })
                 continue
 
             # ── Check 2: Already on disk (and actually completed)
@@ -1294,7 +1300,7 @@ class Orchestrator:
                 # Check if this was a completed download, not an interrupted one
                 was_completed = any(
                     c['artist'] == name and c['album'] == title
-                    and c['status'] in ('Downloaded', 'Existing', 'Queued')
+                    and c['status'] in ('Downloaded', 'Existing', 'Queued', 'Skipped')
                     for c in self.completed_albums
                 )
                 if was_completed or not existing.get('dir', '').startswith('downloads'):
