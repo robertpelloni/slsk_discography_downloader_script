@@ -462,20 +462,21 @@ class Orchestrator:
         for key in candidates:
             if key in index:
                 entry = index[key]
-                if entry['count'] >= 3:
+                # Downloads: accept even single-track EPs
+                # Library: require 3+ tracks to avoid false positives
+                min_count = 1 if entry.get('dir', '') == 'downloads' else 3
+                if entry['count'] >= min_count:
                     return entry
-                # If it's in a library folder (not root downloads), still require
-                # a reasonable track count to avoid skipping due to single tracks.
-                # (EPs usually have 3+ tracks anyway)
-                if entry['count'] >= 3 and entry.get('dir', '') != 'downloads':
-                    return entry
+
 
         # Substring fallback
         title_norm = normalize(album_title)
         for av in normalize_artist_aliases(artist_name):
             for key, entry in index.items():
-                if av in key and title_norm in key and entry['count'] >= 3:
-                    return entry
+                if av in key and title_norm in key:
+                    min_count = 1 if entry.get('dir', '') == 'downloads' else 3
+                    if entry['count'] >= min_count:
+                        return entry
 
         # Exact directory check
         safe_artist = sanitize_name(artist_name)
@@ -484,7 +485,7 @@ class Orchestrator:
             target_dir = os.path.join("downloads", safe_artist, safe_album)
             if os.path.isdir(target_dir):
                 count = self._count_audio_files(target_dir)
-                if count >= 3:
+                if count >= 1:  # Accept even single-track EPs in downloads
                     return {'dir': target_dir, 'count': count}
         return None
 
@@ -1783,11 +1784,11 @@ class Orchestrator:
                     td = info['target_dir']
                     if td in self.album_tracker:
                         self.album_tracker[td]['done'] += 1
-                    self._finalize_album(td)
+                    await self._finalize_album(td)
             await asyncio.sleep(1)
 
     def check_album_completion(self, target_dir):
-        self._finalize_album(target_dir)
+        await self._finalize_album(target_dir)
 
     def select_best_candidates(self, results):
         return self._rank_candidates(results)

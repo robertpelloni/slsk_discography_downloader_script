@@ -1,11 +1,13 @@
 # Auto-imported Agent Instructions
 
-Generated at: 2026-06-01T14:34:38.181Z
+Generated at: 2026-06-01T18:09:51.817Z
 
 These instructions were derived automatically from imported sessions across supported tools.
 
 ## Durable instructions
 
+- **copilot-cli** — - Docker initially failed because Docker Desktop was not running; I still launched the frontend on `127.0.0.1:3000` and backend docs on `127.0.0.1:8000/docs`. _(source: `C:/Users/hyper/.copilot/session-state/d7df693d-00b3-4ebb-8333-317467bbef19/checkpoints/001-live-crm-workflow-expansion.md`)_
+- **antigravity** — - **Gitignored Catalog**: Because `catalog.db` is a `.db` file, it is automatically gitignored by the `*.db` glob rule. `tormentnexus.db` is force-tracked in Git and vacuumed to a clean 7.8MB, completely eliminating false positive secret sc _(source: `C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/walkthrough.md`)_
 - **antigravity** — - **Gitignored Catalog**: Because `catalog.db` is a `.db` file, it is automatically gitignored by the `*.db` glob rule. `tormentnexus.db` is force-tracked in Git and vacuumed to a clean 7.8MB, completely eliminating false positive secret sc _(source: `C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/walkthrough.md`)_
 - **antigravity** — - [x] Partition database to catalog.db to avoid false positive Git secret scanning _(source: `C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/task.md`)_
 - **claude-code** — "description": "Create new skills, modify and improve existing skills, and measure skill performance. Use when users want to create a skill from scratch, update or optimize an existing skill, run evals to test a skill, benchmark skill perfo _(source: `C:/Users/hyper/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/b52df038-3553-423e-bae4-e30047e7b98e/d7d0b68d-757a-4bcf-8066-30cebb32a462/manifest.json`)_
