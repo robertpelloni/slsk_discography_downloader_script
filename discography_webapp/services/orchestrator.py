@@ -182,25 +182,32 @@ def is_psytrance_artist(artist_data):
         if tag_name in DISALLOWED_TAGS:
             neg_tags.append(tag_name)
 
-    # 1. Ambiguous names MUST have positive tags and NO negative tags
-    if norm_name in AMBIGUOUS_NAMES:
-        return has_positive and not neg_tags
+        # 1. Ambiguous names need extra care
+        if norm_name in AMBIGUOUS_NAMES:
+            # If the ambiguous name is in the known whitelist AND has no negative tags,
+            # accept it (e.g. Electric S.U.N. which has no tags but is known psytrance)
+            if norm_name in KNOWN_PSYTRANCE_ARTISTS and not neg_tags:
+                return True
+            # Otherwise, ambiguous names MUST have positive tags and NO negative tags
+            return has_positive and not neg_tags
 
-    # 2. Known psytrance whitelist (high confidence for non-ambiguous names)
-    if norm_name in KNOWN_PSYTRANCE_ARTISTS:
-        # Accept if they have no tags OR positive tags, as long as no negative tags
-        return not neg_tags
+        # 2. Known psytrance whitelist (high confidence for non-ambiguous names)
+        if norm_name in KNOWN_PSYTRANCE_ARTISTS:
+            # Accept if they have no tags OR positive tags, as long as no negative tags
+            return not neg_tags
 
-    # 3. Radical departure check: if it has ANY negative tags, it's out.
-    if neg_tags:
-        return False
+        # 3. Radical departure check: if it has ANY negative tags, it's out.
+        if neg_tags:
+            return False
 
-    # 4. Side-project/collaborator safety net:
-    # If they are connected to a known artist (detected via relation description in _filter_related_artists),
-    # we allow them to stay even with NO tags, provided they don't have negative tags (checked above).
-    # Since this function only sees the artist data, we rely on the caller to handle the 
-    # side-project rule for artists with no tags.
-    return has_positive
+        # 4. Side-project/collaborator safety net:
+        # If they are connected to a known artist (detected via relation description in _filter_related_artists),
+        # we allow them to stay even with NO tags, provided they don't have negative tags (checked above).
+        # Since this function only sees the artist data, we rely on the caller to handle the
+        # side-project rule for artists with no tags.
+        return has_positive
+
+
 
 
 class Orchestrator:
