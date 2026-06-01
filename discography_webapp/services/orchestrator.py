@@ -879,11 +879,11 @@ class Orchestrator:
                 if normalize(main_artist_name) in KNOWN_PSYTRANCE_ARTISTS:
                     filtered.append(artist)
                     continue
-        # 4. Whitelist fallback: if in known psytrance artists and no neg tags, accept
-        if normalize(name) in KNOWN_PSYTRANCE_ARTISTS and not neg_tags:
-            filtered.append(artist)
-            continue
-
+            # 4. Whitelist fallback: if in known psytrance artists and no neg tags, accept
+            if normalize(name) in KNOWN_PSYTRANCE_ARTISTS and not neg_tags:
+                filtered.append(artist)
+                continue
+    
             # self.logger.info(f"  ⊘ Skip {name} (unverified genre/connection)")
         return filtered
 
