@@ -753,7 +753,11 @@ class Orchestrator:
                         'id': rg['id'],
                         'title': title,
                         'year': year,
-                        'exists_locally': existing is not None,
+                        'exists_locally': existing is not None or any(
+                            c['artist'] == artist['name'] and c['album'] == title
+                            and c['status'] in ('Downloaded', 'Existing', 'Queued')
+                            for c in self.completed_albums
+                        ),
                         'track_count': existing['count'] if existing else 0
                     })
 
