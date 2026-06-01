@@ -873,12 +873,17 @@ class Orchestrator:
             if 'member' in rel.lower() or 'involving' in rel.lower():
                 # Conservative: only keep if the main artist IS in the whitelist
                 # BUT: ambiguous names always require tag verification
-                if normalize(name) in AMBIGUOUS_NAMES:
-                    self.logger.info(f'⊘ Skip {name} (ambiguous name without genre tags)')
+                if normalize(name) in AMBIGUOUS_NAMES and normalize(name) not in KNOWN_PSYTRANCE_ARTISTS:
+                    self.logger.info(f'⊘ Skip {name} (ambiguous name without genre tags or whitelist)')
                     continue
                 if normalize(main_artist_name) in KNOWN_PSYTRANCE_ARTISTS:
                     filtered.append(artist)
                     continue
+        # 4. Whitelist fallback: if in known psytrance artists and no neg tags, accept
+        if normalize(name) in KNOWN_PSYTRANCE_ARTISTS and not neg_tags:
+            filtered.append(artist)
+            continue
+
             # self.logger.info(f"  ⊘ Skip {name} (unverified genre/connection)")
         return filtered
 
