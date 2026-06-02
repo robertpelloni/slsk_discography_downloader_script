@@ -1287,11 +1287,13 @@ class Orchestrator:
             if self._is_session_completed(name, title):
                 self.logger.info(f"  ⊘ Skip {title} (completed this session)")
                 # Add to completed so gap scanner won't re-find it
+                skip_entry = {
+                    'artist': name, 'album': title, 'year': year,
+                    'path': '', 'status': 'Skipped'
+                }
                 if not any(c['artist'] == name and c['album'] == title for c in self.completed_albums):
-                    self.completed_albums.append({
-                        'artist': name, 'album': title, 'year': year,
-                        'path': '', 'status': 'Skipped'
-                    })
+                    self.completed_albums.append(skip_entry)
+                    self.queue_service.add_completed(skip_entry)
                 continue
 
             # ── Check 2: Already on disk (and actually completed)
