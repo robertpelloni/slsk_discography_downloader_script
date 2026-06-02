@@ -1418,17 +1418,16 @@ class Orchestrator:
                             self._cleanup_dir(target_dir)
                     except Exception as e:
                         self.logger.warning(f"  Candidate failed: {e}")
-
                         if "Fake FLAC" in str(e):
                             self.logger.warning(f"  !!! BLACKLISTING {user} !!!")
                             self.blacklisted_users.add(user)
-
+                        elif "too slow" in str(e).lower():
+                            self.logger.warning(f"  ⊘ Blacklisting {user} (too slow)")
+                            self.blacklisted_users.add(user)
                         self._cleanup_partial(target_dir)
                         await asyncio.sleep(2)
-
                 if not success and attempt < len(queries) - 1:
                     await asyncio.sleep(0.5)
-
             if not success:
                 if not self.should_stop:
                     self.logger.warning(f"  ✗ Failed: {title}")
