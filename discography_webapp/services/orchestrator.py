@@ -762,7 +762,7 @@ class Orchestrator:
                         'title': title,
                         'year': year,
                         'exists_locally': existing is not None or any(
-                            c['artist'] == artist['name'] and c['album'] == title
+                    c['album'] == title and c['year'] == year
                             and c['status'] in ('Downloaded', 'Existing', 'Queued', 'Skipped')
                             for c in self.completed_albums
                         ),
