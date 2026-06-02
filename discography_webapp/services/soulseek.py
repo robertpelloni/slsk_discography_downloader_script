@@ -342,7 +342,10 @@ class SoulseekService:
 
     async def download_file(self, user, filename):
         if not self.is_connected:
-            raise Exception("Not connected")
+            # Try to reconnect before failing
+            reconnected = await self._ensure_connected()
+            if not reconnected:
+                raise Exception("Not connected and reconnection failed")
 
         # Sanitize filename for logging
         safe_name = os.path.basename(filename).encode('ascii', errors='replace').decode('ascii')
@@ -356,7 +359,9 @@ class SoulseekService:
     async def get_folder_contents(self, user, folder_path):
         """Fetch the file list of a remote folder."""
         if not self.is_connected:
-            return []
+            reconnected = await self._ensure_connected()
+            if not reconnected:
+                return []
 
         try:
             from aioslsk.commands import PeerGetDirectoryContentCommand

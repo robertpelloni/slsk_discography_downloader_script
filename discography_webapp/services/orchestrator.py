@@ -232,6 +232,7 @@ class Orchestrator:
         self._attempted_albums = set()  # Track (artist_norm, album_norm) to skip dupes
         self.rust_slsk = None
         self._failed_album_counts = {}  # Track per-album failures to avoid infinite retries
+        self._pre_download_files = {}  # Snapshot of files before download attempt
         self._max_album_failures = 3    # Skip album after this many failures per session
         self.slsk_user = self.config_service.get('slsk_user', '')
         self.slsk_pass = self.config_service.get('slsk_pass', '')
@@ -902,6 +903,7 @@ class Orchestrator:
         self.should_stop = False
         self.is_paused = False
         self._failed_album_counts = {}  # Reset failure counts for new session
+        self._pre_download_files = {}  # Reset pre-download snapshots
 
         try:
             consecutive_failures = 0
@@ -1390,6 +1392,11 @@ class Orchestrator:
                         break
 
                     try:
+                        # Snapshot existing files before download attempt
+                        if os.path.exists(target_dir):
+                            self._pre_download_files[target_dir] = set(os.listdir(target_dir))
+                        else:
+                            self._pre_download_files[target_dir] = set()
                         meta = {
                             'artist': name, 'album': title,
                             'year': year, 'mb_release_group_id': rg['id']
@@ -1515,14 +1522,23 @@ class Orchestrator:
                 pass
 
     def _cleanup_partial(self, target_dir):
+        """Remove only files added during the current download attempt.
+        Preserves any files that existed before this attempt."""
         if not os.path.exists(target_dir):
             return
         try:
+            # Get list of files that existed before this download attempt
+            existing_files = self._pre_download_files.get(target_dir, set())
             for f in os.listdir(target_dir):
                 fp = os.path.join(target_dir, f)
-                if os.path.isfile(fp) and f != 'folder.jpg':
+                if os.path.isfile(fp) and f != 'folder.jpg' and f not in existing_files:
                     os.remove(fp)
-            self.logger.info(f"  Cleaned partial files from {target_dir}")
+            remaining = [f for f in os.listdir(target_dir)
+                         if os.path.isfile(os.path.join(target_dir, f)) and f != 'folder.jpg']
+            if remaining:
+                self.logger.info(f"  Cleaned partial files from {target_dir} ({len(remaining)} existing preserved)")
+            else:
+                self.logger.info(f"  Cleaned partial files from {target_dir}")
         except Exception as e:
             self.logger.warning(f"  Cleanup error: {e}")
 
