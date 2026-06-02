@@ -1421,8 +1421,8 @@ class Orchestrator:
                         if "Fake FLAC" in str(e):
                             self.logger.warning(f"  !!! BLACKLISTING {user} !!!")
                             self.blacklisted_users.add(user)
-                        elif "too slow" in str(e).lower():
-                            self.logger.warning(f"  ⊘ Blacklisting {user} (too slow)")
+                        elif "too slow" in str(e).lower() or "unreliable" in str(e).lower():
+                            self.logger.warning(f"  ⊘ Blacklisting {user} (unresponsive)")
                             self.blacklisted_users.add(user)
                         self._cleanup_partial(target_dir)
                         await asyncio.sleep(2)
