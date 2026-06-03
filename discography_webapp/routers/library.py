@@ -14,50 +14,74 @@ AUDIO_EXT = {'.mp3', '.flac', '.m4a', '.ogg', '.wav'}
 
 @router.get("/api/stats")
 async def get_stats(orch=Depends(get_orch)):
-    index = orch._build_existing_index()  # Uses cached index
+    index = orch._build_existing_index()
     organized = 0
     flat = 0
     total_files = 0
     artists = set()
+    seen_albums = set()
     for key, val in index.items():
-        if val['dir'] == 'downloads':
+        artist = val.get('artist', '')
+        album = val.get('album', '')
+        year = val.get('year', '')
+        # Deduplicate albums (same album can appear under multiple key variants)
+        album_dedup = (artist.lower(), album.lower(), year)
+        if album_dedup in seen_albums:
+            continue
+        seen_albums.add(album_dedup)
+        if val.get('dir') == 'downloads' or val.get('flat_files'):
             flat += val['count']
         else:
             organized += 1
-            parts = val['dir'].replace('\\', '/').split('/')
-            if len(parts) >= 2:
-                artists.add(parts[-2])
+        if artist:
+            artists.add(artist)
         total_files += val['count']
     return {
-        "total_albums": len(index),
+        "total_albums": len(seen_albums),
         "organized_albums": organized,
         "flat_files": flat,
         "total_audio_files": total_files,
         "artists": len(artists),
     }
 
+
 @router.get("/api/library")
-async def get_library():
-    root = "downloads"
-    if not os.path.isdir(root):
-        return {"artists": []}
+async def get_library(orch=Depends(get_orch)):
+    """List all albums using the orchestrator index. Works with flat files and subdirs."""
+    index = orch._build_existing_index()
+
+    # Group by artist
+    artists = {}
+    for key, entry in index.items():
+        artist = entry.get("artist", "Unknown")
+        album = entry.get("album", "Unknown")
+        year = entry.get("year", "")
+        count = entry.get("count", 0)
+        flat = entry.get("flat_files", False)
+
+        if artist not in artists:
+            artists[artist] = {}
+
+        album_key = f"{year} - {album}" if year else album
+        if album_key not in artists[artist] or artists[artist][album_key]["tracks"] < count:
+            artists[artist][album_key] = {
+                "name": album_key,
+                "tracks": count,
+                "flat": flat,
+            }
+
     result = []
-    for artist_name in sorted(os.listdir(root)):
-        artist_path = os.path.join(root, artist_name)
-        if not os.path.isdir(artist_path):
-            continue
-        albums = []
-        for album_name in sorted(os.listdir(artist_path)):
-            album_path = os.path.join(artist_path, album_name)
-            if not os.path.isdir(album_path):
-                continue
-            audio_count = sum(1 for f in os.listdir(album_path) if f.lower().endswith(tuple(AUDIO_EXT)))
-            if audio_count > 0:
-                albums.append({"name": album_name, "tracks": audio_count})
-        if albums:
-            total = sum(a["tracks"] for a in albums)
-            result.append({"name": artist_name, "albums": albums, "total_tracks": total})
+    for artist_name in sorted(artists.keys()):
+        albums = sorted(artists[artist_name].values(), key=lambda a: a["name"])
+        total = sum(a["tracks"] for a in albums)
+        result.append({
+            "name": artist_name,
+            "albums": albums,
+            "total_tracks": total,
+        })
+
     return {"artists": result}
+
 
 @router.post("/api/organize_flat")
 async def organize_library_flat(orch=Depends(get_orch)):

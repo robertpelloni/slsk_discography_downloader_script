@@ -423,7 +423,7 @@ class Orchestrator:
         if m:
             artist = m.group(1).strip()
             year = m.group(2)
-            album = re.sub(r'\s+\d+$', '', m.group(3).strip())
+            album = m.group(3).strip()
             return artist, year, album
 
         # Pattern: Artist - Album - TrackNum …
@@ -1413,6 +1413,11 @@ class Orchestrator:
                                 'status': 'Downloaded'
                             })
                             self.invalidate_cache()
+                                # Flatten album files to downloads/ root (non-fatal)
+                            try:
+                                self.post_processor.flatten_album(target_dir)
+                            except Exception as e:
+                                self.logger.warning(f" Flatten failed: {e}")
                         else:
                             self.logger.warning(f"  Candidate {user} finished but no files were saved.")
                             self._cleanup_dir(target_dir)

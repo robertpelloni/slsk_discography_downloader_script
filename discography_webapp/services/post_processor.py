@@ -120,6 +120,99 @@ class PostProcessor:
 
         self.logger.info(f"Tagged {len(matched)} files in {os.path.basename(target_dir)}")
 
+    def _flatten_to_root(self, target_dir):
+        """Move processed files from album subdirectory to the flat downloads/ root.
+        
+        After files are renamed to 'Artist - Year - Album - XX - Title.ext',
+        move them up to downloads/ and clean up the empty subdirectories.
+        """
+        import shutil
+        
+        # downloads/ root is 2 levels up from downloads/Artist/Album/
+        # or 1 level up from downloads/Artist/Unsorted/
+        parts = target_dir.replace('\', '/').split('/')
+        if len(parts) >= 3:
+            # downloads/Artist/Album -> downloads/
+            root = '/'.join(parts[:-2])
+        elif len(parts) == 2:
+            # downloads/Album -> downloads/
+            root = parts[0]
+        else:
+            return
+        
+        if not os.path.isdir(root):
+            os.makedirs(root, exist_ok=True)
+        
+        moved = 0
+        for f in os.listdir(target_dir):
+            fp = os.path.join(target_dir, f)
+            if not os.path.isfile(fp):
+                continue
+            # Skip cover art and metadata files
+            if f.lower() in ('folder.jpg', '.organized'):
+                continue
+            ext = os.path.splitext(f)[1].lower()
+            if ext not in ('.mp3', '.flac', '.m4a', '.ogg', '.wav'):
+                continue
+            dest = os.path.join(root, f)
+            # Handle name collisions by appending (1), (2), etc.
+            if os.path.exists(dest):
+                base, ext2 = os.path.splitext(f)
+                counter = 1
+                while os.path.exists(os.path.join(root, f"{base} ({counter}){ext2}")):
+                    counter += 1
+                dest = os.path.join(root, f"{base} ({counter}){ext2}")
+            try:
+                shutil.move(fp, dest)
+                moved += 1
+            except Exception as e:
+                self.logger.warning(f"Failed to move {f} to root: {e}")
+        
+        # Move cover art if it exists
+        cover_src = os.path.join(target_dir, 'folder.jpg')
+        if os.path.exists(cover_src):
+            # Place cover in artist subdir if it exists, otherwise skip
+            if len(parts) >= 3:
+                artist_dir = '/'.join(parts[:-1])
+                if os.path.isdir(artist_dir):
+                    cover_dest = os.path.join(artist_dir, 'folder.jpg')
+                    if not os.path.exists(cover_dest):
+                        try:
+                            shutil.move(cover_src, cover_dest)
+                        except Exception:
+                            pass
+        
+        # Clean up empty directories
+        try:
+            remaining = os.listdir(target_dir)
+            if not remaining:
+                os.rmdir(target_dir)
+                self.logger.info(f"Removed empty album dir: {target_dir}")
+                # Also try to remove empty artist dir
+                if len(parts) >= 3:
+                    artist_dir = '/'.join(parts[:-1])
+                    try:
+                        if not os.listdir(artist_dir):
+                            os.rmdir(artist_dir)
+                            self.logger.info(f"Removed empty artist dir: {artist_dir}")
+                    except Exception:
+                        pass
+            else:
+                self.logger.info(f"Album dir not empty, keeping: {target_dir}")
+        except Exception as e:
+            self.logger.warning(f"Cleanup error for {target_dir}: {e}")
+        
+        if moved > 0:
+            self.logger.info(f"Flattened {moved} files to {root}/")
+    
+    def flatten_album(self, target_dir):
+        """Move processed files from album subdirectory to the flat downloads/ root.
+        Called by the orchestrator AFTER the success check, so files are
+        still in target_dir for the audio count verification.
+        """
+        if self.config_service.get('flat_file_structure', True):
+            self._flatten_to_root(target_dir)
+
     def _match_files_to_tracks(self, local_files, tracks, target_dir):
         """Match downloaded files to MusicBrainz tracks using fuzzy matching."""
         matched = []
@@ -159,12 +252,20 @@ class PostProcessor:
         old_path = os.path.join(target_dir, filename)
         ext = os.path.splitext(filename)[1]
 
-        # Build new filename: "01 - Track Title.flac"
+        # Build new filename
         track_num_raw = str(track.get('number', '0'))
         num_match = re.search(r'\d+', track_num_raw)
         num = num_match.group(0).zfill(2) if num_match else "00"
         safe_title = self._sanitize(track.get('title', 'Unknown'))
-        new_name = f"{num} - {safe_title}{ext}"
+        safe_artist = self._sanitize(metadata.get('artist', 'Unknown Artist'))
+        safe_album = self._sanitize(metadata.get('album', 'Unknown Album'))
+        year = metadata.get('year', '')
+        if self.config_service.get('flat_file_structure', True) and year and year not in ('Unknown', ''):
+            # Flat: Artist - Year - Album - XX - Title.ext
+            new_name = f"{safe_artist} - {year} - {safe_album} - {num} - {safe_title}{ext}"
+        else:
+            # Simple: XX - Title.ext
+            new_name = f"{num} - {safe_title}{ext}"
         new_path = os.path.join(target_dir, new_name)
 
         # Rename (only if doesn't conflict)

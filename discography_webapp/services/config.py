@@ -23,6 +23,7 @@ class ConfigService:
             "embed_lyrics": False,  # fetch and embed lyrics
             "genius_api_key": "",  # Genius API key for fallback lyrics
             "convert_to_mp3": False,  # Convert FLAC to MP3 V0
+        "flat_file_structure": True,  # Use flat Artist - Year - Album - XX - Title.ext naming
             "sentinel_enabled": False,  # Neural Audio-Quality Sentinel (fake FLAC detection)
         }
         self.load()
