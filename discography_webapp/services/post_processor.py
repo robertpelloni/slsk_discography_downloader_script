@@ -130,7 +130,7 @@ class PostProcessor:
         
         # downloads/ root is 2 levels up from downloads/Artist/Album/
         # or 1 level up from downloads/Artist/Unsorted/
-        parts = target_dir.replace('\', '/').split('/')
+        parts = target_dir.replace('\\', '/').split('/')
         if len(parts) >= 3:
             # downloads/Artist/Album -> downloads/
             root = '/'.join(parts[:-2])
@@ -534,4 +534,4 @@ class PostProcessor:
     # ─── Utility ──────────────────────────────────────────────────
 
     def _sanitize(self, name):
-        return "".join(c for c in name if c.isalpha() or c.isdigit() or c in " .-_").strip()
+        return "".join(c for c in name if c.isalpha() or c.isdigit() or c in " .-_").strip().rstrip(". ")

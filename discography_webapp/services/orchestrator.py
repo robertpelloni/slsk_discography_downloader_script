@@ -132,7 +132,7 @@ _KNOWN_PSYTRANCE_NAMES = [
 
 def sanitize_name(name):
     """Make a filesystem-safe name."""
-    return "".join(c for c in name if c.isalpha() or c.isdigit() or c in " .-_").strip()
+    return "".join(c for c in name if c.isalpha() or c.isdigit() or c in " .-_").strip().rstrip(". ")
 
 
 def normalize(text):
@@ -1413,7 +1413,7 @@ class Orchestrator:
                                 'status': 'Downloaded'
                             })
                             self.invalidate_cache()
-                                # Flatten album files to downloads/ root (non-fatal)
+                        # Flatten album files to downloads/ root (non-fatal)
                             try:
                                 self.post_processor.flatten_album(target_dir)
                             except Exception as e:
