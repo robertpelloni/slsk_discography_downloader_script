@@ -399,6 +399,24 @@ class Orchestrator:
         # ── Thread safety: limit concurrent to_thread() workers ──
         self._thread_semaphore = asyncio.Semaphore(3)
         self._cancel_events: Dict[int, threading.Event] = {}
+        # Load artist blacklist
+        self.blacklisted_artists = self._load_artist_blacklist()
+
+    def _load_artist_blacklist(self):
+        """Load the artist blacklist from data/artist_blacklist.json"""
+        import json
+
+        blacklist_file = "data/artist_blacklist.json"
+        if os.path.exists(blacklist_file):
+            try:
+                with open(blacklist_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                artists = set(data.get("artists", []))
+                self.logger.info(f"Loaded artist blacklist: {len(artists)} artists")
+                return artists
+            except Exception as e:
+                self.logger.warning(f"Failed to load artist blacklist: {e}")
+        return set()
 
     async def _run_in_thread(
         self,
@@ -988,6 +1006,11 @@ class Orchestrator:
 
             # Skip if we already processed this exact artist in this scan batch
             if main["id"] in seen_ids:
+                continue
+
+            # Skip blacklisted artists
+            if main["name"] in self.blacklisted_artists:
+                self.logger.info(f"  ⊘ Skip {main['name']} (blacklisted)")
                 continue
 
             related = []

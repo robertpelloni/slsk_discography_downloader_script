@@ -64,7 +64,7 @@ class MusicBrainzService:
                 time.sleep(1.1)
                 result = musicbrainzngs.browse_release_groups(
                     artist=artist_id,
-                    release_type=["album", "ep"],
+                    release_type=["album", "ep", "single"],  # Include singles for tributes/remixes
                     limit=limit,
                     offset=offset,
                 )
