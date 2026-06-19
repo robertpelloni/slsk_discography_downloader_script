@@ -1,7 +1,8 @@
-Final Integration Test Report - v1.0.0
+Final Integration Test Report - v1.2.0
 ======================================
 
 Performance Metrics:
+- Rust Download Integration: Verified concurrent non-blocking file transfer (Phase 6).
 - Rust Search Speedup: 87.3% (verified with multiple concurrent queries)
 - Search Latency (Rust): ~0.15s
 - Search Latency (Python): ~1.20s
