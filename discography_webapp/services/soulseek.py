@@ -340,7 +340,7 @@ class SoulseekService:
                 self.client = None
                 self.is_connected = False
 
-    async def download_file(self, user, filename):
+    async def download_file(self, user, filename, size=0, download_directory="."):
         if not self.is_connected:
             # Try to reconnect before failing
             reconnected = await self._ensure_connected()
@@ -350,9 +350,22 @@ class SoulseekService:
         # Sanitize filename for logging
         safe_name = os.path.basename(filename).encode('ascii', errors='replace').decode('ascii')
 
+        if not download_directory:
+            download_directory = self.download_path
+
         try:
-            transfer = await self.client.transfers.download(user, filename)
-            return transfer
+            try:
+                import bob_soulseek_rs
+                RUST_AVAILABLE = True
+            except ImportError:
+                RUST_AVAILABLE = False
+
+            if RUST_AVAILABLE:
+                transfer = await bob_soulseek_rs.rust_download_async(user, filename, size, download_directory)
+                return transfer
+            else:
+                transfer = await self.client.transfers.download(user, filename)
+                return transfer
         except Exception as e:
             raise Exception(f"Failed to download {safe_name}: {e}")
 

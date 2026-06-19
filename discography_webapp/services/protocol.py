@@ -106,3 +106,15 @@ class ProtocolService:
 
         self.logger.info(
             f"Roadmap extraction complete. Found {len(todos)} TODO comments.")
+
+        # Write to TODO.md
+        if todos:
+            todo_path = os.path.join(self.root_dir, "TODO.md")
+            # Try to write it, but catch the error if we are in a read-only environment
+            try:
+                with open(todo_path, "w") as f:
+                    f.write("# TODOs\n")
+                    for t in todos:
+                        f.write(f"- {t}\n")
+            except OSError as e:
+                self.logger.warning(f"Could not write to TODO.md: {e}")

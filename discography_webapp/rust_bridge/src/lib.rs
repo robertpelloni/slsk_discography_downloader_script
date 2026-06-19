@@ -93,9 +93,106 @@ fn rust_search_async<'py>(py: Python<'py>, query: String) -> PyResult<&'py PyAny
     })
 }
 
+
+struct TransferInner {
+    is_finished: bool,
+    error: Option<String>,
+}
+
+#[pyclass]
+#[derive(Clone)]
+pub struct RustTransfer {
+    filename: String,
+    inner: std::sync::Arc<std::sync::Mutex<TransferInner>>,
+}
+
+#[pymethods]
+impl RustTransfer {
+    #[getter]
+    fn is_finished(&self) -> bool {
+        self.inner.lock().unwrap().is_finished
+    }
+
+    #[getter]
+    fn error(&self) -> Option<String> {
+        self.inner.lock().unwrap().error.clone()
+    }
+
+    #[getter]
+    fn filename(&self) -> String {
+        self.filename.clone()
+    }
+}
+
+/// An asynchronous Rust function that downloads a file from the Soulseek network
+#[pyfunction]
+fn rust_download_async<'py>(py: Python<'py>, username: String, filename: String, size: u64, download_directory: String) -> PyResult<&'py PyAny> {
+    let client_arc = CLIENT.clone();
+
+    future_into_py(py, async move {
+        let result = tokio::task::spawn_blocking(move || {
+            let rx = {
+                let guard = client_arc.blocking_lock();
+                if let Some(ref client) = *guard {
+                    client.download(filename.clone(), username, size, download_directory)
+                        .map_err(|e| e.to_string())
+                } else {
+                    Err("Not connected to Soulseek".to_string())
+                }
+            }?;
+
+            let inner = std::sync::Arc::new(std::sync::Mutex::new(TransferInner {
+                is_finished: false,
+                error: None,
+            }));
+
+            let transfer = RustTransfer {
+                filename: filename.clone(),
+                inner: inner.clone(),
+            };
+
+            Ok::<_, String>((rx, inner, transfer))
+        }).await.unwrap();
+
+        match result {
+            Ok((rx, inner, transfer)) => {
+                // Spawn background blocking task to wait for completion
+                tokio::task::spawn_blocking(move || {
+                    loop {
+                        match rx.recv() {
+                            Ok(soulseek_rs::DownloadStatus::Completed) => {
+                                let mut guard = inner.lock().unwrap();
+                                guard.is_finished = true;
+                                break;
+                            }
+                            Ok(soulseek_rs::DownloadStatus::Failed) => {
+                                let mut guard = inner.lock().unwrap();
+                                guard.is_finished = true;
+                                guard.error = Some("Download failed".to_string());
+                                break;
+                            }
+                            Ok(_) => continue,
+                            Err(_) => {
+                                let mut guard = inner.lock().unwrap();
+                                guard.is_finished = true;
+                                guard.error = Some("Download channel closed unexpectedly".to_string());
+                                break;
+                            }
+                        }
+                    }
+                });
+                Ok(transfer)
+            }
+            Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e))
+        }
+    })
+}
+
 #[pymodule]
 fn bob_soulseek_rs(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(connect_to_soulseek_async, m)?)?;
     m.add_function(wrap_pyfunction!(rust_search_async, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_download_async, m)?)?;
+    m.add_class::<RustTransfer>()?;
     Ok(())
 }
