@@ -1,6 +1,10 @@
 # Changelog
 
-## [1.2.0]\n- **P2P Expansion**: Implemented full Rust integration of the Soulseek file transfer protocol (Phase 6).\n- **Bug Fixes**: Resolved logic issues within the psytrance filtering and TODO extraction modules.\n\n## [1.1.0]
+## [1.2.0]
+- **P2P Expansion**: Implemented full Rust integration of the Soulseek file transfer protocol (Phase 6).
+- **Bug Fixes**: Resolved logic issues within the psytrance filtering and TODO extraction modules.
+
+## [1.1.0]
 - **Self-Learning Agent Module**: Integrated a new `LearningModule` that tracks task friction (latency/failure) in an experience log.
 - **Dynamic Prioritization**: Updated `PlanningModule` to autonomously boost the priority of high-friction task types.
 - **Adaptive Execution**: Enhanced the autonomous cycle with friction-aware execution and automatic technical debt reconciliation.
