@@ -47,8 +47,16 @@ fn rust_search_async<'py>(py: Python<'py>, query: String) -> PyResult<&'py PyAny
         let results: Result<Vec<SearchResult>, String> = tokio::task::spawn_blocking(move || {
             let guard = client_arc.blocking_lock();
             if let Some(ref client) = *guard {
-                client.search(&query_clone, Duration::from_secs(5))
-                    .map_err(|e| e.to_string())
+                // Refined: Use longer timeout and handle edge cases gracefully
+                match client.search(&query_clone, Duration::from_secs(10)) {
+                    Ok(results) => Ok(results),
+                    Err(e) => {
+                        // In high-concurrency, short timeouts can fail prematurely.
+                        // We map the error and log it without crashing.
+                        eprintln!("[Rust Bridge] Search warning for '{}': {}", query_clone, e);
+                        Err(e.to_string())
+                    }
+                }
             } else {
                 Err("Not connected to Soulseek".to_string())
             }
