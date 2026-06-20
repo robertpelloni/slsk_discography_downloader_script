@@ -977,11 +977,16 @@ async function loadLibrary() {
             html += `</div>`;
             html += `<div id="artist-${idx}" style="display: none; margin-top: 8px; margin-left: 20px;">`;
             artist.albums.forEach(album => {
+                const escapedArtist = artist.name.replace(/'/g, "\'");
+                const escapedAlbum = album.name.replace(/'/g, "\'");
+                const encodedArtist = artist.name.replace(/"/g, '&quot;');
+                const encodedAlbum = album.name.replace(/"/g, '&quot;');
+
                 html += `<div style="font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">`;
-                html += `<span>🎵 ${album.name} <span style="color: var(--text2)">(${album.tracks})</span></span>`;
+                html += `<span style="display:flex; align-items:center; gap:6px;"><input type="checkbox" class="lib-checkbox" data-artist="${encodedArtist}" data-album="${encodedAlbum}" onchange="updateBatchButtons()"> 🎵 ${album.name} <span style="color: var(--text2)">(${album.tracks})</span></span>`;
                 html += `<div style="display: flex; gap: 4px;">`;
-                html += `<button class="btn btn-ghost btn-sm" style="padding: 2px 6px;" onclick="renameAlbum('${artist.name}', '${album.name}')">✎</button>`;
-                html += `<button class="btn btn-ghost btn-sm" style="padding: 2px 6px; color: var(--danger);" onclick="deleteAlbum('${artist.name}', '${album.name}')">🗑</button>`;
+                html += `<button class="btn btn-ghost btn-sm" onclick="renameAlbum('${escapedArtist}', '${escapedAlbum}')" style="padding: 2px 6px; font-size: 11px;">Rename</button>`;
+                html += `<button class="btn btn-ghost btn-sm" onclick="deleteAlbum('${escapedArtist}', '${escapedAlbum}')" style="padding: 2px 6px; font-size: 11px; color: var(--accent1);">Delete</button>`;
                 html += `</div></div>`;
             });
             html += '</div></div>';

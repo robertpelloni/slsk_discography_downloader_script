@@ -8,7 +8,12 @@
 - **Deployment Status**: Manual deployment verified; E2E tests passing.
 - **P2P Expansion**: Implemented full Rust integration of the Soulseek file transfer protocol.
 
-## Major Changes in 1.3.0\n1. **Batch Library Actions**: The UI now supports multiselect batch renaming and batch deletion of albums, saving users significant time.\n2. **Rust P2P Search Stability**: Increased polling timeouts in `rust_search_async` and added non-blocking warnings (`eprintln!`) to prevent premature channel drop errors in high-concurrency environments.\n\n## Major Changes in 1.2.0
+## Major Changes in 1.3.0
+1. **Batch Library Actions**: The UI now supports multiselect batch renaming and batch deletion of albums, saving users significant time.
+2. **Rust P2P Search Stability**: Increased polling timeouts in `rust_search_async` and added non-blocking warnings (`eprintln!`) to prevent premature channel drop errors in high-concurrency environments.
+3. **Multi-Remote Upstream Sync**: Enhanced `ProtocolService` branch reconciliation to dynamically detect and gracefully sync multiple git remotes (`origin`, `upstream`).
+
+## Major Changes in 1.2.0
 1. **Rust File Transfer**: Integrated Soulseek P2P downloads completely into the `bob_soulseek_rs` library via PyO3, replacing `aioslsk` transfer logic. The Rust bridge safely yields to Python's asyncio via Tokio and standard Rust mutexes, maintaining orchestrator timeout fidelity.
 2. **Bug Fixes**: Resolved Python logic bugs in `is_psytrance_artist` for improved forensic filtering.
 3. **Protocol Extraction**: Resolved bug where missing `TODO.md` file broke the autonomous sync protocol.
