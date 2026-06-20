@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.2.0]
+## [1.3.0]\n- **Library UI Enhancements**: Implemented multi-select batch rename and delete actions for local library management.\n- **Search Stability**: Refined the Rust bridge to handle P2P timeout edge cases cleanly during high-concurrency downloads.\n\n## [1.2.0]
 - **P2P Expansion**: Implemented full Rust integration of the Soulseek file transfer protocol (Phase 6).
 - **Bug Fixes**: Resolved logic issues within the psytrance filtering and TODO extraction modules.
 

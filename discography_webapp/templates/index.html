@@ -304,7 +304,11 @@
     <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div class="card-title" style="margin-bottom: 0;">Library</div>
-            <button class="btn btn-ghost btn-sm" onclick="loadLibrary()">Refresh</button>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn btn-ghost btn-sm" id="batchRenameBtn" onclick="batchRename()" style="display:none;">✏️ Rename Selected</button>
+                <button class="btn btn-ghost btn-sm" id="batchDeleteBtn" onclick="batchDelete()" style="display:none; color: var(--accent1);">🗑 Delete Selected</button>
+                <button class="btn btn-ghost btn-sm" onclick="loadLibrary()">Refresh</button>
+            </div>
         </div>
         <div id="libraryContent" style="margin-top: 12px; max-height: 400px; overflow-y: auto;">
             <p style="color: var(--text2); font-size: 13px;">Click Refresh to browse your library.</p>
@@ -899,6 +903,62 @@ async function organizeByTags() {
     } catch(e) { appendLog('Tag organize failed: ' + e); }
 }
 
+
+async function updateBatchButtons() {
+    const checked = document.querySelectorAll('.lib-checkbox:checked').length;
+    document.getElementById('batchRenameBtn').style.display = checked > 0 ? 'inline-block' : 'none';
+    document.getElementById('batchDeleteBtn').style.display = checked > 0 ? 'inline-block' : 'none';
+}
+
+async function batchDelete() {
+    const checked = document.querySelectorAll('.lib-checkbox:checked');
+    if (checked.length === 0) return;
+
+    if (!confirm(`Permanently delete ${checked.length} selected albums?`)) return;
+
+    const albums = Array.from(checked).map(cb => ({
+        artist: cb.dataset.artist,
+        album: cb.dataset.album
+    }));
+
+    try {
+        const r = await fetch('/api/batch_delete_albums', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ albums })
+        });
+        const d = await r.json();
+        if (d.message) { appendLog(d.message); loadLibrary(); }
+        else { alert(d.error || 'Batch delete failed'); }
+    } catch(e) { alert('Error: ' + e); }
+}
+
+async function batchRename() {
+    const checked = document.querySelectorAll('.lib-checkbox:checked');
+    if (checked.length === 0) return;
+
+    const albums = [];
+    for (const cb of checked) {
+        const artist = cb.dataset.artist;
+        const oldName = cb.dataset.album;
+        const newName = prompt(`Rename "${oldName}" by ${artist} to:`, oldName);
+        if (newName && newName !== oldName) {
+            albums.push({ artist, old_name: oldName, new_name: newName });
+        }
+    }
+
+    if (albums.length === 0) return;
+
+    try {
+        const r = await fetch('/api/batch_rename_albums', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ albums })
+        });
+        const d = await r.json();
+        if (d.message) { appendLog(d.message); loadLibrary(); }
+        else { alert(d.error || 'Batch rename failed'); }
+    } catch(e) { alert('Error: ' + e); }
+}
+
 async function loadLibrary() {
     try {
         const r = await fetch('/api/library');
@@ -927,6 +987,7 @@ async function loadLibrary() {
             html += '</div></div>';
         });
         $('libraryContent').innerHTML = html;
+        updateBatchButtons();
     } catch(e) { $('libraryContent').innerHTML = '<p style="color: red">Error loading library.</p>'; }
 }
 
