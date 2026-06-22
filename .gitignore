@@ -34,3 +34,5 @@ audit-*.jsonl
 
 # Rust compiled binary
 *.pyd
+
+.memory/branches/*/log.md

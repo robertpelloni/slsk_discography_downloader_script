@@ -47,6 +47,10 @@ UVICORN_ARGS = [
 
 # ─── Logging Setup ───────────────────────────────────────────────
 
+# Ensure sys.stdout is safe for pythonw.exe (can be None)
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, "w")
+
 log_path = os.path.join(BASE_DIR, LOG_FILE)
 logging.basicConfig(
     level=logging.INFO,
@@ -138,6 +142,15 @@ def kill_process(pid: int) -> bool:
         return True  # Already dead
     except Exception as e:
         log.warning(f"Failed to kill PID {pid}: {e}")
+        # Last resort on Windows: wmic to force-terminate
+        try:
+            subprocess.run(
+                ["wmic", "process", "where", f"ProcessId={pid}", "delete"],
+                capture_output=True,
+                timeout=10,
+            )
+        except Exception:
+            pass
         return False
 
 
@@ -159,14 +172,28 @@ CRASH_LOG = os.path.join(BASE_DIR, "server_crash.log")
 
 
 def start_server() -> subprocess.Popen | None:
-    """Start the uvicorn server process. Returns the Popen object or None."""
-    python_exe = VENV_PYTHON
+    """Start the uvicorn server process. Returns the Popen object or None.
+
+    Uses the system Python (C:\Python314) to avoid the venv Python 3.14.6
+    stub-process bug which creates a duplicate child process for every spawn.
+    The venv's site-packages are added via PYTHONPATH so all project
+    dependencies (fastapi, aioslsk, etc.) are available.
+    """
+    system_python = "C:\\Python314\\python.exe"
+    venv_site = os.path.join(BASE_DIR, "venv", "Lib", "site-packages")
+    python_exe = system_python
+
     if not os.path.isfile(python_exe):
-        # Fallback to system Python
-        python_exe = sys.executable
-        log.warning(f"venv python not found at {VENV_PYTHON}, using system python")
+        # Fallback to venv Python
+        python_exe = VENV_PYTHON
+        log.warning(f"system python not found at {system_python}, using venv python")
 
     log.info(f"Starting server: {python_exe} {' '.join(UVICORN_ARGS)}")
+
+    # Build environment: inherit current + PYTHONPATH pointing to venv site-packages
+    env = os.environ.copy()
+    existing = env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = venv_site + (";" + existing if existing else "")
 
     try:
         crash_fh = open(CRASH_LOG, "a", encoding="utf-8")
@@ -180,6 +207,7 @@ def start_server() -> subprocess.Popen | None:
             cwd=BASE_DIR,
             stdout=subprocess.DEVNULL,
             stderr=crash_fh,
+            env=env,
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
             if sys.platform == "win32"
             else 0,
@@ -206,6 +234,11 @@ def start_server() -> subprocess.Popen | None:
 
 async def run_watchdog(daemon: bool = False):
     """Main watchdog loop."""
+    import os as _os
+
+    log.info(
+        f"[PID {_os.getpid()} PPID {_os.getppid() if hasattr(_os, 'getppid') else 'N/A'}] Entered run_watchdog"
+    )
     server_proc: subprocess.Popen | None = None
     consecutive_failures = 0
     max_consecutive_failures = 5
@@ -213,14 +246,6 @@ async def run_watchdog(daemon: bool = False):
     min_backoff = 15
     max_backoff = 600  # 10 minutes
     last_restart_time = 0.0
-
-    # Write watchdog PID file
-    wpid_file = os.path.join(BASE_DIR, WATCHDOG_PID_FILE)
-    try:
-        with open(wpid_file, "w") as f:
-            f.write(str(os.getpid()))
-    except Exception as e:
-        log.warning(f"Could not write watchdog PID file: {e}")
 
     if daemon:
         log.info("--- Watchdog started (daemon mode) ---")
@@ -315,6 +340,38 @@ async def run_watchdog(daemon: bool = False):
 # ─── Entry Point ─────────────────────────────────────────────────
 
 
+def _lock_with_pid() -> bool:
+    """Atomically claim the watchdog lock via PID file + Windows mutex.
+    Returns True if we own the lock, False if another instance owns it."""
+    my_pid = os.getpid()
+    wpid_file = os.path.join(BASE_DIR, WATCHDOG_PID_FILE)
+    log.info(f"[_lock_with_pid PID={my_pid}] Acquiring lock...")
+
+    # PID file check first
+    try:
+        if os.path.exists(wpid_file):
+            with open(wpid_file) as f:
+                existing_pid = int(f.read().strip())
+            try:
+                os.kill(existing_pid, 0)
+                log.warning(
+                    f"[_lock_with_pid PID={my_pid}] Another watchdog is running (PID {existing_pid}). Exiting."
+                )
+                return False
+            except (OSError, ValueError):
+                log.info(
+                    f"[_lock_with_pid PID={my_pid}] Stale PID file ({existing_pid}), will overwrite."
+                )
+
+        with open(wpid_file, "w") as f:
+            f.write(str(my_pid))
+        log.info(f"[_lock_with_pid PID={my_pid}] Lock acquired.")
+        return True
+    except Exception as e:
+        log.warning(f"[_lock_with_pid PID={my_pid}] Lock error: {e}, proceeding anyway")
+        return True
+
+
 def main():
     parser = argparse.ArgumentParser(description="Discography Downloader Watchdog")
     parser.add_argument(
@@ -326,6 +383,10 @@ def main():
 
     # Make sure we're in the correct directory
     os.chdir(BASE_DIR)
+
+    # ── Single-instance lock ──
+    if not _lock_with_pid():
+        return
 
     try:
         asyncio.run(run_watchdog(daemon=args.daemon))

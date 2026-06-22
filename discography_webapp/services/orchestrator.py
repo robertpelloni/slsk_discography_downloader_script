@@ -2,142 +2,295 @@ import asyncio
 import os
 import re
 import shutil
-import sys
+import threading
 import time
-from typing import List, Dict, Any, Optional
+from typing import Dict, Any, Optional, Callable
 
-from .musicbrainz import MusicBrainzService
-from .soulseek import SoulseekService
-from .config import ConfigService
-from .queue import QueueService
-from .post_processor import PostProcessor
 from aioslsk.transfer.state import TransferState
-import logging
 
-AUDIO_EXTENSIONS = {'.mp3', '.flac', '.m4a', '.ogg', '.wav', '.aac'}
+AUDIO_EXTENSIONS = {".mp3", ".flac", ".m4a", ".ogg", ".wav", ".aac"}
 MIN_FILE_SIZE = 100 * 1024  # 100KB — ignore junk files
 
 # Known artist aliases for matching (abbreviated <-> full name)
 ARTIST_ALIASES = {
-    'gms': 'Growling Mad Scientists',
-    'g.m.s.': 'Growling Mad Scientists',
-    'g.m.s': 'Growling Mad Scientists',
-    'infected': 'Infected Mushroom',
-    '1200mics': '1200 Micrograms',
-    '1200mics.': '1200 Micrograms',
-    'youngerbrother': 'Younger Brother',
-    'youngerbro': 'Younger Brother',
-    'prometheus': 'Prometheus (Sean Truby)',
-    'slinky': 'Slinky',
-    'absolum': 'Absolum',
-    'prana': 'Prana',
-    'transwave': 'Transwave',
-    'hallucinogen': 'Hallucinogen',
-    'shpongle': 'Shpongle',
-    'cosmosis': 'Cosmosis',
-    'totaleclipse': 'Total Eclipse',
-    'theantidote': 'The Antidote',
-    'oforia': 'Oforia',
-    'astralprojection': 'Astral Projection',
-    'mitti': 'Mitti',
-    'koxbox': 'Koxbox',
-    'logicbomb': 'Logic Bomb',
-    'x-dream': 'X-Dream',
-    'sandman': 'Sandman',
-    'jaia': 'Jaia',
-    'chi-ad': 'Chi-A.D.',
-    'electricuniverse': 'Electric Universe',
-    'spacetribe': 'Space Tribe',
-    'mantru': 'Manitu',
+    "gms": "Growling Mad Scientists",
+    "g.m.s.": "Growling Mad Scientists",
+    "g.m.s": "Growling Mad Scientists",
+    "infected": "Infected Mushroom",
+    "1200mics": "1200 Micrograms",
+    "1200mics.": "1200 Micrograms",
+    "youngerbrother": "Younger Brother",
+    "youngerbro": "Younger Brother",
+    "prometheus": "Prometheus (Sean Truby)",
+    "slinky": "Slinky",
+    "absolum": "Absolum",
+    "prana": "Prana",
+    "transwave": "Transwave",
+    "hallucinogen": "Hallucinogen",
+    "shpongle": "Shpongle",
+    "cosmosis": "Cosmosis",
+    "totaleclipse": "Total Eclipse",
+    "theantidote": "The Antidote",
+    "oforia": "Oforia",
+    "astralprojection": "Astral Projection",
+    "mitti": "Mitti",
+    "koxbox": "Koxbox",
+    "logicbomb": "Logic Bomb",
+    "x-dream": "X-Dream",
+    "sandman": "Sandman",
+    "jaia": "Jaia",
+    "chi-ad": "Chi-A.D.",
+    "electricuniverse": "Electric Universe",
+    "spacetribe": "Space Tribe",
+    "mantru": "Manitu",
 }
 
 # Psytrance / electronic tags for genre filtering of related artists
 PSYTRANCE_TAGS = {
-    'psytrance', 'psychedelic trance', 'psychedelic', 'goa trance',
-    'goa', 'trance', 'techno', 'psy', 'full-on', 'full on',
-    'progressive trance', 'darkpsy', 'suomisaundi', 'hi-tech',
-    'psychill', 'downtempo', 'ambient', 'chillout', 'tribal',
-    'industrial', 'hardcore', 'gabber', 'frenchcore',
-    'electronica',
+    "psytrance",
+    "psychedelic trance",
+    "psychedelic",
+    "goa trance",
+    "goa",
+    "trance",
+    "techno",
+    "psy",
+    "full-on",
+    "full on",
+    "progressive trance",
+    "darkpsy",
+    "suomisaundi",
+    "hi-tech",
+    "psychill",
+    "downtempo",
+    "ambient",
+    "chillout",
+    "tribal",
+    "industrial",
+    "hardcore",
+    "gabber",
+    "frenchcore",
+    "electronica",
     # Note: 'electronic', 'edm', 'dance' removed — too broad, matches synthpop/house
 }
 
 # Tags that represent a radical departure from the target scene
 DISALLOWED_TAGS = {
-    'pop', 'jazz', 'classical', 'country', 'folk', 'punk', 'blues', 
-    'soul', 'r&b', 'hip hop', 'rap', 'christian', 'gospel', 'latin', 
-    'reggae', 'indie', 'alternative rock', 'metal', 'heavy metal',
-    'rock', 'hard rock', 'soft rock', 'aor', 'prog rock', 'progressive rock',
-    'singer-songwriter', 'musical', 'soundtrack', 'score',
-    'contemporary christian', 'worship', 'praise', 'spiritual',
+    "pop",
+    "jazz",
+    "classical",
+    "country",
+    "folk",
+    "punk",
+    "blues",
+    "soul",
+    "r&b",
+    "hip hop",
+    "rap",
+    "christian",
+    "gospel",
+    "latin",
+    "reggae",
+    "indie",
+    "alternative rock",
+    "metal",
+    "heavy metal",
+    "rock",
+    "hard rock",
+    "soft rock",
+    "aor",
+    "prog rock",
+    "progressive rock",
+    "singer-songwriter",
+    "musical",
+    "soundtrack",
+    "score",
+    "contemporary christian",
+    "worship",
+    "praise",
+    "spiritual",
 }
 
 # Names that exist in both psy/electronic and unrelated genres
-AMBIGUOUS_NAMES = {'chicago', 'avalon', 'quintessence', 'truth', 'esp', 'hydra', 'volcano', 'outsiders', 'overlords', 'alien', 'slinky', 'lo-fi', 'sandman', 'delta', 'oasis', 'electricsun', 'solstice', 'magik', 'bionix'}
+AMBIGUOUS_NAMES = {
+    "chicago",
+    "avalon",
+    "quintessence",
+    "truth",
+    "esp",
+    "hydra",
+    "volcano",
+    "outsiders",
+    "overlords",
+    "alien",
+    "slinky",
+    "lo-fi",
+    "sandman",
+    "delta",
+    "oasis",
+    "electricsun",
+    "solstice",
+    "magik",
+    "bionix",
+}
 
 # Artists known to be in the psytrance/electronic scene, even if MB tags are sparse
 # Built lazily via function to avoid forward-reference issues with normalize()
 _KNOWN_PSYTRANCE_NAMES = [
-    '1200 Micrograms', 'Growling Mad Scientists', 'GMS', 'Infected Mushroom',
-    'Hallucinogen', 'Shpongle', 'Cosmosis', 'Total Eclipse', 'Astral Projection',
-    'Electric Universe', 'Space Tribe', 'Transwave', 'Koxbox', 'Logic Bomb',
-    'X-Dream', 'Sandman', 'Jaia', 'Chi-A.D.', 'Oforia', 'Prana',
-    'The Infinity Project', 'Younger Brother', 'Prometheus', 'Slinky',
-    'Absolum', 'Talamasca', 'Astrix', 'Ace Ventura', 'Ajja',
-    'Dickster', 'Mad Maxx', 'Mad Tribe', 'Biodegradable',
-    'Alien Project', 'Psysex', 'Hujaboy', 'Riktam', 'Bansi',
-    'Raja Ram', 'Sajahan Matkin',
-    'Soundaholix', '3 Of Life', 'Faders', 'Hypnocoustics',
-    'Save The Robot', 'Alienatic', 'Space Buddha', 'Laughing Buddha',
-    'Outsiders', 'Growling Machines', 'DJ Stryker', 'Avalon',
-    'Mumbo Jumbo', 'Hopefiend', 'Abraxas',
-    'Alien vs. The Cat', 'Crunchy Punch', 'Liquid Ace', 'Zentura',
-    'Vogon 42', 'Specimen', 'Sirius Isness', 'Olli Wisdom',
-    'Max Peterson', 'The Plague', 'Hydra', 'ESP',
-    'DJ Technorch', 'Betwixt & Between', 'RaverRose',
-    'The Peaking Goddess Collective', 'Tranceformation',
-    'Undefined Behavior', 'Omputer', 'The Noodniks',
-    'Twisted Allstars', 'Meathead Productions', 'Spacedrifters',
-    'Sas, Ban & Tony', 'Riktam & Bansi', 'Children of the Doc',
-    'Psysex in Panick', 'Growling Mad Sex', 'Koopa Troopa',
-    'Sex on Mushroom', 'Alpha Portal', 'Easy Riders',
-    'The Unstables', 'Yoni Oshrat', 'Udi Sternberg',
-    'Volcano', 'Volcano On Mars', 'Paradise Connection',
-    'Jupiter 8000', 'Electric Shiva Universe',
-    'Outside The Universe', 'Lo-Fi', 'Gabon', 'Endora',
-    'Boris Blenn', 'Roland Wedig', 'Michael Dressler',
-    'Everblast', 'Third Ear Audio', 'Water Spirits', 'Dual Head',
-    'The Rave Commission', 'TCD', 'Yakov Biton', 'Psykov',
-    'Mandelbrot', 'Electric S.U.N.', 'Eli Biton Tal', 'Celli Firmi',
-    'Sebastian Claro', 'Tony 2 Toes', 'Sound Farmers', 'Jakan',
-    'Jakaan', 'Dennis Stellovic', 'Ido Liran', 'Ari Linker',
-    'Tristan',
-    'Killerwatts',
-    'Sonic Species',
-    'Menog',
-    'Mekkanikka',
-    'Oli G',
-    'Waio',
-    'Phaxe',
-    'Morphic Resonance',
-    'E-Clip',
-    'Liquid Soul',
-    'Neelix',
-    'Flegma',
-    'Nerso',
-    'Zyce',
-    'Aquafeel',
+    "1200 Micrograms",
+    "Growling Mad Scientists",
+    "GMS",
+    "Infected Mushroom",
+    "Hallucinogen",
+    "Shpongle",
+    "Cosmosis",
+    "Total Eclipse",
+    "Astral Projection",
+    "Electric Universe",
+    "Space Tribe",
+    "Transwave",
+    "Koxbox",
+    "Logic Bomb",
+    "X-Dream",
+    "Sandman",
+    "Jaia",
+    "Chi-A.D.",
+    "Oforia",
+    "Prana",
+    "The Infinity Project",
+    "Younger Brother",
+    "Prometheus",
+    "Slinky",
+    "Absolum",
+    "Talamasca",
+    "Astrix",
+    "Ace Ventura",
+    "Ajja",
+    "Dickster",
+    "Mad Maxx",
+    "Mad Tribe",
+    "Biodegradable",
+    "Alien Project",
+    "Psysex",
+    "Hujaboy",
+    "Riktam",
+    "Bansi",
+    "Raja Ram",
+    "Sajahan Matkin",
+    "Soundaholix",
+    "3 Of Life",
+    "Faders",
+    "Hypnocoustics",
+    "Save The Robot",
+    "Alienatic",
+    "Space Buddha",
+    "Laughing Buddha",
+    "Outsiders",
+    "Growling Machines",
+    "DJ Stryker",
+    "Avalon",
+    "Mumbo Jumbo",
+    "Hopefiend",
+    "Abraxas",
+    "Alien vs. The Cat",
+    "Crunchy Punch",
+    "Liquid Ace",
+    "Zentura",
+    "Vogon 42",
+    "Specimen",
+    "Sirius Isness",
+    "Olli Wisdom",
+    "Max Peterson",
+    "The Plague",
+    "Hydra",
+    "ESP",
+    "DJ Technorch",
+    "Betwixt & Between",
+    "RaverRose",
+    "The Peaking Goddess Collective",
+    "Tranceformation",
+    "Undefined Behavior",
+    "Omputer",
+    "The Noodniks",
+    "Twisted Allstars",
+    "Meathead Productions",
+    "Spacedrifters",
+    "Sas, Ban & Tony",
+    "Riktam & Bansi",
+    "Children of the Doc",
+    "Psysex in Panick",
+    "Growling Mad Sex",
+    "Koopa Troopa",
+    "Sex on Mushroom",
+    "Alpha Portal",
+    "Easy Riders",
+    "The Unstables",
+    "Yoni Oshrat",
+    "Udi Sternberg",
+    "Volcano",
+    "Volcano On Mars",
+    "Paradise Connection",
+    "Jupiter 8000",
+    "Electric Shiva Universe",
+    "Outside The Universe",
+    "Lo-Fi",
+    "Gabon",
+    "Endora",
+    "Boris Blenn",
+    "Roland Wedig",
+    "Michael Dressler",
+    "Everblast",
+    "Third Ear Audio",
+    "Water Spirits",
+    "Dual Head",
+    "The Rave Commission",
+    "TCD",
+    "Yakov Biton",
+    "Psykov",
+    "Mandelbrot",
+    "Electric S.U.N.",
+    "Eli Biton Tal",
+    "Celli Firmi",
+    "Sebastian Claro",
+    "Tony 2 Toes",
+    "Sound Farmers",
+    "Jakan",
+    "Jakaan",
+    "Dennis Stellovic",
+    "Ido Liran",
+    "Ari Linker",
+    "Tristan",
+    "Killerwatts",
+    "Sonic Species",
+    "Menog",
+    "Mekkanikka",
+    "Oli G",
+    "Waio",
+    "Phaxe",
+    "Morphic Resonance",
+    "E-Clip",
+    "Liquid Soul",
+    "Neelix",
+    "Flegma",
+    "Nerso",
+    "Zyce",
+    "Aquafeel",
 ]
 
 
 def sanitize_name(name):
     """Make a filesystem-safe name."""
-    return "".join(c for c in name if c.isalpha() or c.isdigit() or c in " .-_").strip().rstrip(". ")
+    return (
+        "".join(c for c in name if c.isalpha() or c.isdigit() or c in " .-_")
+        .strip()
+        .rstrip(". ")
+    )
 
 
 def normalize(text):
     """Lowercase, strip punctuation/spaces for fuzzy comparison."""
-    return re.sub(r'[^a-z0-9]', '', text.lower())
+    return re.sub(r"[^a-z0-9]", "", text.lower())
+
 
 # Build the normalized set after normalize() is defined
 KNOWN_PSYTRANCE_ARTISTS = {normalize(n) for n in _KNOWN_PSYTRANCE_NAMES}
@@ -150,7 +303,7 @@ def normalize_artist_aliases(artist_name):
     variants.add(norm)
 
     # Handle "The " prefix
-    if artist_name.lower().startswith('the '):
+    if artist_name.lower().startswith("the "):
         variants.add(normalize(artist_name[4:]))
 
     for short, full in ARTIST_ALIASES.items():
@@ -167,16 +320,17 @@ def is_psytrance_artist(artist_data):
 
     Uses tag matching and a known-artists whitelist.
     """
-    name = artist_data.get('name', '')
+    name = artist_data.get("name", "")
     norm_name = normalize(name)
-    tags = artist_data.get('tag-list', [])
+    tags = artist_data.get("tag-list", [])
 
     has_positive = False
     neg_tags = []
 
     for tag in tags:
-        tag_name = (tag.get('name', '').lower() if isinstance(tag, dict) 
-                    else str(tag).lower())
+        tag_name = (
+            tag.get("name", "").lower() if isinstance(tag, dict) else str(tag).lower()
+        )
         if tag_name in PSYTRANCE_TAGS:
             has_positive = True
         if tag_name in DISALLOWED_TAGS:
@@ -208,11 +362,17 @@ def is_psytrance_artist(artist_data):
         return has_positive
 
 
-
-
 class Orchestrator:
-    def __init__(self, logger, mb_service, slsk_service, config_service,
-                 post_processor, queue_service, user_id=None):
+    def __init__(
+        self,
+        logger,
+        mb_service,
+        slsk_service,
+        config_service,
+        post_processor,
+        queue_service,
+        user_id=None,
+    ):
         self.logger = logger
         self.user_id = user_id
         self.mb_service = mb_service
@@ -233,9 +393,53 @@ class Orchestrator:
         self.rust_slsk = None
         self._failed_album_counts = {}  # Track per-album failures to avoid infinite retries
         self._pre_download_files = {}  # Snapshot of files before download attempt
-        self._max_album_failures = 3    # Skip album after this many failures per session
-        self.slsk_user = self.config_service.get('slsk_user', '')
-        self.slsk_pass = self.config_service.get('slsk_pass', '')
+        self._max_album_failures = 3  # Skip album after this many failures per session
+        self.slsk_user = self.config_service.get("slsk_user", "")
+        self.slsk_pass = self.config_service.get("slsk_pass", "")
+        # ── Thread safety: limit concurrent to_thread() workers ──
+        self._thread_semaphore = asyncio.Semaphore(3)
+        self._cancel_events: Dict[int, threading.Event] = {}
+
+    async def _run_in_thread(
+        self,
+        fn: Callable,
+        *args,
+        timeout: float = 120,
+        cancel_key: Any = None,
+        **kwargs,
+    ) -> Any:
+        """Run *fn(*args, **kwargs)* in a thread, bounded by the semaphore.
+
+        If *cancel_key* is given, a ``threading.Event`` is registered so
+        that timed-out threads can be signalled to bail early.
+        """
+        cancel_event: Optional[threading.Event] = None
+        if cancel_key is not None:
+            cancel_event = threading.Event()
+            self._cancel_events[id(cancel_key)] = cancel_event
+
+        async with self._thread_semaphore:
+            try:
+                result = await asyncio.wait_for(
+                    asyncio.to_thread(
+                        lambda: fn(
+                            *args,
+                            cancel_event=(
+                                lambda: cancel_event.is_set() if cancel_event else None
+                            ),
+                            **kwargs,
+                        ),
+                    ),
+                    timeout=timeout,
+                )
+                return result
+            except asyncio.TimeoutError:
+                if cancel_event is not None:
+                    cancel_event.set()  # Signal the orphan thread to stop
+                raise
+            finally:
+                if cancel_key is not None:
+                    self._cancel_events.pop(id(cancel_key), None)
 
     # ─── Library Indexing ─────────────────────────────────────────
 
@@ -264,8 +468,9 @@ class Orchestrator:
                     continue
                 audio_count = self._count_audio_files(album_path)
                 if audio_count > 0:
-                    self._add_album_to_index(index, artist_name, album_name,
-                                              album_path, audio_count)
+                    self._add_album_to_index(
+                        index, artist_name, album_name, album_path, audio_count
+                    )
 
         # 2. Flat files in root
         self._index_flat_root_files(root, index)
@@ -280,39 +485,52 @@ class Orchestrator:
         for artist_name in os.listdir(root):
             artist_path = os.path.join(root, artist_name)
             if os.path.isdir(artist_path):
-                self._index_flat_subdir_files(artist_path, index, artist_name,
-                                              skip_subdirs=True)
+                self._index_flat_subdir_files(
+                    artist_path, index, artist_name, skip_subdirs=True
+                )
 
         self._existing_cache = index
         self.logger.info(f"Library index built: {len(index)} albums/entries cached.")
         return index
 
-    def _add_album_to_index(self, index, artist_name, album_dir_name, path,
-                             audio_count):
-        m = re.match(r'^(\d{4})\s*-\s*(.+)$', album_dir_name)
-        year = m.group(1) if m else ''
+    def _add_album_to_index(
+        self, index, artist_name, album_dir_name, path, audio_count
+    ):
+        m = re.match(r"^(\d{4})\s*-\s*(.+)$", album_dir_name)
+        year = m.group(1) if m else ""
         album_title = m.group(2).strip() if m else album_dir_name
 
-        entry = {'dir': path, 'count': audio_count, 'artist': artist_name,
-                 'album': album_title, 'year': year}
+        entry = {
+            "dir": path,
+            "count": audio_count,
+            "artist": artist_name,
+            "album": album_title,
+            "year": year,
+        }
 
         keys = self._album_key_variants(artist_name, album_title, album_dir_name, year)
         for key in keys:
-            if key not in index or index[key]['count'] < audio_count:
+            if key not in index or index[key]["count"] < audio_count:
                 index[key] = entry
 
     def _album_key_variants(self, artist_name, album_title, album_dir_name, year):
         """Generate all reasonable lookup key variants for an album."""
         keys = set()
         clean_title = re.sub(
-            r'\s*\(.*?(deluxe|remaster|edition|expanded|bonus|special|'
-            r'remix|remastered|live|acoustic).*?\)',
-            '', album_title, flags=re.IGNORECASE)
+            r"\s*\(.*?(deluxe|remaster|edition|expanded|bonus|special|"
+            r"remix|remastered|live|acoustic).*?\)",
+            "",
+            album_title,
+            flags=re.IGNORECASE,
+        )
         clean_dir = re.sub(
-            r'\s*\(.*?(deluxe|remaster|edition|expanded|bonus|special|'
-            r'remix|remastered|live|acoustic).*?\)',
-            '', album_dir_name, flags=re.IGNORECASE)
-        title_no_the = re.sub(r'^[Tt]he\s+', '', album_title)
+            r"\s*\(.*?(deluxe|remaster|edition|expanded|bonus|special|"
+            r"remix|remastered|live|acoustic).*?\)",
+            "",
+            album_dir_name,
+            flags=re.IGNORECASE,
+        )
+        title_no_the = re.sub(r"^[Tt]he\s+", "", album_title)
 
         for av in normalize_artist_aliases(artist_name):
             for title in [album_title, clean_title, title_no_the]:
@@ -343,25 +561,36 @@ class Orchestrator:
             if not album:
                 continue
             key = f"{artist}|{year}|{album}"
-            grp = album_groups.setdefault(key, {
-                'files': [], 'artist': artist, 'album': album, 'year': year})
-            grp['files'].append(fp)
+            grp = album_groups.setdefault(
+                key, {"files": [], "artist": artist, "album": album, "year": year}
+            )
+            grp["files"].append(fp)
 
         for key, group in album_groups.items():
-            if len(group['files']) < 2:
+            if len(group["files"]) < 2:
                 continue
-            artist, album, year = group['artist'], group['album'], group['year']
-            count = len(group['files'])
-            entry = {'dir': root, 'count': count, 'artist': artist,
-                     'album': album, 'year': year, 'flat_files': True}
+            artist, album, year = group["artist"], group["album"], group["year"]
+            count = len(group["files"])
+            entry = {
+                "dir": root,
+                "count": count,
+                "artist": artist,
+                "album": album,
+                "year": year,
+                "flat_files": True,
+            }
             for av in normalize_artist_aliases(artist):
-                for idx_key in [av + normalize(album),
-                                av + year + normalize(album)] if year else [av + normalize(album)]:
-                    if idx_key not in index or index[idx_key]['count'] < count:
+                for idx_key in (
+                    [av + normalize(album), av + year + normalize(album)]
+                    if year
+                    else [av + normalize(album)]
+                ):
+                    if idx_key not in index or index[idx_key]["count"] < count:
                         index[idx_key] = entry
 
-    def _index_flat_subdir_files(self, subdir, index, artist_name=None,
-                                  skip_subdirs=False):
+    def _index_flat_subdir_files(
+        self, subdir, index, artist_name=None, skip_subdirs=False
+    ):
         """Index flat audio files in a subdirectory and group by album."""
         album_groups = {}  # key -> {'artist', 'album', 'year', 'count'}
 
@@ -386,28 +615,35 @@ class Orchestrator:
             g_key = f"{normalize(effective_artist)}|{year}|{normalize(album)}"
             if g_key not in album_groups:
                 album_groups[g_key] = {
-                    'artist': effective_artist,
-                    'album': album,
-                    'year': year,
-                    'count': 0,
-                    'dir': subdir
+                    "artist": effective_artist,
+                    "album": album,
+                    "year": year,
+                    "count": 0,
+                    "dir": subdir,
                 }
-            album_groups[g_key]['count'] += 1
+            album_groups[g_key]["count"] += 1
 
         for g_key, group in album_groups.items():
-            count = group['count']
-            artist = group['artist']
-            album = group['album']
-            year = group['year']
-            entry = {'dir': subdir, 'count': count, 'artist': artist,
-                     'album': album, 'year': year}
+            count = group["count"]
+            artist = group["artist"]
+            album = group["album"]
+            year = group["year"]
+            entry = {
+                "dir": subdir,
+                "count": count,
+                "artist": artist,
+                "album": album,
+                "year": year,
+            }
 
             for av in normalize_artist_aliases(artist):
-                keys = ([av + normalize(album),
-                         av + year + normalize(album)] if year
-                        else [av + normalize(album)])
+                keys = (
+                    [av + normalize(album), av + year + normalize(album)]
+                    if year
+                    else [av + normalize(album)]
+                )
                 for idx_key in keys:
-                    if idx_key not in index or index[idx_key]['count'] < count:
+                    if idx_key not in index or index[idx_key]["count"] < count:
                         index[idx_key] = entry
 
     @staticmethod
@@ -419,7 +655,7 @@ class Orchestrator:
           Artist - Album - TrackNum - Title
         """
         # Pattern: Artist - Year - Album - TrackNum …
-        m = re.match(r'^(.+?)\s*-\s*(\d{4})\s*-\s*(.+?)\s*-\s*\d+', name)
+        m = re.match(r"^(.+?)\s*-\s*(\d{4})\s*-\s*(.+?)\s*-\s*\d+", name)
         if m:
             artist = m.group(1).strip()
             year = m.group(2)
@@ -427,13 +663,13 @@ class Orchestrator:
             return artist, year, album
 
         # Pattern: Artist - Album - TrackNum …
-        m = re.match(r'^(.+?)\s*-\s*(.+?)\s*-\s*\d+\s*[-.]', name)
+        m = re.match(r"^(.+?)\s*-\s*(.+?)\s*-\s*\d+\s*[-.]", name)
         if m:
             artist = m.group(1).strip()
             album = m.group(2).strip()
-            return artist, '', album
+            return artist, "", album
 
-        return '', '', ''
+        return "", "", ""
 
     def _count_audio_files(self, directory):
         count = 0
@@ -454,11 +690,14 @@ class Orchestrator:
         index = self._build_existing_index()
 
         candidates = set()
-        title_no_the = re.sub(r'^[Tt]he\s+', '', album_title)
+        title_no_the = re.sub(r"^[Tt]he\s+", "", album_title)
         clean_title = re.sub(
-            r'\s*\(.*?(deluxe|remaster|edition|expanded|bonus|special|'
-            r'remix|remastered|live|acoustic).*?\)',
-            '', album_title, flags=re.IGNORECASE)
+            r"\s*\(.*?(deluxe|remaster|edition|expanded|bonus|special|"
+            r"remix|remastered|live|acoustic).*?\)",
+            "",
+            album_title,
+            flags=re.IGNORECASE,
+        )
 
         for av in normalize_artist_aliases(artist_name):
             for title in [album_title, clean_title, title_no_the]:
@@ -472,18 +711,17 @@ class Orchestrator:
                 entry = index[key]
                 # Downloads: accept even single-track EPs
                 # Library: require 3+ tracks to avoid false positives
-                min_count = 1 if entry.get('dir', '') == 'downloads' else 3
-                if entry['count'] >= min_count:
+                min_count = 1 if entry.get("dir", "") == "downloads" else 3
+                if entry["count"] >= min_count:
                     return entry
-
 
         # Substring fallback
         title_norm = normalize(album_title)
         for av in normalize_artist_aliases(artist_name):
             for key, entry in index.items():
                 if av in key and title_norm in key:
-                    min_count = 1 if entry.get('dir', '') == 'downloads' else 3
-                    if entry['count'] >= min_count:
+                    min_count = 1 if entry.get("dir", "") == "downloads" else 3
+                    if entry["count"] >= min_count:
                         return entry
 
         # Exact directory check
@@ -494,7 +732,7 @@ class Orchestrator:
             if os.path.isdir(target_dir):
                 count = self._count_audio_files(target_dir)
                 if count >= 1:  # Accept even single-track EPs in downloads
-                    return {'dir': target_dir, 'count': count}
+                    return {"dir": target_dir, "count": count}
         return None
 
     def invalidate_cache(self):
@@ -510,35 +748,52 @@ class Orchestrator:
             # Prepopulate from downloads folder
             root = "downloads"
             if os.path.exists(root):
-                self.logger.info("Prepopulating managed artists from downloads folder...")
+                self.logger.info(
+                    "Prepopulating managed artists from downloads folder..."
+                )
                 for artist_name in os.listdir(root):
                     artist_path = os.path.join(root, artist_name)
                     if os.path.isdir(artist_path):
                         # Simple check: does it have any subdirectories (albums)?
-                        if any(os.path.isdir(os.path.join(artist_path, d)) for d in os.listdir(artist_path)):
+                        if any(
+                            os.path.isdir(os.path.join(artist_path, d))
+                            for d in os.listdir(artist_path)
+                        ):
                             try:
-                                artists = await asyncio.to_thread(self.mb_service.search_artist, artist_name)
+                                artists = await asyncio.to_thread(
+                                    self.mb_service.search_artist, artist_name
+                                )
                                 if artists:
                                     best = self._pick_best_artist(artists, artist_name)
-                                    self.queue_service.add_managed_artist(best['id'], best['name'])
+                                    self.queue_service.add_managed_artist(
+                                        best["id"], best["name"]
+                                    )
                             except Exception as e:
-                                self.logger.warning(f"Failed to resolve artist {artist_name} during prepopulation: {e}")
+                                self.logger.warning(
+                                    f"Failed to resolve artist {artist_name} during prepopulation: {e}"
+                                )
                 db_artists = self.queue_service.get_managed_artists()
 
-        active = [a for a in db_artists if not a['is_secondary']]
-        secondary = [a for a in db_artists if a['is_secondary']]
+        active = [a for a in db_artists if not a["is_secondary"]]
+        secondary = [a for a in db_artists if a["is_secondary"]]
         return {"active": active, "secondary": secondary}
 
-    async def add_managed_artist(self, artist_id: str, name: str, is_secondary: bool = False):
+    async def add_managed_artist(
+        self, artist_id: str, name: str, is_secondary: bool = False
+    ):
         self.queue_service.add_managed_artist(artist_id, name, is_secondary)
         # If we added a primary artist, also find and add related artists as secondary
         if not is_secondary:
             try:
-                related = await asyncio.to_thread(self.mb_service.get_related_artists, artist_id, 1)
+                related = await asyncio.to_thread(
+                    self.mb_service.get_related_artists, artist_id, 1
+                )
                 related = self._filter_related_artists(related, name)
                 for r in related:
                     # Only add as secondary if not already in the list
-                    self.queue_service.add_managed_artist(r['id'], r['name'], is_secondary=True)
+                    self.queue_service.add_managed_artist(
+                        r["id"], r["name"], is_secondary=True
+                    )
             except Exception as e:
                 self.logger.warning(f"Failed to fetch related artists for {name}: {e}")
 
@@ -552,8 +807,8 @@ class Orchestrator:
         removed = 0
 
         for artist in db_artists:
-            aid = artist['artist_id']
-            name = artist['name']
+            aid = artist["artist_id"]
+            name = artist["name"]
 
             # Fetch fresh tags for the artist
             full_info = await asyncio.to_thread(self.mb_service.get_artist_by_id, aid)
@@ -567,40 +822,50 @@ class Orchestrator:
 
     async def get_artist_discography_details(self, artist_id: str):
         """Returns detailed discography for an artist with track-level comparison."""
-        artist_info = await asyncio.to_thread(self.mb_service.get_artist_by_id, artist_id)
+        artist_info = await asyncio.to_thread(
+            self.mb_service.get_artist_by_id, artist_id
+        )
         if not artist_info:
             return {"error": "Artist not found"}
 
-        artist_name = artist_info['name']
+        artist_name = artist_info["name"]
         rgs = await asyncio.to_thread(self.mb_service.get_discography, artist_id)
-        
+
         discography = []
         for rg in rgs:
-            year = rg.get('first-release-date', '')[:4] or "Unknown"
-            title = rg['title']
-            rg_id = rg['id']
-            
+            year = rg.get("first-release-date", "")[:4] or "Unknown"
+            title = rg["title"]
+            rg_id = rg["id"]
+
             existing = self.album_exists_on_disk(artist_name, title, year)
-            
+
             status = "Missing"
             local_files = []
             missing_tracks = []
-            
+
             if existing:
-                status = "Complete" # Default if existing
-                target_dir = existing['dir']
+                status = "Complete"  # Default if existing
+                target_dir = existing["dir"]
                 if os.path.exists(target_dir):
-                    local_files = [f for f in os.listdir(target_dir) if f.lower().endswith(tuple(AUDIO_EXTENSIONS))]
-                
+                    local_files = [
+                        f
+                        for f in os.listdir(target_dir)
+                        if f.lower().endswith(tuple(AUDIO_EXTENSIONS))
+                    ]
+
                 # For track-level comparison, we need the official tracklist
-                release = await asyncio.to_thread(self.mb_service.get_best_release_with_tracks, rg_id)
+                release = await asyncio.to_thread(
+                    self.mb_service.get_best_release_with_tracks, rg_id
+                )
                 if release:
                     official_tracks = []
-                    for medium in release.get('medium-list', []):
-                        for track in medium.get('track-list', []):
-                            track_title = track.get('recording', {}).get('title', 'Unknown Track')
+                    for medium in release.get("medium-list", []):
+                        for track in medium.get("track-list", []):
+                            track_title = track.get("recording", {}).get(
+                                "title", "Unknown Track"
+                            )
                             official_tracks.append(track_title)
-                    
+
                     # Fuzzy match local files against official tracks
                     found_tracks = []
                     for track in official_tracks:
@@ -614,25 +879,24 @@ class Orchestrator:
                             found_tracks.append(track)
                         else:
                             missing_tracks.append(track)
-                    
+
                     if missing_tracks:
                         status = "Partial"
                     elif len(found_tracks) >= len(official_tracks):
                         status = "Complete"
-            
-            discography.append({
-                "id": rg_id,
-                "title": title,
-                "year": year,
-                "status": status,
-                "local_files": local_files,
-                "missing_tracks": missing_tracks
-            })
 
-        return {
-            "artist": artist_name,
-            "discography": discography
-        }
+            discography.append(
+                {
+                    "id": rg_id,
+                    "title": title,
+                    "year": year,
+                    "status": status,
+                    "local_files": local_files,
+                    "missing_tracks": missing_tracks,
+                }
+            )
+
+        return {"artist": artist_name, "discography": discography}
 
     # ─── Job Control ──────────────────────────────────────────────
 
@@ -673,7 +937,8 @@ class Orchestrator:
             try:
                 artists = await asyncio.wait_for(
                     asyncio.to_thread(self.mb_service.search_artist, actual_query),
-                    timeout=30)
+                    timeout=30,
+                )
             except asyncio.TimeoutError:
                 self.logger.warning(f"Timeout searching for {artist_name}")
                 artists = []
@@ -681,24 +946,26 @@ class Orchestrator:
             # If no results, or none match the psytrance scene, try
             # alternative query forms (remove spaces, use aliases)
             if not artists or not any(
-                    is_psytrance_artist(a) or
-                    normalize(a.get('name', '')) in KNOWN_PSYTRANCE_ARTISTS
-                    for a in artists):
+                is_psytrance_artist(a)
+                or normalize(a.get("name", "")) in KNOWN_PSYTRANCE_ARTISTS
+                for a in artists
+            ):
                 alt_queries = self._artist_query_alternatives(artist_name)
                 for alt in alt_queries:
-                    self.logger.info(
-                        f"  Retrying search as: {alt}")
+                    self.logger.info(f"  Retrying search as: {alt}")
                     try:
                         alt_results = await asyncio.wait_for(
                             asyncio.to_thread(self.mb_service.search_artist, alt),
-                            timeout=30)
+                            timeout=30,
+                        )
                     except asyncio.TimeoutError:
                         self.logger.warning(f"Timeout searching for {alt}")
                         alt_results = []
                     if alt_results and any(
-                            is_psytrance_artist(a) or
-                            normalize(a.get('name', '')) in KNOWN_PSYTRANCE_ARTISTS
-                            for a in alt_results):
+                        is_psytrance_artist(a)
+                        or normalize(a.get("name", "")) in KNOWN_PSYTRANCE_ARTISTS
+                        for a in alt_results
+                    ):
                         artists = alt_results
                         break
 
@@ -708,29 +975,36 @@ class Orchestrator:
 
             # Pick the best match — prefer known psytrance artists
             main = self._pick_best_artist(artists, artist_name)
-            
+
             # Final genre guard before fetching releases
-            if not is_psytrance_artist(main) and normalize(main['name']) not in KNOWN_PSYTRANCE_ARTISTS:
-                self.logger.info(f"  ⊘ Skip {main['name']} (does not match genre profile)")
+            if (
+                not is_psytrance_artist(main)
+                and normalize(main["name"]) not in KNOWN_PSYTRANCE_ARTISTS
+            ):
+                self.logger.info(
+                    f"  ⊘ Skip {main['name']} (does not match genre profile)"
+                )
                 continue
 
             # Skip if we already processed this exact artist in this scan batch
-            if main['id'] in seen_ids:
+            if main["id"] in seen_ids:
                 continue
 
             related = []
             if depth > 0:
                 self.logger.info("Finding related artists...")
                 related = await asyncio.to_thread(
-                    self.mb_service.get_related_artists, main['id'], depth)
+                    self.mb_service.get_related_artists, main["id"], depth
+                )
                 # Filter out artists that are clearly not psytrance
                 before = len(related)
-                related = self._filter_related_artists(related, main['name'])
+                related = self._filter_related_artists(related, main["name"])
                 after = len(related)
                 if before != after:
                     self.logger.info(
                         f"  Filtered related: {before} → {after} "
-                        f"(removed {before - after} non-genre artists)")
+                        f"(removed {before - after} non-genre artists)"
+                    )
 
             if self.should_stop:
                 break
@@ -739,42 +1013,50 @@ class Orchestrator:
             for artist in all_artists:
                 if self.should_stop:
                     break
-                aid = artist['id']
+                aid = artist["id"]
                 if aid in seen_ids:
                     continue
                 seen_ids.add(aid)
 
                 self.logger.info(f"Fetching releases for {artist['name']}...")
                 try:
-                    rgs = await asyncio.wait_for(
-                        asyncio.to_thread(self.mb_service.get_discography, aid),
-                        timeout=60)
+                    rgs = await self._run_in_thread(
+                        self.mb_service.get_discography,
+                        aid,
+                        timeout=60,
+                        cancel_key=aid,
+                    )
                 except asyncio.TimeoutError:
-                    self.logger.warning(f"Timeout fetching discography for {artist['name']}")
+                    self.logger.warning(
+                        f"Timeout fetching discography for {artist['name']}"
+                    )
                     continue
 
                 albums = []
                 for rg in rgs:
-                    year = rg.get('first-release-date', '')[:4] or "Unknown"
-                    title = rg['title']
-                    existing = self.album_exists_on_disk(artist['name'], title, year)
-                    albums.append({
-                        'id': rg['id'],
-                        'title': title,
-                        'year': year,
-                        'exists_locally': existing is not None or any(
-                    c['album'] == title and c['year'] == year
-                            and c['status'] in ('Downloaded', 'Existing', 'Queued', 'Skipped')
-                            for c in self.completed_albums
-                        ),
-                        'track_count': existing['count'] if existing else 0
-                    })
+                    year = rg.get("first-release-date", "")[:4] or "Unknown"
+                    title = rg["title"]
+                    existing = self.album_exists_on_disk(artist["name"], title, year)
+                    albums.append(
+                        {
+                            "id": rg["id"],
+                            "title": title,
+                            "year": year,
+                            "exists_locally": existing is not None
+                            or any(
+                                c["album"] == title
+                                and c["year"] == year
+                                and c["status"]
+                                in ("Downloaded", "Existing", "Queued", "Skipped")
+                                for c in self.completed_albums
+                            ),
+                            "track_count": existing["count"] if existing else 0,
+                        }
+                    )
 
-                result_tree.append({
-                    'id': aid,
-                    'name': artist['name'],
-                    'albums': albums
-                })
+                result_tree.append(
+                    {"id": aid, "name": artist["name"], "albums": albums}
+                )
         return result_tree
 
     def _pick_best_artist(self, artists, query):
@@ -786,7 +1068,7 @@ class Orchestrator:
 
         # 1. High-confidence whitelist
         for a in artists:
-            if normalize(a.get('name', '')) in KNOWN_PSYTRANCE_ARTISTS:
+            if normalize(a.get("name", "")) in KNOWN_PSYTRANCE_ARTISTS:
                 return a
 
         # 1b. Disambiguation check for known abbreviations (e.g. GMS -> Growling Mad Scientists)
@@ -794,12 +1076,12 @@ class Orchestrator:
             if query_norm == normalize(short):
                 full_norm = normalize(full)
                 for a in artists:
-                    if normalize(a.get('name', '')) == full_norm:
+                    if normalize(a.get("name", "")) == full_norm:
                         return a
 
         # 2. Exact name match + genre check (Avoid ambiguity like GMS US Rapper)
         for a in artists:
-            if normalize(a.get('name', '')) == query_norm and is_psytrance_artist(a):
+            if normalize(a.get("name", "")) == query_norm and is_psytrance_artist(a):
                 return a
 
         # 3. Genre tag match (is_psytrance_artist returns has_positive and not has_negative)
@@ -809,7 +1091,7 @@ class Orchestrator:
 
         # 4. Exact name match fallback
         for a in artists:
-            if normalize(a.get('name', '')) == query_norm:
+            if normalize(a.get("name", "")) == query_norm:
                 return a
 
         # 5. Fallback to first result
@@ -824,15 +1106,15 @@ class Orchestrator:
         """
         alts = []
         # Remove spaces: "Kox Box" → "Koxbox"
-        collapsed = re.sub(r'\s+', '', artist_name)
+        collapsed = re.sub(r"\s+", "", artist_name)
         if collapsed != artist_name:
             alts.append(collapsed)
         # Replace spaces with hyphens
-        hyphenated = re.sub(r'\s+', '-', artist_name)
+        hyphenated = re.sub(r"\s+", "-", artist_name)
         if hyphenated not in alts and hyphenated != artist_name:
             alts.append(hyphenated)
         # Try without "DJ " prefix
-        no_dj = re.sub(r'^DJ\s+', '', artist_name, flags=re.IGNORECASE)
+        no_dj = re.sub(r"^DJ\s+", "", artist_name, flags=re.IGNORECASE)
         if no_dj != artist_name:
             alts.append(no_dj)
         # Check aliases — search by the other name
@@ -850,7 +1132,7 @@ class Orchestrator:
         """Remove related artists that are clearly not in the same genre."""
         filtered = []
         for artist in related:
-            name = artist.get('name', 'Unknown')
+            name = artist.get("name", "Unknown")
             # 1. Check tags/whitelist first
             if is_psytrance_artist(artist):
                 filtered.append(artist)
@@ -858,24 +1140,34 @@ class Orchestrator:
 
             # 2. If it failed is_psytrance_artist, check if it was specifically REJECTED
             # due to radical genre tags.
-            tags = artist.get('tag-list', [])
+            tags = artist.get("tag-list", [])
             neg_tags = [
-                (t.get('name', '').lower() if isinstance(t, dict) else str(t).lower())
+                (t.get("name", "").lower() if isinstance(t, dict) else str(t).lower())
                 for t in tags
-                if (t.get('name', '').lower() if isinstance(t, dict) else str(t).lower()) in DISALLOWED_TAGS
+                if (
+                    t.get("name", "").lower() if isinstance(t, dict) else str(t).lower()
+                )
+                in DISALLOWED_TAGS
             ]
             if neg_tags:
-                self.logger.info(f"  ⊘ Skip {name} (wrong genre: {', '.join(neg_tags)})")
+                self.logger.info(
+                    f"  ⊘ Skip {name} (wrong genre: {', '.join(neg_tags)})"
+                )
                 continue
 
             # 3. Fallback to "member of" side project rule for sparsely tagged projects
             # If it has no tags (sparsely tagged) but is a side project of a psy artist, keep it.
-            rel = artist.get('relation', '')
-            if 'member' in rel.lower() or 'involving' in rel.lower():
+            rel = artist.get("relation", "")
+            if "member" in rel.lower() or "involving" in rel.lower():
                 # Conservative: only keep if the main artist IS in the whitelist
                 # BUT: ambiguous names always require tag verification
-                if normalize(name) in AMBIGUOUS_NAMES and normalize(name) not in KNOWN_PSYTRANCE_ARTISTS:
-                    self.logger.info(f'⊘ Skip {name} (ambiguous name without genre tags or whitelist)')
+                if (
+                    normalize(name) in AMBIGUOUS_NAMES
+                    and normalize(name) not in KNOWN_PSYTRANCE_ARTISTS
+                ):
+                    self.logger.info(
+                        f"⊘ Skip {name} (ambiguous name without genre tags or whitelist)"
+                    )
                     continue
                 if normalize(main_artist_name) in KNOWN_PSYTRANCE_ARTISTS:
                     filtered.append(artist)
@@ -884,14 +1176,15 @@ class Orchestrator:
             if normalize(name) in KNOWN_PSYTRANCE_ARTISTS and not neg_tags:
                 filtered.append(artist)
                 continue
-    
+
             # self.logger.info(f"  ⊘ Skip {name} (unverified genre/connection)")
         return filtered
 
     # ─── Autonomous Filler ────────────────────────────────────────
 
-    async def run_autonomous_filler(self, slsk_user, slsk_pass, artist_names,
-                                     depth=1, dry_run=False):
+    async def run_autonomous_filler(
+        self, slsk_user, slsk_pass, artist_names, depth=1, dry_run=False
+    ):
         """Autonomous filler that processes one or more artists in a persistent loop."""
         if isinstance(artist_names, str):
             artist_names = [artist_names]
@@ -923,14 +1216,17 @@ class Orchestrator:
                     missing = []
                     total_missing = 0
                     for artist_node in result_tree:
-                        missing_albums = [a for a in artist_node['albums']
-                                          if not a['exists_locally']]
+                        missing_albums = [
+                            a for a in artist_node["albums"] if not a["exists_locally"]
+                        ]
                         if missing_albums:
-                            missing.append({
-                                'id': artist_node['id'],
-                                'name': artist_node['name'],
-                                'albums': missing_albums
-                            })
+                            missing.append(
+                                {
+                                    "id": artist_node["id"],
+                                    "name": artist_node["name"],
+                                    "albums": missing_albums,
+                                }
+                            )
                             total_missing += len(missing_albums)
 
                     if not missing:
@@ -938,7 +1234,8 @@ class Orchestrator:
                         break
 
                     self.logger.info(
-                        f"Found {total_missing} missing albums across {len(missing)} artists.")
+                        f"Found {total_missing} missing albums across {len(missing)} artists."
+                    )
 
                 # Run a single download pass (depth=0 since selection already includes related)
                 try:
@@ -948,27 +1245,43 @@ class Orchestrator:
                         slsk_pass=slsk_pass,
                         dry_run=dry_run,
                         related_artist_depth=0,
-                        selection=missing
+                        selection=missing,
                     )
                     consecutive_failures = 0  # Reset on success
                 except Exception as e:
                     consecutive_failures += 1
                     err_str = str(e).lower()
-                    is_auth_failure = any(kw in err_str for kw in 
-                        ['invalidpass', 'authentication failed', 'login failed', 'invalid password', 'invalid credentials'])
-                    self.logger.error(f"Download pass error (attempt {consecutive_failures}/{max_consecutive_failures}): {e}")
+                    is_auth_failure = any(
+                        kw in err_str
+                        for kw in [
+                            "invalidpass",
+                            "authentication failed",
+                            "login failed",
+                            "invalid password",
+                            "invalid credentials",
+                        ]
+                    )
+                    self.logger.error(
+                        f"Download pass error (attempt {consecutive_failures}/{max_consecutive_failures}): {e}"
+                    )
                     if is_auth_failure:
-                        self.logger.error("Soulseek authentication failed — please update credentials. Stopping.")
+                        self.logger.error(
+                            "Soulseek authentication failed — please update credentials. Stopping."
+                        )
                         break
                     if consecutive_failures >= max_consecutive_failures:
-                        self.logger.error(f"Too many consecutive failures ({max_consecutive_failures}). Stopping.")
+                        self.logger.error(
+                            f"Too many consecutive failures ({max_consecutive_failures}). Stopping."
+                        )
                         break
 
                 if self.should_stop:
                     break
 
                 cooldown = 300  # 5 minutes (reduced from 10)
-                self.logger.info(f"Pass complete. Cooldown for {cooldown//60} minutes before retrying remaining gaps...")
+                self.logger.info(
+                    f"Pass complete. Cooldown for {cooldown // 60} minutes before retrying remaining gaps..."
+                )
 
                 # Wait in small increments to remain responsive to stop signals
                 for _ in range(cooldown):
@@ -985,7 +1298,15 @@ class Orchestrator:
 
     # ─── Main Download Engine ─────────────────────────────────────
 
-    async def start_playlist_download(self, playlist_name: str, songs: list, number_tracks: bool, slsk_user: str, slsk_pass: str, dry_run: bool = False):
+    async def start_playlist_download(
+        self,
+        playlist_name: str,
+        songs: list,
+        number_tracks: bool,
+        slsk_user: str,
+        slsk_pass: str,
+        dry_run: bool = False,
+    ):
         """Downloads a list of individual tracks into a specific playlist folder."""
         if self.is_running:
             self.logger.warning("Job already running.")
@@ -996,12 +1317,14 @@ class Orchestrator:
         self.is_paused = False
 
         if slsk_user != self.slsk_user or slsk_pass != self.slsk_pass:
-            self.config_service.set('slsk_user', slsk_user)
-            self.config_service.set('slsk_pass', slsk_pass)
+            self.config_service.set("slsk_user", slsk_user)
+            self.config_service.set("slsk_pass", slsk_pass)
             self.slsk_user = slsk_user
             self.slsk_pass = slsk_pass
 
-        target_dir = os.path.join("downloads", "Playlists", sanitize_name(playlist_name))
+        target_dir = os.path.join(
+            "downloads", "Playlists", sanitize_name(playlist_name)
+        )
         if not dry_run:
             os.makedirs(target_dir, exist_ok=True)
 
@@ -1020,17 +1343,17 @@ class Orchestrator:
                 if not song:
                     continue
 
-                self.logger.info(f"  ↓ [{idx+1}/{len(songs)}] {song}")
-                
+                self.logger.info(f"  ↓ [{idx + 1}/{len(songs)}] {song}")
+
                 query = f"{song} FLAC"
                 timeout = 15
-                
+
                 if not self.slsk_service.is_connected:
                     try:
                         await self.slsk_service.connect(self.slsk_user, self.slsk_pass)
                     except Exception as e:
                         self.logger.warning(f"  Reconnect failed: {e}")
-                
+
                 results = []
                 try:
                     results = await self.slsk_service.search(query, timeout=timeout)
@@ -1041,7 +1364,7 @@ class Orchestrator:
                 if not results:
                     try:
                         results = await self.slsk_service.search(song, timeout=timeout)
-                    except Exception as e:
+                    except Exception:
                         pass
 
                 self.logger.info(f"  Got {len(results)} results")
@@ -1050,77 +1373,89 @@ class Orchestrator:
                     continue
 
                 # Rank candidates (adapt for single track)
-                preferred = self.config_service.get('preferred_format', 'flac')
+                preferred = self.config_service.get("preferred_format", "flac")
                 scored = []
                 for res in results:
-                    ext = res.get('extension', '').lower()
+                    ext = res.get("extension", "").lower()
                     if ext not in AUDIO_EXTENSIONS:
                         continue
                     score = 0
-                    if preferred == 'flac':
-                        if ext == '.flac': score += 100
-                        elif ext == '.mp3': score += 50
+                    if preferred == "flac":
+                        if ext == ".flac":
+                            score += 100
+                        elif ext == ".mp3":
+                            score += 50
                     else:
-                        if ext == '.mp3': score += 100
-                        elif ext == '.flac': score += 50
-                    
-                    if res.get('slots'): score += 20
+                        if ext == ".mp3":
+                            score += 100
+                        elif ext == ".flac":
+                            score += 50
+
+                    if res.get("slots"):
+                        score += 20
                     # Try to match the song name in the filename loosely
                     clean_song = normalize(song)
-                    clean_file = normalize(os.path.basename(res['filename']))
+                    clean_file = normalize(os.path.basename(res["filename"]))
                     if clean_song in clean_file:
                         score += 50
-                    
-                    res['score'] = score
+
+                    res["score"] = score
                     scored.append(res)
-                
-                scored.sort(key=lambda x: x['score'], reverse=True)
+
+                scored.sort(key=lambda x: x["score"], reverse=True)
 
                 success = False
                 for cand in scored[:5]:
                     if success or self.should_stop:
                         break
-                    user = cand['user']
+                    user = cand["user"]
                     if user in self.blacklisted_users:
                         continue
 
-                    remote_path = cand['filename']
+                    remote_path = cand["filename"]
                     orig_filename = os.path.basename(remote_path)
-                    safe_filename = re.sub(r'[<>:"|?*]', '', orig_filename)
-                    
+                    safe_filename = re.sub(r'[<>:"|?*]', "", orig_filename)
+
                     if number_tracks:
                         # Prefix with 01, 02, etc.
-                        prefix = f"{idx+1:02d} - "
+                        prefix = f"{idx + 1:02d} - "
                         final_filename = prefix + safe_filename
                     else:
                         final_filename = safe_filename
-                        
+
                     local_target = os.path.join(target_dir, final_filename)
-                    
-                    if os.path.exists(local_target) and os.path.getsize(local_target) > MIN_FILE_SIZE:
+
+                    if (
+                        os.path.exists(local_target)
+                        and os.path.getsize(local_target) > MIN_FILE_SIZE
+                    ):
                         self.logger.info(f"  ✓ Skip (exists): {final_filename}")
                         success = True
                         break
-                        
+
                     if dry_run:
-                        self.logger.info(f"  [Dry Run] Would download → {final_filename}")
+                        self.logger.info(
+                            f"  [Dry Run] Would download → {final_filename}"
+                        )
                         success = True
                         break
 
                     self.logger.info(f"  Downloading from {user}...")
                     try:
-                        transfer = await self.slsk_service.download_file(user, remote_path)
+                        transfer = await self.slsk_service.download_file(
+                            user, remote_path
+                        )
                         done = await self._wait_for_transfer(transfer, timeout=120)
-                        if done == 'complete':
-                            local_path = getattr(transfer, 'local_path', None)
+                        if done == "complete":
+                            local_path = getattr(transfer, "local_path", None)
                             if local_path and os.path.exists(local_path):
                                 shutil.move(local_path, local_target)
                                 self.logger.info(f"  ✓ Done: {final_filename}")
                                 success = True
-                        elif done == 'failed':
-                            self.logger.warning(f"  ✗ Transfer failed")
+                        elif done == "failed":
+                            self.logger.warning("  ✗ Transfer failed")
                         else:
-                            self.logger.warning(f"  ⏱ Timeout")
+                            self.logger.warning("  ⏱ Timeout")
                     except Exception as e:
                         self.logger.warning(f"  Download error: {e}")
 
@@ -1141,9 +1476,15 @@ class Orchestrator:
                 pass
             self.is_running = False
 
-    async def start_download(self, artist_names, slsk_user, slsk_pass,
-                              dry_run=False, related_artist_depth=1,
-                              selection=None):
+    async def start_download(
+        self,
+        artist_names,
+        slsk_user,
+        slsk_pass,
+        dry_run=False,
+        related_artist_depth=1,
+        selection=None,
+    ):
         """Standard single-pass download job."""
         if self.is_running:
             self.logger.warning("Job already running.")
@@ -1152,15 +1493,25 @@ class Orchestrator:
         self.is_running = True
         try:
             await self._run_job_impl(
-                artist_names, slsk_user, slsk_pass, dry_run,
-                related_artist_depth, selection
+                artist_names,
+                slsk_user,
+                slsk_pass,
+                dry_run,
+                related_artist_depth,
+                selection,
             )
         finally:
             self.is_running = False
 
-    async def _run_job_impl(self, artist_names, slsk_user, slsk_pass,
-                             dry_run=False, related_artist_depth=1,
-                             selection=None):
+    async def _run_job_impl(
+        self,
+        artist_names,
+        slsk_user,
+        slsk_pass,
+        dry_run=False,
+        related_artist_depth=1,
+        selection=None,
+    ):
         """The actual core of the download engine."""
         if isinstance(artist_names, str):
             artist_names = [artist_names]
@@ -1171,8 +1522,8 @@ class Orchestrator:
         self.is_paused = False
 
         if slsk_user != self.slsk_user or slsk_pass != self.slsk_pass:
-            self.config_service.set('slsk_user', slsk_user)
-            self.config_service.set('slsk_pass', slsk_pass)
+            self.config_service.set("slsk_user", slsk_user)
+            self.config_service.set("slsk_pass", slsk_pass)
             self.slsk_user = slsk_user
             self.slsk_pass = slsk_pass
 
@@ -1183,7 +1534,7 @@ class Orchestrator:
             self.logger.info("Connecting to Soulseek...")
             await self.slsk_service.connect(slsk_user, slsk_pass)
 
-                        # Rust Bridge Boost DISABLED — causes segfault crashes
+            # Rust Bridge Boost DISABLED — causes segfault crashes
             # bob_soulseek_rs FFI module kills the Python process with no traceback.
             # Re-enable only after full memory safety audit of the Rust module.
             self.rust_slsk = None
@@ -1195,47 +1546,45 @@ class Orchestrator:
                 seen = set()
                 artists_to_process = []
                 for name in artist_names:
-                    found = await asyncio.to_thread(
-                        self.mb_service.search_artist, name)
+                    found = await asyncio.to_thread(self.mb_service.search_artist, name)
                     if not found:
-                        self.logger.warning(
-                            f"Artist not found on MusicBrainz: {name}")
+                        self.logger.warning(f"Artist not found on MusicBrainz: {name}")
                         continue
                     main = self._pick_best_artist(found, name)
-                    if main['id'] in seen:
+                    if main["id"] in seen:
                         continue
-                    seen.add(main['id'])
+                    seen.add(main["id"])
                     self.logger.info(f"Found: {main['name']} ({main['id']})")
-                    artists_to_process.append({
-                        'id': main['id'], 'name': main['name']})
+                    artists_to_process.append({"id": main["id"], "name": main["name"]})
 
                     if related_artist_depth > 0:
                         self.logger.info(
-                            f"Finding related artists (depth={related_artist_depth})...")
+                            f"Finding related artists (depth={related_artist_depth})..."
+                        )
                         related = await asyncio.to_thread(
                             self.mb_service.get_related_artists,
-                            main['id'], related_artist_depth)
-                        related = self._filter_related_artists(
-                            related, main['name'])
+                            main["id"],
+                            related_artist_depth,
+                        )
+                        related = self._filter_related_artists(related, main["name"])
                         for a in related:
-                            if a['id'] not in seen:
-                                seen.add(a['id'])
-                                artists_to_process.append({
-                                    'id': a['id'], 'name': a['name']})
+                            if a["id"] not in seen:
+                                seen.add(a["id"])
+                                artists_to_process.append(
+                                    {"id": a["id"], "name": a["name"]}
+                                )
 
             self.logger.info(f"Processing {len(artists_to_process)} artist(s).")
 
             for artist in artists_to_process:
                 if self.should_stop:
                     break
-                await self._process_artist(artist, dry_run,
-                                            artist.get('albums'))
+                await self._process_artist(artist, dry_run, artist.get("albums"))
 
             if self.should_stop:
                 self.logger.info("Job stopped by user.")
             else:
-                self.logger.info(
-                    "Pass complete. Waiting for final downloads...")
+                self.logger.info("Pass complete. Waiting for final downloads...")
                 while self.active_downloads and not self.should_stop:
                     await asyncio.sleep(2)
 
@@ -1250,15 +1599,14 @@ class Orchestrator:
     async def _process_artist(self, artist, dry_run, specific_albums=None):
         if self.should_stop:
             return
-        name = artist['name']
+        name = artist["name"]
         self.current_artist = name
         self.logger.info(f"═══ {name} ═══")
 
         if specific_albums:
             rgs = specific_albums
         else:
-            rgs = await asyncio.to_thread(
-                self.mb_service.get_discography, artist['id'])
+            rgs = await asyncio.to_thread(self.mb_service.get_discography, artist["id"])
 
         self.logger.info(f"  {len(rgs)} releases to check.")
 
@@ -1268,10 +1616,8 @@ class Orchestrator:
             while self.is_paused and not self.should_stop:
                 await asyncio.sleep(1)
 
-            title = rg['title']
-            year = (rg.get('year') or
-                    rg.get('first-release-date', '')[:4] or
-                    "Unknown")
+            title = rg["title"]
+            year = rg.get("year") or rg.get("first-release-date", "")[:4] or "Unknown"
             safe_artist = sanitize_name(name)
             safe_album = f"{year} - {sanitize_name(title)}"
             target_dir = os.path.join("downloads", safe_artist, safe_album)
@@ -1290,10 +1636,16 @@ class Orchestrator:
                 self.logger.info(f"  ⊘ Skip {title} (completed this session)")
                 # Add to completed so gap scanner won't re-find it
                 skip_entry = {
-                    'artist': name, 'album': title, 'year': year,
-                    'path': '', 'status': 'Skipped'
+                    "artist": name,
+                    "album": title,
+                    "year": year,
+                    "path": "",
+                    "status": "Skipped",
                 }
-                if not any(c['artist'] == name and c['album'] == title for c in self.completed_albums):
+                if not any(
+                    c["artist"] == name and c["album"] == title
+                    for c in self.completed_albums
+                ):
                     self.completed_albums.append(skip_entry)
                     self.queue_service.add_completed(skip_entry)
                 continue
@@ -1303,27 +1655,34 @@ class Orchestrator:
             if existing:
                 # Check if this was a completed download, not an interrupted one
                 was_completed = any(
-                    c['artist'] == name and c['album'] == title
-                    and c['status'] in ('Downloaded', 'Existing', 'Queued', 'Skipped')
+                    c["artist"] == name
+                    and c["album"] == title
+                    and c["status"] in ("Downloaded", "Existing", "Queued", "Skipped")
                     for c in self.completed_albums
                 )
-                if was_completed or not existing.get('dir', '').startswith('downloads'):
+                if was_completed or not existing.get("dir", "").startswith("downloads"):
                     # Truly existing or in library - skip
                     self.logger.info(
-                        f"                    ⊘ Skip {title} ({existing['count']} tracks on disk)")
-                    self.queue_service.add_completed({
-                        'artist': name, 'album': title,
-                        'year': year, 'path': existing['dir'],
-                        'status': 'Existing'
-                    })
+                        f"                    ⊘ Skip {title} ({existing['count']} tracks on disk)"
+                    )
+                    self.queue_service.add_completed(
+                        {
+                            "artist": name,
+                            "album": title,
+                            "year": year,
+                            "path": existing["dir"],
+                            "status": "Existing",
+                        }
+                    )
                     continue
                 else:
                     # Directory in downloads/ but not completed - interrupted download, retry
                     self.logger.info(
-                        f"                    ↻ Retry {title} ({existing['count']} tracks, not completed)")
-                    self._cleanup_dir(existing['dir'])
+                        f"                    ↻ Retry {title} ({existing['count']} tracks, not completed)"
+                    )
+                    self._cleanup_dir(existing["dir"])
 
-            self.logger.info(f"  ↓ [{idx+1}/{len(rgs)}] {title} ({year})")
+            self.logger.info(f"  ↓ [{idx + 1}/{len(rgs)}] {title} ({year})")
 
             # ── Search with adaptive timeout ──
             success = False
@@ -1337,8 +1696,7 @@ class Orchestrator:
                 # later queries get 10s (they're longshots anyway)
                 timeout = 20 if attempt < 3 else 10
 
-                self.logger.info(
-                    f"  Searching ({attempt+1}/{len(queries)}): {query}")
+                self.logger.info(f"  Searching ({attempt + 1}/{len(queries)}): {query}")
 
                 # Search Soulseek (Rust boost disabled — causes segfaults)
                 # Ensure connection is alive before searching
@@ -1362,7 +1720,9 @@ class Orchestrator:
                         await asyncio.sleep(0.5)
                     continue
                 candidates = self._rank_candidates(results, artist_name=name)
-                self.logger.info(f" Ranked {len(candidates)} candidates from {len(results)} results for '{query}'")
+                self.logger.info(
+                    f" Ranked {len(candidates)} candidates from {len(results)} results for '{query}'"
+                )
                 if not candidates:
                     if attempt < len(queries) - 1:
                         await asyncio.sleep(0.5)
@@ -1372,62 +1732,78 @@ class Orchestrator:
                 for cidx, cand in enumerate(candidates[:5]):
                     if success or self.should_stop:
                         break
-                    user = cand['user']
+                    user = cand["user"]
 
                     if user in self.blacklisted_users:
-                        self.logger.info(f"  ⊘ Skip {user} (blacklisted due to low quality)")
+                        self.logger.info(
+                            f"  ⊘ Skip {user} (blacklisted due to low quality)"
+                        )
                         continue
 
-                    folder = cand['folder']
-                    score = cand['score']
-                    files = cand['files']
+                    folder = cand["folder"]
+                    score = cand["score"]
+                    files = cand["files"]
                     self.logger.info(
-                        f"  Match #{cidx+1}: {folder} "
-                        f"({user}, score={score}, {len(files)} files)")
+                        f"  Match #{cidx + 1}: {folder} "
+                        f"({user}, score={score}, {len(files)} files)"
+                    )
 
                     if dry_run:
-                        self.logger.info(
-                            f"  [Dry Run] Would download → {target_dir}")
+                        self.logger.info(f"  [Dry Run] Would download → {target_dir}")
                         success = True
                         break
 
                     try:
                         # Snapshot existing files before download attempt
                         if os.path.exists(target_dir):
-                            self._pre_download_files[target_dir] = set(os.listdir(target_dir))
+                            self._pre_download_files[target_dir] = set(
+                                os.listdir(target_dir)
+                            )
                         else:
                             self._pre_download_files[target_dir] = set()
                         meta = {
-                            'artist': name, 'album': title,
-                            'year': year, 'mb_release_group_id': rg['id']
+                            "artist": name,
+                            "album": title,
+                            "year": year,
+                            "mb_release_group_id": rg["id"],
                         }
-                        await self._download_sequential(
-                            user, files, target_dir, meta)
+                        await self._download_sequential(user, files, target_dir, meta)
 
                         # Verify we actually got files before marking as success
                         if self._count_audio_files(target_dir) > 0:
                             success = True
-                            self.queue_service.add_completed({
-                                'artist': name, 'album': title,
-                                'year': year, 'path': target_dir,
-                                'status': 'Downloaded'
-                            })
+                            self.queue_service.add_completed(
+                                {
+                                    "artist": name,
+                                    "album": title,
+                                    "year": year,
+                                    "path": target_dir,
+                                    "status": "Downloaded",
+                                }
+                            )
                             self.invalidate_cache()
-                        # Flatten album files to downloads/ root (non-fatal)
+                            # Flatten album files to downloads/ root (non-fatal)
                             try:
                                 self.post_processor.flatten_album(target_dir)
                             except Exception as e:
                                 self.logger.warning(f" Flatten failed: {e}")
                         else:
-                            self.logger.warning(f"  Candidate {user} finished but no files were saved.")
+                            self.logger.warning(
+                                f"  Candidate {user} finished but no files were saved."
+                            )
                             self._cleanup_dir(target_dir)
                     except Exception as e:
                         self.logger.warning(f"  Candidate failed: {e}")
                         if "Fake FLAC" in str(e):
                             self.logger.warning(f"  !!! BLACKLISTING {user} !!!")
                             self.blacklisted_users.add(user)
-                        elif "too slow" in str(e).lower() or "unreliable" in str(e).lower():
-                            self.logger.warning(f"  ⊘ Blacklisting {user} (unresponsive)")
+                        elif (
+                            "too slow" in str(e).lower()
+                            or "unreliable" in str(e).lower()
+                        ):
+                            self.logger.warning(
+                                f"  ⊘ Blacklisting {user} (unresponsive)"
+                            )
                             self.blacklisted_users.add(user)
                         self._cleanup_partial(target_dir)
                         await asyncio.sleep(2)
@@ -1438,10 +1814,14 @@ class Orchestrator:
                     self.logger.warning(f"  ✗ Failed: {title}")
                     # Track failure count to prevent infinite retries
                     fail_key = f"{name}|{title}"
-                    self._failed_album_counts[fail_key] = self._failed_album_counts.get(fail_key, 0) + 1
+                    self._failed_album_counts[fail_key] = (
+                        self._failed_album_counts.get(fail_key, 0) + 1
+                    )
                     fail_count = self._failed_album_counts[fail_key]
                     if fail_count >= self._max_album_failures:
-                        self.logger.info(f"                    ⊘ Skipping {title} after {fail_count} failures this session")
+                        self.logger.info(
+                            f"                    ⊘ Skipping {title} after {fail_count} failures this session"
+                        )
                 self._cleanup_dir(target_dir)
             else:
                 self.logger.info(f"  ✓ Album complete: {year} - {title}")
@@ -1454,26 +1834,30 @@ class Orchestrator:
         """
         # Handle slash titles: "Title A / Title B" → try each half
         title_parts = [title]
-        if '/' in title:
-            parts = [p.strip() for p in title.split('/') if p.strip()]
+        if "/" in title:
+            parts = [p.strip() for p in title.split("/") if p.strip()]
             title_parts = parts + [title]  # Try each half first, then full
 
-        clean = lambda t: re.sub(r'[^a-zA-Z0-9 ]', '', t)
+        clean = lambda t: re.sub(r"[^a-zA-Z0-9 ]", "", t)
         queries = []
 
         for t in title_parts:
             ct = clean(t)
-            queries.extend([
-                f"{artist} {t}",              # Full specific
-                f"{artist} {t} FLAC",         # Format hint
-            ])
+            queries.extend(
+                [
+                    f"{artist} {t}",  # Full specific
+                    f"{artist} {t} FLAC",  # Format hint
+                ]
+            )
             if year:
                 queries.append(f"{artist} {year} {t}")
-            queries.extend([
-                f"{artist} {ct}",             # Cleaned title
-                t,                            # Album title alone
-                f"{ct} FLAC",                 # Cleaned + format
-            ])
+            queries.extend(
+                [
+                    f"{artist} {ct}",  # Cleaned title
+                    t,  # Album title alone
+                    f"{ct} FLAC",  # Cleaned + format
+                ]
+            )
 
         # Add alias-based queries
         norm = normalize(artist)
@@ -1511,8 +1895,9 @@ class Orchestrator:
         if fail_count >= self._max_album_failures:
             return True  # Treat as "completed" (skip) to stop retrying
         return any(
-            c['artist'] == artist and c['album'] == album
-            and c['status'] in ('Downloaded', 'Queued')
+            c["artist"] == artist
+            and c["album"] == album
+            and c["status"] in ("Downloaded", "Queued")
             for c in self.completed_albums
         )
 
@@ -1520,7 +1905,7 @@ class Orchestrator:
         if os.path.exists(target_dir):
             try:
                 remaining = os.listdir(target_dir)
-                if not remaining or all(f == 'folder.jpg' for f in remaining):
+                if not remaining or all(f == "folder.jpg" for f in remaining):
                     shutil.rmtree(target_dir)
             except Exception:
                 pass
@@ -1535,12 +1920,17 @@ class Orchestrator:
             existing_files = self._pre_download_files.get(target_dir, set())
             for f in os.listdir(target_dir):
                 fp = os.path.join(target_dir, f)
-                if os.path.isfile(fp) and f != 'folder.jpg' and f not in existing_files:
+                if os.path.isfile(fp) and f != "folder.jpg" and f not in existing_files:
                     os.remove(fp)
-            remaining = [f for f in os.listdir(target_dir)
-                         if os.path.isfile(os.path.join(target_dir, f)) and f != 'folder.jpg']
+            remaining = [
+                f
+                for f in os.listdir(target_dir)
+                if os.path.isfile(os.path.join(target_dir, f)) and f != "folder.jpg"
+            ]
             if remaining:
-                self.logger.info(f"  Cleaned partial files from {target_dir} ({len(remaining)} existing preserved)")
+                self.logger.info(
+                    f"  Cleaned partial files from {target_dir} ({len(remaining)} existing preserved)"
+                )
             else:
                 self.logger.info(f"  Cleaned partial files from {target_dir}")
         except Exception as e:
@@ -1549,50 +1939,48 @@ class Orchestrator:
     # ─── Candidate Ranking ────────────────────────────────────────
 
     def _rank_candidates(self, results, artist_name=None):
-        preferred = self.config_service.get('preferred_format', 'flac')
-        artist_norms = normalize_artist_aliases(
-            artist_name) if artist_name else set()
+        preferred = self.config_service.get("preferred_format", "flac")
+        artist_norms = normalize_artist_aliases(artist_name) if artist_name else set()
 
         groups = {}
         for res in results:
-            user = res['user']
-            folder = os.path.dirname(res['filename'])
+            user = res["user"]
+            folder = os.path.dirname(res["filename"])
             key = (user, folder)
             if key not in groups:
-                groups[key] = {'files': [], 'user': user, 'folder': folder}
-            groups[key]['files'].append(res)
+                groups[key] = {"files": [], "user": user, "folder": folder}
+            groups[key]["files"].append(res)
 
         scored = []
         ext_debug = {}
         no_audio_count = 0
         for key, data in groups.items():
-            for f in data['files'][:3]:
-                e = f.get('extension', '?')
+            for f in data["files"][:3]:
+                e = f.get("extension", "?")
                 ext_debug[e] = ext_debug.get(e, 0) + 1
-            audio = [f for f in data['files']
-                     if f['extension'] in AUDIO_EXTENSIONS]
+            audio = [f for f in data["files"] if f["extension"] in AUDIO_EXTENSIONS]
             if not audio:
                 no_audio_count += 1
                 continue
 
             score = 0
-            formats = [f['extension'] for f in audio]
+            formats = [f["extension"] for f in audio]
             num_files = len(audio)
 
             # Format preference
-            if preferred == 'flac':
-                if '.flac' in formats:
+            if preferred == "flac":
+                if ".flac" in formats:
                     score += 200
-                elif '.mp3' in formats:
-                    bitrates = [f['bitrate'] for f in audio if f['bitrate']]
+                elif ".mp3" in formats:
+                    bitrates = [f["bitrate"] for f in audio if f["bitrate"]]
                     avg = sum(bitrates) / len(bitrates) if bitrates else 0
                     score += 80 if avg >= 320 else (60 if avg >= 190 else -50)
             else:
-                if '.mp3' in formats:
-                    bitrates = [f['bitrate'] for f in audio if f['bitrate']]
+                if ".mp3" in formats:
+                    bitrates = [f["bitrate"] for f in audio if f["bitrate"]]
                     avg = sum(bitrates) / len(bitrates) if bitrates else 0
                     score += 200 if avg >= 320 else (80 if avg >= 190 else 40)
-                elif '.flac' in formats:
+                elif ".flac" in formats:
                     score += 100
 
             # File count
@@ -1606,14 +1994,16 @@ class Orchestrator:
             # Artist folder/filename match with aliases
             artist_match = False
             if artist_norms:
-                folder_norm = re.sub(r'[^a-z0-9]', '', data['folder'].lower())
+                folder_norm = re.sub(r"[^a-z0-9]", "", data["folder"].lower())
                 if any(a_norm in folder_norm for a_norm in artist_norms):
                     score += 100
                     artist_match = True
                 else:
                     # Also check individual filenames for artist name
                     for f in audio[:5]:
-                        fname_norm = re.sub(r'[^a-z0-9]', '', os.path.basename(f['filename']).lower())
+                        fname_norm = re.sub(
+                            r"[^a-z0-9]", "", os.path.basename(f["filename"]).lower()
+                        )
                         if any(a_norm in fname_norm for a_norm in artist_norms):
                             artist_match = True
                             break
@@ -1621,59 +2011,73 @@ class Orchestrator:
                     score -= 500  # Very strong penalty for artist mismatch
 
             # Free slots bonus
-            if any(f.get('slots') for f in audio):
+            if any(f.get("slots") for f in audio):
                 score += 20
 
-            data['score'] = score
-            data['audio_files'] = audio
+            data["score"] = score
+            data["audio_files"] = audio
             scored.append(data)
 
-        scored.sort(key=lambda x: x['score'], reverse=True)
+        scored.sort(key=lambda x: x["score"], reverse=True)
 
         # Filter out low-quality candidates (likely wrong artist/album)
         min_candidate_score = 0
         before_filter = len(scored)
-        scored = [c for c in scored if c['score'] >= min_candidate_score]
+        scored = [c for c in scored if c["score"] >= min_candidate_score]
         if len(scored) < before_filter:
-            self.logger.info(f" Filtered {before_filter - len(scored)} low-score candidates (score < {min_candidate_score})")
+            self.logger.info(
+                f" Filtered {before_filter - len(scored)} low-score candidates (score < {min_candidate_score})"
+            )
 
         # Debug: log extension distribution and candidate count
-        self.logger.info(f" Rank: {len(groups)} groups → {len(scored)} candidates, {no_audio_count} no-audio, exts={ext_debug}")
+        self.logger.info(
+            f" Rank: {len(groups)} groups → {len(scored)} candidates, {no_audio_count} no-audio, exts={ext_debug}"
+        )
         if not scored and groups:
-            self.logger.warning(f" Rank: 0 candidates from {len(groups)} groups! Extensions: {ext_debug}")
+            self.logger.warning(
+                f" Rank: 0 candidates from {len(groups)} groups! Extensions: {ext_debug}"
+            )
         return scored
 
     # ─── Sequential Downloader ────────────────────────────────────
 
-    async def _download_sequential(self, user, candidate_files, target_dir,
-                                    metadata):
+    async def _download_sequential(self, user, candidate_files, target_dir, metadata):
         os.makedirs(target_dir, exist_ok=True)
 
         to_download = [
-            f for f in candidate_files
-            if f['extension'].lower() in AUDIO_EXTENSIONS
-            or f['extension'].lower() in ('.jpg', '.png')
+            f
+            for f in candidate_files
+            if f["extension"].lower() in AUDIO_EXTENSIONS
+            or f["extension"].lower() in (".jpg", ".png")
         ]
         if not to_download:
             raise Exception("No audio files in candidate")
 
-        existing_files = (set(os.listdir(target_dir))
-                          if os.path.exists(target_dir) else set())
-        to_download = [f for f in to_download
-                       if os.path.basename(f['filename']) not in existing_files]
+        existing_files = (
+            set(os.listdir(target_dir)) if os.path.exists(target_dir) else set()
+        )
+        to_download = [
+            f
+            for f in to_download
+            if os.path.basename(f["filename"]) not in existing_files
+        ]
         if not to_download:
             self.logger.info(f"  All files already exist in {target_dir}")
             return
 
         self.post_processor.download_cover_art(
-            metadata.get('mb_release_group_id'), target_dir)
+            metadata.get("mb_release_group_id"), target_dir
+        )
 
         total = len(to_download)
         self.logger.info(f"  Downloading {total} files from {user}...")
 
         self.album_tracker[target_dir] = {
-            'total': total, 'done': 0, 'metadata': metadata,
-            'start_time': time.time(), 'bytes_done': 0
+            "total": total,
+            "done": 0,
+            "metadata": metadata,
+            "start_time": time.time(),
+            "bytes_done": 0,
         }
 
         consecutive_failures = 0
@@ -1683,70 +2087,77 @@ class Orchestrator:
             if self.should_stop:
                 break
 
-            remote_path = file_info['filename']
+            remote_path = file_info["filename"]
             filename = os.path.basename(remote_path)
-            safe_filename = re.sub(r'[<>:"|?*]', '', filename)
+            safe_filename = re.sub(r'[<>:"|?*]', "", filename)
             if safe_filename != filename:
                 self.logger.info(f"  Sanitized: {safe_filename}")
             filename = safe_filename
 
             local_target = os.path.join(target_dir, filename)
-            if (os.path.exists(local_target) and
-                    os.path.getsize(local_target) > MIN_FILE_SIZE):
-                self.logger.info(
-                    f"  [{i+1}/{total}] Skip (exists): {filename}")
-                self.album_tracker[target_dir]['done'] += 1
+            if (
+                os.path.exists(local_target)
+                and os.path.getsize(local_target) > MIN_FILE_SIZE
+            ):
+                self.logger.info(f"  [{i + 1}/{total}] Skip (exists): {filename}")
+                self.album_tracker[target_dir]["done"] += 1
                 consecutive_failures = 0
                 continue
 
-            self.logger.info(f"  [{i+1}/{total}] ↓ {filename}")
+            self.logger.info(f"  [{i + 1}/{total}] ↓ {filename}")
 
             try:
-                transfer = await self.slsk_service.download_file(
-                    user, remote_path)
+                transfer = await self.slsk_service.download_file(user, remote_path)
             except Exception as e:
-                self.logger.warning(f"  [{i+1}/{total}] Queue failed: {e}")
-                self.album_tracker[target_dir]['done'] += 1
+                self.logger.warning(f"  [{i + 1}/{total}] Queue failed: {e}")
+                self.album_tracker[target_dir]["done"] += 1
                 consecutive_failures += 1
                 if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
                     self.logger.warning(
                         f"  Circuit breaker: {MAX_CONSECUTIVE_FAILURES} "
-                        f"consecutive failures. Aborting this user.")
+                        f"consecutive failures. Aborting this user."
+                    )
                     raise Exception(
                         f"User {user} unreliable after "
-                        f"{MAX_CONSECUTIVE_FAILURES} failures")
+                        f"{MAX_CONSECUTIVE_FAILURES} failures"
+                    )
                 continue
 
             done = await self._wait_for_transfer(transfer, timeout=120)
 
-            if done == 'complete':
-                local_path = getattr(transfer, 'local_path', None)
+            if done == "complete":
+                local_path = getattr(transfer, "local_path", None)
                 if local_path and os.path.exists(local_path):
                     try:
                         shutil.move(local_path, local_target)
                     except Exception as e:
                         self.logger.error(f"  Move error: {e}")
-                self.album_tracker[target_dir]['done'] += 1
-                self.logger.info(f"  [{i+1}/{total}] ✓ Done")
+                self.album_tracker[target_dir]["done"] += 1
+                self.logger.info(f"  [{i + 1}/{total}] ✓ Done")
                 consecutive_failures = 0
-            elif done == 'failed':
-                reason = (getattr(transfer, 'fail_reason', '') or
-                          getattr(transfer, 'abort_reason', '') or 'unknown')
-                self.logger.warning(f"  [{i+1}/{total}] ✗ Failed: {reason}")
-                self.album_tracker[target_dir]['done'] += 1
+            elif done == "failed":
+                reason = (
+                    getattr(transfer, "fail_reason", "")
+                    or getattr(transfer, "abort_reason", "")
+                    or "unknown"
+                )
+                self.logger.warning(f"  [{i + 1}/{total}] ✗ Failed: {reason}")
+                self.album_tracker[target_dir]["done"] += 1
                 consecutive_failures += 1
                 if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
                     raise Exception(
                         f"User {user} unreliable after "
-                        f"{MAX_CONSECUTIVE_FAILURES} failures")
+                        f"{MAX_CONSECUTIVE_FAILURES} failures"
+                    )
             else:
-                self.logger.warning(f"  [{i+1}/{total}] ⏱ Timeout")
-                self.album_tracker[target_dir]['done'] += 1
+                self.logger.warning(f"  [{i + 1}/{total}] ⏱ Timeout")
+                self.album_tracker[target_dir]["done"] += 1
                 consecutive_failures += 1
                 if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
                     raise Exception(
                         f"User {user} too slow after "
-                        f"{MAX_CONSECUTIVE_FAILURES} timeouts")
+                        f"{MAX_CONSECUTIVE_FAILURES} timeouts"
+                    )
 
         await self._finalize_album(target_dir)
 
@@ -1754,32 +2165,38 @@ class Orchestrator:
         waited = 0
         while waited < timeout:
             if self.should_stop:
-                return 'stopped'
+                return "stopped"
             state = transfer.state.VALUE
             if state == TransferState.COMPLETE:
-                return 'complete'
-            elif state in (TransferState.FAILED, TransferState.ABORTED,
-                           TransferState.INCOMPLETE):
-                return 'failed'
+                return "complete"
+            elif state in (
+                TransferState.FAILED,
+                TransferState.ABORTED,
+                TransferState.INCOMPLETE,
+            ):
+                return "failed"
             await asyncio.sleep(1)
             waited += 1
-        return 'timeout'
+        return "timeout"
 
     async def _finalize_album(self, target_dir):
         if target_dir not in self.album_tracker:
             return
         info = self.album_tracker[target_dir]
-        if info['done'] >= info['total']:
+        if info["done"] >= info["total"]:
             # Count actual audio files in directory to ensure we actually got something
             audio_count = self._count_audio_files(target_dir)
 
             if audio_count > 0:
                 self.logger.info(
-                    f"  ✓ All files received: {os.path.basename(target_dir)}")
+                    f"  ✓ All files received: {os.path.basename(target_dir)}"
+                )
 
                 # Post-processing can raise "Fake FLAC detected"
                 try:
-                    await self.post_processor.process_album(target_dir, info['metadata'])
+                    await self.post_processor.process_album(
+                        target_dir, info["metadata"]
+                    )
                 except Exception as e:
                     if "Fake FLAC" in str(e):
                         # Propagate to _process_artist for blacklisting
@@ -1787,10 +2204,13 @@ class Orchestrator:
                             del self.album_tracker[target_dir]
                         raise e
                     else:
-                        self.logger.error(f"Post-processing error for {target_dir}: {e}")
+                        self.logger.error(
+                            f"Post-processing error for {target_dir}: {e}"
+                        )
             else:
                 self.logger.warning(
-                    f"  ✗ Failed: {os.path.basename(target_dir)} (no files downloaded)")
+                    f"  ✗ Failed: {os.path.basename(target_dir)} (no files downloaded)"
+                )
 
             if target_dir in self.album_tracker:
                 del self.album_tracker[target_dir]
@@ -1804,28 +2224,30 @@ class Orchestrator:
             finished = []
             failed = []
             for remote_path, info in list(self.active_downloads.items()):
-                transfer = info['transfer']
+                transfer = info["transfer"]
                 state = transfer.state.VALUE
                 if state == TransferState.COMPLETE:
-                    local_path = getattr(transfer, 'local_path', None)
+                    local_path = getattr(transfer, "local_path", None)
                     if local_path and os.path.exists(local_path):
-                        target_path = os.path.join(
-                            info['target_dir'], info['filename'])
+                        target_path = os.path.join(info["target_dir"], info["filename"])
                         try:
                             shutil.move(local_path, target_path)
                         except Exception as e:
                             self.logger.error(f"Move error: {e}")
                     finished.append(remote_path)
-                elif state in (TransferState.FAILED, TransferState.ABORTED,
-                               TransferState.INCOMPLETE):
+                elif state in (
+                    TransferState.FAILED,
+                    TransferState.ABORTED,
+                    TransferState.INCOMPLETE,
+                ):
                     failed.append(remote_path)
 
             for key in finished + failed:
                 if key in self.active_downloads:
                     info = self.active_downloads.pop(key)
-                    td = info['target_dir']
+                    td = info["target_dir"]
                     if td in self.album_tracker:
-                        self.album_tracker[td]['done'] += 1
+                        self.album_tracker[td]["done"] += 1
                     await self._finalize_album(td)
             await asyncio.sleep(1)
 
