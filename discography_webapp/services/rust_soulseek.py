@@ -64,3 +64,23 @@ class RustSoulseekService:
             # Fallback
             await asyncio.sleep(0.05)
             return [f"Fallback Python Result 1 for {query}"]
+
+    async def download_file(self, username, filename, size=0, download_directory="."):
+        if RUST_AVAILABLE:
+            if not self._connected:
+                self.logger.info("Rust bridge not connected. Connecting now...")
+                await self.connect()
+
+            self.logger.info(f"Delegating download to Rust FFI: {filename} from {username}")
+            try:
+                transfer = await bob_soulseek_rs.rust_download_async(username, filename, size, download_directory)
+                return transfer
+            except Exception as e:
+                self.logger.error(f"Rust Download Error: {e}")
+                self.logger.info("Attempting Rust reconnect...")
+                if await self.connect():
+                    return await bob_soulseek_rs.rust_download_async(username, filename, size, download_directory)
+                raise e
+        else:
+            self.logger.warning("Mock download not implemented")
+            return False

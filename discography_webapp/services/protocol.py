@@ -31,9 +31,22 @@ class ProtocolService:
         self.logger.info("Starting Repository Synchronization...")
         self.logger.info("Fetching all remotes and tags...")
         self._run_git(["fetch", "--all", "--tags"])
-        self.logger.info("Merging origin/main...")
-        self._run_git(["merge", "origin/main", "-m",
-                       "AI Protocol: Auto-sync with origin/main"])
+
+        # Check available remotes
+        remotes_raw = self._run_git(["remote"])
+        remotes = [r.strip() for r in remotes_raw.split('\n') if r.strip()]
+
+        for remote in ['upstream', 'origin']:
+            if remote in remotes:
+                self.logger.info(f"Merging {remote}/main...")
+                try:
+                    self._run_git(["merge", f"{remote}/main", "-m",
+                                   f"AI Protocol: Auto-sync with {remote}/main"])
+                    self.logger.info(f"Successfully merged {remote}/main")
+                except Exception as e:
+                    self.logger.warning(f"Failed to merge {remote}/main: {e}")
+                    self._run_git(["merge", "--abort"])
+
         self.logger.info("Updating submodules recursively...")
         self._run_git(["submodule", "update", "--init", "--recursive"])
         self.logger.info("Repository synchronized successfully.")
@@ -106,3 +119,15 @@ class ProtocolService:
 
         self.logger.info(
             f"Roadmap extraction complete. Found {len(todos)} TODO comments.")
+
+        # Write to TODO.md
+        if todos:
+            todo_path = os.path.join(self.root_dir, "TODO.md")
+            # Try to write it, but catch the error if we are in a read-only environment
+            try:
+                with open(todo_path, "w") as f:
+                    f.write("# TODOs\n")
+                    for t in todos:
+                        f.write(f"- {t}\n")
+            except OSError as e:
+                self.logger.warning(f"Could not write to TODO.md: {e}")

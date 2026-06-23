@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.3.0]
+- **Library UI Enhancements**: Implemented multi-select batch rename and delete actions for local library management.
+- **Search Stability**: Refined the Rust bridge to handle P2P timeout edge cases cleanly during high-concurrency downloads.
+- **Protocol Automation**: Enhanced branch reconciliation to handle multi-remote upstream/origin sync.
+
+## [1.2.0]
+- **P2P Expansion**: Implemented full Rust integration of the Soulseek file transfer protocol (Phase 6).
+- **Bug Fixes**: Resolved logic issues within the psytrance filtering and TODO extraction modules.
+
 ## [1.1.0]
 - **Self-Learning Agent Module**: Integrated a new `LearningModule` that tracks task friction (latency/failure) in an experience log.
 - **Dynamic Prioritization**: Updated `PlanningModule` to autonomously boost the priority of high-friction task types.

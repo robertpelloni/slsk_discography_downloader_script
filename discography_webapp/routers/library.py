@@ -531,3 +531,74 @@ async def rename_album(request: Request, orch=Depends(get_orch)):
         orch.invalidate_cache()
         return {"message": f"Renamed to {new_name}"}
     return {"error": "Rename failed"}
+
+@router.post("/api/batch_delete_albums")
+async def batch_delete_albums(request: Request, orch=Depends(get_orch)):
+    data = await request.json()
+    albums = data.get('albums', [])
+    if not albums:
+        return {"error": "No albums provided"}
+
+    deleted = 0
+    errors = 0
+    for item in albums:
+        artist = item.get('artist')
+        album = item.get('album')
+        if not artist or not album:
+            errors += 1
+            continue
+
+        path = os.path.join("downloads", artist, album)
+        if not is_safe_path(path):
+            errors += 1
+            continue
+
+        if os.path.isdir(path):
+            try:
+                shutil.rmtree(path)
+                deleted += 1
+            except:
+                errors += 1
+        else:
+            errors += 1
+
+    orch.invalidate_cache()
+    return {"message": f"Deleted {deleted} albums", "errors": errors}
+
+@router.post("/api/batch_rename_albums")
+async def batch_rename_albums(request: Request, orch=Depends(get_orch)):
+    data = await request.json()
+    # Expects a list of {"artist": str, "old_name": str, "new_name": str}
+    albums = data.get('albums', [])
+    if not albums:
+        return {"error": "No albums provided"}
+
+    renamed = 0
+    errors = 0
+    for item in albums:
+        artist = item.get('artist')
+        old_name = item.get('old_name')
+        new_name = item.get('new_name')
+
+        if not all([artist, old_name, new_name]) or old_name == new_name:
+            errors += 1
+            continue
+
+        old_path = os.path.join("downloads", artist, old_name)
+        new_path = os.path.join("downloads", artist, new_name)
+
+        if not is_safe_path(old_path) or not is_safe_path(new_path):
+            errors += 1
+            continue
+
+        if os.path.isdir(old_path) and not os.path.exists(new_path):
+            try:
+                os.rename(old_path, new_path)
+                renamed += 1
+            except:
+                errors += 1
+        else:
+            errors += 1
+
+    orch.invalidate_cache()
+    return {"message": f"Renamed {renamed} albums", "errors": errors}
