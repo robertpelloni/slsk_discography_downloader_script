@@ -9,7 +9,6 @@ import uvicorn
 import asyncio
 import os
 import json
-import sys
 
 try:
     from dotenv import load_dotenv
@@ -32,14 +31,12 @@ os.environ["PATH"] = bin_path + os.pathsep + os.environ["PATH"]
 
 from services.logger import manager
 from services.event_bus import EventBus
-from dependencies import USER_ID, orchestrators, get_orchestrator as deps_get_orchestrator
+from dependencies import orchestrators, get_orchestrator as deps_get_orchestrator
 from routers.core import router as core_router
 from routers.library import router as library_router
 from routers.protocol import router as protocol_router
 from routers.benchmark import router as benchmark_router
 from routers.agent import router as agent_router
-from services.protocol import ProtocolService
-from services.agent import AgentService
 
 # Event bus
 event_bus = EventBus()
@@ -49,6 +46,25 @@ async def lifespan(app: FastAPI):
     # Startup
     event_bus.set_loop(asyncio.get_running_loop())
     app.state.event_bus = event_bus
+
+    # Clean stale runtime files from previous sessions
+    for f in ["filler_status.json", "filler.pid", "launch.pid", "watchdog.pid", "server.pid"]:
+        p = os.path.join(BASE_DIR, f)
+        if os.path.exists(p):
+            try:
+                # Only remove if PID in file is no longer alive
+                if f.endswith(".pid"):
+                    with open(p) as pf:
+                        pid_str = pf.read().strip()
+                    if pid_str and pid_str.isdigit():
+                        try:
+                            os.kill(int(pid_str), 0)
+                            continue  # Process still alive, keep file
+                        except OSError:
+                            pass  # Dead process, remove file
+                os.remove(p)
+            except Exception:
+                pass
 
     # Set custom async exception handler to prevent aioslsk errors from crashing
     loop = asyncio.get_running_loop()

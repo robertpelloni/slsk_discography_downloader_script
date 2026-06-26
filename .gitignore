@@ -36,3 +36,16 @@ audit-*.jsonl
 *.pyd
 
 .memory/branches/*/log.md
+
+# Runtime PID files
+filler.pid
+launch.pid
+watchdog.pid
+server.pid
+
+# Runtime status
+filler_status.json
+filler_output.log
+
+# Runtime scripts (not committed)
+restart.ps1

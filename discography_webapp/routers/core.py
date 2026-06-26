@@ -51,7 +51,10 @@ async def get_status(orch=Depends(get_orch)):
     try:
         if _os.path.exists(_fs_path):
             with open(_fs_path) as _f:
-                filler_status = _json.load(_f)
+                fs = _json.load(_f)
+            ts = fs.get("_ts", 0)
+            if time.time() - ts < 60:
+                filler_status = fs
     except Exception:
         pass
 

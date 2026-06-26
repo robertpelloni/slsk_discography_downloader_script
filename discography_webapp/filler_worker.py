@@ -20,6 +20,7 @@ STATUS_FILE = os.path.join(BASE_DIR, "filler_status.json")
 
 
 def write_status(data: dict):
+    data["_ts"] = time.time()
     tmp = STATUS_FILE + ".tmp"
     with open(tmp, "w") as f:
         json.dump(data, f)
