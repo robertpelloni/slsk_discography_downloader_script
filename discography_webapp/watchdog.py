@@ -247,7 +247,9 @@ async def run_watchdog(daemon: bool = False):
     max_backoff = 600  # 10 minutes
     last_restart_time = 0.0
     server_start_time = 0.0  # For proactive restart
-    PROACTIVE_RESTART_INTERVAL = 21600  # Restart every 6 hours to prevent task accumulation
+    PROACTIVE_RESTART_INTERVAL = (
+        21600  # Restart every 6 hours to prevent task accumulation
+    )
 
     if daemon:
         log.info("--- Watchdog started (daemon mode) ---")
@@ -267,7 +269,10 @@ async def run_watchdog(daemon: bool = False):
 
             if alive:
                 # Proactive restart to prevent task accumulation
-                if server_start_time > 0 and (time.time() - server_start_time) >= PROACTIVE_RESTART_INTERVAL:
+                if (
+                    server_start_time > 0
+                    and (time.time() - server_start_time) >= PROACTIVE_RESTART_INTERVAL
+                ):
                     log.info(
                         f"Proactive restart after {PROACTIVE_RESTART_INTERVAL // 3600}h "
                         f"(prevent task accumulation)"
