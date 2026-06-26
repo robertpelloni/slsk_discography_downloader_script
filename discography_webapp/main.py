@@ -1,4 +1,6 @@
-import faulthandler; faulthandler.enable()
+import faulthandler
+
+faulthandler.enable()
 import sys
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
@@ -12,15 +14,16 @@ import json
 
 try:
     from dotenv import load_dotenv
+
     load_dotenv()
 except ImportError:
     pass
 
 # Ensure UTF-8 on Windows console
-if sys.platform == 'win32':
+if sys.platform == "win32":
     try:
-        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
-        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
     except Exception:
         pass
 
@@ -41,6 +44,7 @@ from routers.agent import router as agent_router
 # Event bus
 event_bus = EventBus()
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
@@ -48,7 +52,13 @@ async def lifespan(app: FastAPI):
     app.state.event_bus = event_bus
 
     # Clean stale runtime files from previous sessions
-    for f in ["filler_status.json", "filler.pid", "launch.pid", "watchdog.pid", "server.pid"]:
+    for f in [
+        "filler_status.json",
+        "filler.pid",
+        "launch.pid",
+        "watchdog.pid",
+        "server.pid",
+    ]:
         p = os.path.join(BASE_DIR, f)
         if os.path.exists(p):
             try:
@@ -68,19 +78,26 @@ async def lifespan(app: FastAPI):
 
     # Set custom async exception handler to prevent aioslsk errors from crashing
     loop = asyncio.get_running_loop()
-    loop.set_exception_handler(lambda loop, ctx: (
-        print(f"[ASYNC EXCEPTION] {ctx.get('message', '')} | {ctx.get('exception', '')}", flush=True)
-        if ctx.get('exception') else
-        print(f"[ASYNC WARNING] {ctx.get('message', '')}", flush=True)
-    ))
+    loop.set_exception_handler(
+        lambda loop, ctx: (
+            print(
+                f"[ASYNC EXCEPTION] {ctx.get('message', '')} | {ctx.get('exception', '')}",
+                flush=True,
+            )
+            if ctx.get("exception")
+            else print(f"[ASYNC WARNING] {ctx.get('message', '')}", flush=True)
+        )
+    )
 
     async def handle_log_event(payload):
-        user_id = payload.get('user_id')
-        message = payload.get('message')
+        user_id = payload.get("user_id")
+        message = payload.get("message")
         if user_id:
-            await manager.broadcast(json.dumps({"type": "log", "message": message}), user_id)
+            await manager.broadcast(
+                json.dumps({"type": "log", "message": message}), user_id
+            )
 
-    event_bus.subscribe('log', handle_log_event)
+    event_bus.subscribe("log", handle_log_event)
 
     # Optional: Run Roadmap extraction and Agent cycle on startup
     # DISABLED by default — these can block startup, overwrite files,
@@ -107,6 +124,7 @@ async def lifespan(app: FastAPI):
         except Exception:
             pass
 
+
 app = FastAPI(title="Discography Downloader", lifespan=lifespan)
 
 STATIC_DIR = os.path.join(BASE_DIR, "static")
@@ -128,10 +146,13 @@ app.include_router(protocol_router)
 app.include_router(benchmark_router)
 app.include_router(agent_router)
 
+
 def get_orchestrator(user_id: int = 1):
     return deps_get_orchestrator(event_bus, user_id)
 
+
 # ─── UI Routes ──────────────────────────────────────────────────
+
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
@@ -140,9 +161,15 @@ async def index(request: Request):
     if os.path.exists(version_file):
         with open(version_file, "r") as f:
             version = f.read().strip()
-    return templates.TemplateResponse(request=request, name="index.html", context={"request": request, "version": version})
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+        context={"request": request, "version": version},
+    )
+
 
 # ─── WebSockets ────────────────────────────────────────────────
+
 
 @app.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: int):
@@ -154,6 +181,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int):
         manager.disconnect(websocket, user_id)
     except Exception:
         manager.disconnect(websocket, user_id)
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))

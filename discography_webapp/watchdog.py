@@ -246,6 +246,8 @@ async def run_watchdog(daemon: bool = False):
     min_backoff = 15
     max_backoff = 600  # 10 minutes
     last_restart_time = 0.0
+    server_start_time = 0.0  # For proactive restart
+    PROACTIVE_RESTART_INTERVAL = 21600  # Restart every 6 hours to prevent task accumulation
 
     if daemon:
         log.info("--- Watchdog started (daemon mode) ---")
@@ -264,9 +266,21 @@ async def run_watchdog(daemon: bool = False):
             alive = is_http_alive(HOST, PORT)
 
             if alive:
-                consecutive_failures = 0
-                await asyncio.sleep(CHECK_INTERVAL)
-                continue
+                # Proactive restart to prevent task accumulation
+                if server_start_time > 0 and (time.time() - server_start_time) >= PROACTIVE_RESTART_INTERVAL:
+                    log.info(
+                        f"Proactive restart after {PROACTIVE_RESTART_INTERVAL // 3600}h "
+                        f"(prevent task accumulation)"
+                    )
+                    kill_process(pid)
+                    server_proc = None
+                    server_start_time = 0
+                else:
+                    if server_start_time == 0:
+                        server_start_time = time.time()
+                    consecutive_failures = 0
+                    await asyncio.sleep(CHECK_INTERVAL)
+                    continue
 
             # Port is bound but HTTP is dead — hang
             log.warning(
