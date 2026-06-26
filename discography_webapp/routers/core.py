@@ -297,7 +297,15 @@ async def autonomous_fill(
     filler_script = _os.path.join(base, "filler_worker.py")
     log_path = _os.path.join(base, "filler_output.log")
     log_fh = open(log_path, "a", encoding="utf-8")
-    args = [python_exe, "-u", filler_script, user, password, str(request.depth), str(request.dry_run)]
+    args = [
+        python_exe,
+        "-u",
+        filler_script,
+        user,
+        password,
+        str(request.depth),
+        str(request.dry_run),
+    ]
     args.extend(request.artist_names)
 
     try:
@@ -307,7 +315,8 @@ async def autonomous_fill(
             stdout=log_fh,
             stderr=_subprocess.STDOUT,
             env=env,
-            creationflags=_subprocess.CREATE_NO_WINDOW | _subprocess.CREATE_NEW_PROCESS_GROUP,
+            creationflags=_subprocess.CREATE_NO_WINDOW
+            | _subprocess.CREATE_NEW_PROCESS_GROUP,
         )
         _write_fill_pid(proc.pid)
         return {

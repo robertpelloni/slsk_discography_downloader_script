@@ -33,15 +33,18 @@ _tx_count = 0  # Requests sent
 _rx_count = 0  # Responses received
 _activity_lock2 = threading.Lock()
 
+
 def record_tx():
     global _tx_count
     with _activity_lock2:
         _tx_count += 1
 
+
 def record_rx():
     global _rx_count
     with _activity_lock2:
         _rx_count += 1
+
 
 # ── Health polling ───────────────────────────────────────────────
 
@@ -77,6 +80,7 @@ def _poll_loop(interval=10):
 
 # ── Activity poll from API ──────────────────────────────────────
 
+
 def _poll_activity(interval=5):
     """Fetch the API status and log filler/queue changes."""
     last_completed = []
@@ -87,15 +91,20 @@ def _poll_activity(interval=5):
             with urllib.request.urlopen(req, timeout=5) as resp:
                 record_rx()
                 import json
+
                 data = json.loads(resp.read().decode())
                 fs = data.get("filler_status")
                 if fs and fs.get("running"):
-                    log_event(f"Filler: {fs.get('status', 'running')} ({fs.get('artists', '?')} artists)")
+                    log_event(
+                        f"Filler: {fs.get('status', 'running')} ({fs.get('artists', '?')} artists)"
+                    )
                 completed = data.get("completed_albums", [])
                 if len(completed) > len(last_completed):
-                    new_ones = completed[len(last_completed):]
+                    new_ones = completed[len(last_completed) :]
                     for a in new_ones:
-                        log_event(f"Completed: {a['artist']} - {a['album']} ({a['status']})")
+                        log_event(
+                            f"Completed: {a['artist']} - {a['album']} ({a['status']})"
+                        )
                 last_completed = completed
         except Exception:
             pass
@@ -127,9 +136,11 @@ def _exit_app(icon):
 
 # ── Windows tray icon ────────────────────────────────────────────
 
+
 def _make_icon(color, size=64):
     import math
     from PIL import Image, ImageDraw
+
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     cx = cy = size // 2
@@ -210,6 +221,7 @@ def run_tray():
 
 # ── Headless mode (Linux / CI) ──────────────────────────────────
 
+
 def run_headless():
     """Monitor without a tray icon — suitable for headless/Linux."""
     print("[systray] Headless mode — monitoring server health")
@@ -235,7 +247,9 @@ def run_headless():
 
 def main():
     parser = argparse.ArgumentParser(description="Discography Downloader Systray")
-    parser.add_argument("--headless", action="store_true", help="Run without GUI (Linux/CI)")
+    parser.add_argument(
+        "--headless", action="store_true", help="Run without GUI (Linux/CI)"
+    )
     args = parser.parse_args()
 
     if args.headless or sys.platform != "win32":
