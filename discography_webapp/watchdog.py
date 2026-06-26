@@ -327,6 +327,8 @@ async def run_watchdog(daemon: bool = False):
 
         await asyncio.sleep(backoff)
         server_proc = start_server()
+        # Reset the start timer when we actually start a new server
+        server_start_time = 0.0
 
         if server_proc:
             log.info(f"Waiting {STARTUP_GRACE}s for startup...")
