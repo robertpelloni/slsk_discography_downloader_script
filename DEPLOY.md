@@ -19,3 +19,12 @@
 - **mutagen**: Python module to handle audio metadata (ID3 tags, FLAC tags).
 - **bob_soulseek_rs** (Internal Submodule): Custom Rust bridge located in `discography_webapp/rust_bridge` to handle high-performance searches (partially implemented).
 - **python-dotenv**: For loading `.env` files into environment variables.
+
+## CI/CD Pipeline (GitHub Actions)
+The repository includes a `.github/workflows/release.yml` file designed to automate cross-platform deployment.
+Whenever a new semantic version tag (e.g., `v1.5.0`) is pushed to the repository:
+1. The **Pytest Suite** runs to verify no regressions were introduced.
+2. The **Docker Buildx** multi-platform job executes, compiling the Python environment and the embedded Rust bridge into a production container.
+3. The image is automatically pushed to the GitHub Container Registry (`ghcr.io`).
+
+Users can pull the latest autonomous release from GHCR directly into their Docker environments without needing to manually compile the Rust bridge themselves.
