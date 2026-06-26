@@ -1,5 +1,6 @@
 import json as _json
 import os as _os
+import subprocess as _subprocess
 
 from fastapi import APIRouter, BackgroundTasks, Request, Depends
 from fastapi.responses import JSONResponse
@@ -227,29 +228,97 @@ async def start_playlist_job(
     }
 
 
+_FILL_PID_FILE = _os.path.join(
+    _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))),
+    "filler.pid",
+)
+_last_fill_time = 0.0
+_FILL_COOLDOWN = 300  # seconds
+
+
+def _fill_pid_alive() -> bool:
+    try:
+        if _os.path.exists(_FILL_PID_FILE):
+            with open(_FILL_PID_FILE) as f:
+                pid = int(f.read().strip())
+            _os.kill(pid, 0)
+            return True
+    except (OSError, ValueError):
+        pass
+    return False
+
+
+def _write_fill_pid(pid: int):
+    try:
+        with open(_FILL_PID_FILE, "w") as f:
+            f.write(str(pid))
+    except Exception:
+        pass
+
+
 @router.post("/api/autonomous_fill")
 async def autonomous_fill(
     request: StartJobRequest, background_tasks: BackgroundTasks, orch=Depends(get_orch)
 ):
-    if orch.is_running:
+    global _last_fill_time
+    import time as _time
+
+    now = _time.time()
+    if now - _last_fill_time < _FILL_COOLDOWN:
+        remaining = int(_FILL_COOLDOWN - (now - _last_fill_time))
         return JSONResponse(
-            status_code=400, content={"message": "A job is already running."}
+            status_code=429,
+            content={"message": f"Autonomous fill on cooldown. Wait {remaining}s."},
         )
+
+    if _fill_pid_alive():
+        return JSONResponse(
+            status_code=400,
+            content={"message": "A fill process is already running."},
+        )
+
     user = orch.config_service.get("slsk_user")
     password = orch.config_service.get("slsk_pass")
     if not user or not password:
         return JSONResponse(
             status_code=400, content={"message": "Soulseek credentials not configured."}
         )
-    background_tasks.add_task(
-        orch.run_autonomous_filler,
-        user,
-        password,
-        request.artist_names,
-        request.depth,
-        request.dry_run,
-    )
-    return {"message": "Autonomous fill started", "artists": request.artist_names}
+
+    _last_fill_time = now
+
+    # Run filler as a detached subprocess — isolated from the web server
+    base = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+    python_exe = r"C:\Python314\pythonw.exe"
+    venv_site = _os.path.join(base, "venv", "Lib", "site-packages")
+    env = _os.environ.copy()
+    existing = env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = venv_site + (";" + existing if existing else "")
+    env["PYTHONIOENCODING"] = "utf-8"
+    filler_script = _os.path.join(base, "filler_worker.py")
+    log_path = _os.path.join(base, "filler_output.log")
+    log_fh = open(log_path, "a", encoding="utf-8")
+    args = [python_exe, "-u", filler_script, user, password, str(request.depth), str(request.dry_run)]
+    args.extend(request.artist_names)
+
+    try:
+        proc = _subprocess.Popen(
+            args,
+            cwd=base,
+            stdout=log_fh,
+            stderr=_subprocess.STDOUT,
+            env=env,
+            creationflags=_subprocess.CREATE_NO_WINDOW | _subprocess.CREATE_NEW_PROCESS_GROUP,
+        )
+        _write_fill_pid(proc.pid)
+        return {
+            "message": f"Autonomous fill started (PID {proc.pid})",
+            "artists": request.artist_names,
+        }
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"message": f"Failed to start filler: {e}"},
+        )
 
 
 @router.post("/api/stop")
