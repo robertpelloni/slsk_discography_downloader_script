@@ -5,4 +5,6 @@
 - [x] Phase 4: Containerization and one-click deployments (Verified via manual pivot).
 - [x] Phase 5: AI Forensics - Neural Sentinel & AcoustID Fingerprinting integration.
 - [x] Phase 6: P2P Expansion - Full Rust implementation of the file transfer protocol (Download).
+- [x] Phase 7: Server Stability & Hardening - Addressing memory leaks, zombie subprocesses, and threading timeouts.
 - [x] Phase 8: Cross-platform packaging and distribution - Automated multi-platform Docker builds and release artifacts.
+- [x] Phase 9: CI/CD Pipeline - End-to-end automated testing, code coverage (Codecov), and container registry publishing.

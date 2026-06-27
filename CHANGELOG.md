@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.0.0]
+- **Release Readiness**: Finalized project documentation, version files, and workflows for 2.0.0 stable release.
+- **CI/CD Hardening**: Authored a comprehensive GitHub Actions workflow (`.github/workflows/release.yml`) including Python 3.11/3.12 testing matrices, `pytest-cov`, and multi-arch Docker image builds.
+- **Orchestrator Bug Fixes**: Patched a critical bug in `_wait_for_transfer` mapping failed Rust transfers.
+- **Version Normalization**: Migrated application to use a dynamic global version string (v2.0.0) read from `VERSION.md`.
+
 ## [1.3.0]
 - **Library UI Enhancements**: Implemented multi-select batch rename and delete actions for local library management.
 - **Search Stability**: Refined the Rust bridge to handle P2P timeout edge cases cleanly during high-concurrency downloads.
