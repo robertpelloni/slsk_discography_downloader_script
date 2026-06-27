@@ -1,6 +1,4 @@
 import pytest
-import os
-import shutil
 from unittest.mock import MagicMock
 from discography_webapp.services.protocol import ProtocolService
 

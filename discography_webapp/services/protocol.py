@@ -1,7 +1,6 @@
 import os
 import subprocess
-import re
-from typing import List, Dict
+from typing import List
 
 
 class ProtocolService:

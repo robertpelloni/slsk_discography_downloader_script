@@ -1,8 +1,6 @@
 import asyncio
 import os
-import re
-import time
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 
 AUDIO_EXTENSIONS = {'.mp3', '.flac', '.m4a', '.ogg', '.wav', '.aac', '.wma'}
 
@@ -120,13 +118,13 @@ class SoulseekService:
     async def search(self, query: str, timeout: int = 20) -> List[Dict[str, Any]]:
         import sys; print(f"SLK_SEARCH: query={query!r} timeout={timeout} connected={self.is_connected}", file=sys.stderr, flush=True)
         if not self.is_connected or not self.client:
-            print(f"Soulseek: NOT CONNECTED, raising exception")
+            print("Soulseek: NOT CONNECTED, raising exception")
             raise Exception("Soulseek not connected")
 
         # Check if connection is still alive
         await self._ensure_connected()
         if not self.is_connected:
-            print(f"Soulseek: CONNECTION LOST after health check")
+            print("Soulseek: CONNECTION LOST after health check")
             raise Exception("Soulseek connection lost")
 
         safe_query = query.encode('ascii', errors='replace').decode('ascii')
@@ -160,7 +158,7 @@ class SoulseekService:
             try:
                 if self.username and self.password:
                     await self.connect(self.username, self.password)
-                    print(f"Soulseek: Reconnected, retrying search...")
+                    print("Soulseek: Reconnected, retrying search...")
                     # Retry the search after reconnect
                     search_request = await self.client.searches.search(query)
                     max_results = 200

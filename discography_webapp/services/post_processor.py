@@ -4,7 +4,6 @@ import os
 import re
 import shutil
 import subprocess
-from typing import Optional
 
 import mutagen
 from .acoustid_service import AcoustidService
@@ -126,7 +125,6 @@ class PostProcessor:
         After files are renamed to 'Artist - Year - Album - XX - Title.ext',
         move them up to downloads/ and clean up the empty subdirectories.
         """
-        import shutil
         
         # downloads/ root is 2 levels up from downloads/Artist/Album/
         # or 1 level up from downloads/Artist/Unsorted/
@@ -513,7 +511,7 @@ class PostProcessor:
                 try:
                     asyncio.create_task(self._fetch_cover_art(rg_id, target_dir))
                 except RuntimeError:
-                    self.logger.warning(f"Could not schedule cover art download (no event loop)")
+                    self.logger.warning("Could not schedule cover art download (no event loop)")
 
     async def _fetch_cover_art(self, rg_id, target_dir):
         try:

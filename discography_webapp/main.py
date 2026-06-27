@@ -9,7 +9,6 @@ import uvicorn
 import asyncio
 import os
 import json
-import sys
 
 try:
     from dotenv import load_dotenv
@@ -32,14 +31,12 @@ os.environ["PATH"] = bin_path + os.pathsep + os.environ["PATH"]
 
 from services.logger import manager
 from services.event_bus import EventBus
-from dependencies import USER_ID, orchestrators, get_orchestrator as deps_get_orchestrator
+from dependencies import orchestrators, get_orchestrator as deps_get_orchestrator
 from routers.core import router as core_router
 from routers.library import router as library_router
 from routers.protocol import router as protocol_router
 from routers.benchmark import router as benchmark_router
 from routers.agent import router as agent_router
-from services.protocol import ProtocolService
-from services.agent import AgentService
 
 # Event bus
 event_bus = EventBus()

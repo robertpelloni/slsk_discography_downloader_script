@@ -1,7 +1,6 @@
 import pytest
 import asyncio
-import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from discography_webapp.services.agent import AgentService, PlanningModule, ExecutionModule, LearningModule
 
 @pytest.fixture

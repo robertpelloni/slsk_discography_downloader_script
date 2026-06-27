@@ -2,17 +2,9 @@ import asyncio
 import os
 import re
 import shutil
-import sys
 import time
-from typing import List, Dict, Any, Optional
 
-from .musicbrainz import MusicBrainzService
-from .soulseek import SoulseekService
-from .config import ConfigService
-from .queue import QueueService
-from .post_processor import PostProcessor
 from aioslsk.transfer.state import TransferState
-import logging
 
 AUDIO_EXTENSIONS = {'.mp3', '.flac', '.m4a', '.ogg', '.wav', '.aac'}
 MIN_FILE_SIZE = 100 * 1024  # 100KB — ignore junk files
@@ -1041,7 +1033,7 @@ class Orchestrator:
                 if not results:
                     try:
                         results = await self.slsk_service.search(song, timeout=timeout)
-                    except Exception as e:
+                    except Exception:
                         pass
 
                 self.logger.info(f"  Got {len(results)} results")
@@ -1124,9 +1116,9 @@ class Orchestrator:
                                 self.logger.info(f"  ✓ Done: {final_filename}")
                                 success = True
                         elif done == 'failed':
-                            self.logger.warning(f"  ✗ Transfer failed")
+                            self.logger.warning("  ✗ Transfer failed")
                         else:
-                            self.logger.warning(f"  ⏱ Timeout")
+                            self.logger.warning("  ⏱ Timeout")
                     except Exception as e:
                         self.logger.warning(f"  Download error: {e}")
 
@@ -1651,12 +1643,12 @@ class Orchestrator:
 
     # ─── Sequential Downloader ────────────────────────────────────
 
-    async def _download_sequential(self, user, candidate_files, target_dir,
+    async def _download_sequential(self, user, remote_files, target_dir,
                                     metadata):
         os.makedirs(target_dir, exist_ok=True)
 
         to_download = [
-            f for f in candidate_files
+            f for f in remote_files
             if f['extension'].lower() in AUDIO_EXTENSIONS
             or f['extension'].lower() in ('.jpg', '.png')
         ]

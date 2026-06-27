@@ -20,7 +20,7 @@ class RustSoulseekService:
 
     async def connect(self):
         if RUST_AVAILABLE:
-            self.logger.info(f"Delegating connection to Rust FFI...")
+            self.logger.info("Delegating connection to Rust FFI...")
             # Call the async Rust function directly from Python event loop
             try:
                 res = await bob_soulseek_rs.connect_to_soulseek_async(self.username, self.password)

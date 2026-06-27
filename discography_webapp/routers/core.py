@@ -2,7 +2,6 @@ from fastapi import APIRouter, BackgroundTasks, Request, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 import asyncio
-import os
 import time
 from typing import List, Optional
 from dependencies import get_orchestrator

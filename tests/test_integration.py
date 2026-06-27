@@ -1,6 +1,5 @@
 import httpx
 import pytest
-import asyncio
 
 # This test requires a running server at http://localhost:8000
 # It is intended for live environment validation.
