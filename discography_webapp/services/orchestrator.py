@@ -1767,10 +1767,10 @@ class Orchestrator:
         while waited < timeout:
             if self.should_stop:
                 return 'stopped'
-            state = transfer.state.VALUE
-            if state == TransferState.COMPLETE:
+            state = transfer.state.VALUE if hasattr(transfer, "state") else ("complete" if transfer.is_finished else "downloading" if not transfer.error else "failed")
+            if state == TransferState.COMPLETE or state == "complete":
                 return 'complete'
-            elif state in (TransferState.FAILED, TransferState.ABORTED,
+            elif state in (TransferState.FAILED, TransferState.ABORTED, "failed",
                            TransferState.INCOMPLETE):
                 return 'failed'
             await asyncio.sleep(1)
@@ -1817,8 +1817,8 @@ class Orchestrator:
             failed = []
             for remote_path, info in list(self.active_downloads.items()):
                 transfer = info['transfer']
-                state = transfer.state.VALUE
-                if state == TransferState.COMPLETE:
+                state = transfer.state.VALUE if hasattr(transfer, "state") else ("complete" if transfer.is_finished else "downloading" if not transfer.error else "failed")
+                if state == TransferState.COMPLETE or state == "complete":
                     local_path = getattr(transfer, 'local_path', None)
                     if local_path and os.path.exists(local_path):
                         target_path = os.path.join(
@@ -1828,7 +1828,7 @@ class Orchestrator:
                         except Exception as e:
                             self.logger.error(f"Move error: {e}")
                     finished.append(remote_path)
-                elif state in (TransferState.FAILED, TransferState.ABORTED,
+                elif state in (TransferState.FAILED, TransferState.ABORTED, "failed",
                                TransferState.INCOMPLETE):
                     failed.append(remote_path)
 
