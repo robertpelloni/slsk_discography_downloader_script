@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.1.0]
+- **DevOps Hardening**: Completed 130 Ruff linter fixes and Mypy typings.
+- **Docker Ready**: Audited and confirmed Docker deployments using multi-arch Github Actions `ci.yml`.
+
 ## [2.0.0]
 - **Release Readiness**: Finalized project documentation, version files, and workflows for 2.0.0 stable release.
 - **CI/CD Hardening**: Authored a comprehensive GitHub Actions workflow (`.github/workflows/release.yml`) including Python 3.11/3.12 testing matrices, `pytest-cov`, and multi-arch Docker image builds.
