@@ -1,8 +1,6 @@
 import asyncio
 import os
-import re
-import time
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 
 AUDIO_EXTENSIONS = {'.mp3', '.flac', '.m4a', '.ogg', '.wav', '.aac', '.wma'}
 
@@ -101,16 +99,19 @@ class SoulseekService:
             return False
 
         try:
-            # Try to check if the network is still alive
+            # Check connection state via aioslsk's internal flags
             network = self.client.network
             if network and hasattr(network, '_server_connection'):
                 conn = network._server_connection
-                if conn and hasattr(conn, 'is_connected') and not conn.is_connected():
-                    print("Soulseek: Connection lost, reconnecting...")
-                    self.is_connected = False
-                    if self.username and self.password:
-                        await self.connect(self.username, self.password)
-                    return self.is_connected
+                if conn:
+                    # Check for CLOSING state — this is the actual flag aioslsk uses
+                    is_closing = getattr(conn, '_is_closing', True)
+                    if is_closing:
+                        print("Soulseek: Connection closing, reconnecting...")
+                        self.is_connected = False
+                        if self.username and self.password:
+                            await self.connect(self.username, self.password)
+                        return self.is_connected
             return True
         except Exception as e:
             print(f"Soulseek: Health check failed: {e}")
@@ -120,13 +121,13 @@ class SoulseekService:
     async def search(self, query: str, timeout: int = 20) -> List[Dict[str, Any]]:
         import sys; print(f"SLK_SEARCH: query={query!r} timeout={timeout} connected={self.is_connected}", file=sys.stderr, flush=True)
         if not self.is_connected or not self.client:
-            print(f"Soulseek: NOT CONNECTED, raising exception")
+            print("Soulseek: NOT CONNECTED, raising exception")
             raise Exception("Soulseek not connected")
 
         # Check if connection is still alive
         await self._ensure_connected()
         if not self.is_connected:
-            print(f"Soulseek: CONNECTION LOST after health check")
+            print("Soulseek: CONNECTION LOST after health check")
             raise Exception("Soulseek connection lost")
 
         safe_query = query.encode('ascii', errors='replace').decode('ascii')
@@ -140,6 +141,12 @@ class SoulseekService:
             for _ in range(timeout):
                 if len(search_request.results) >= max_results:
                     break
+                # Check connection health mid-wait — abort early if dropped
+                if self.client and hasattr(self.client, 'network'):
+                    sc = getattr(self.client.network, '_server_connection', None)
+                    if sc and getattr(sc, '_is_closing', False):
+                        print("Soulseek: Connection dropped mid-search, aborting wait")
+                        break
                 await asyncio.sleep(1)
 
             results = list(search_request.results)[:max_results]
@@ -160,7 +167,7 @@ class SoulseekService:
             try:
                 if self.username and self.password:
                     await self.connect(self.username, self.password)
-                    print(f"Soulseek: Reconnected, retrying search...")
+                    print("Soulseek: Reconnected, retrying search...")
                     # Retry the search after reconnect
                     search_request = await self.client.searches.search(query)
                     max_results = 200
