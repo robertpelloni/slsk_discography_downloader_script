@@ -61,7 +61,7 @@ class SoulseekService:
             shares=SharesSettings(download=self.download_path),
             network=NetworkSettings(
                 peer=PeerSettings(connect_mode=PeerConnectMode.RACE),
-                listening=ListeningSettings(port=0, obfuscated_port=0),
+                listening=ListeningSettings(port=60000, obfuscated_port=60001),
             ),
             searches=SearchSettings(max_results=200),
         )
