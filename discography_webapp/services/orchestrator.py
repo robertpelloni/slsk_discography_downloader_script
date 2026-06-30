@@ -1755,7 +1755,7 @@ class Orchestrator:
         while waited < timeout:
             if self.should_stop:
                 return 'stopped'
-            state = transfer.state.VALUE if hasattr(transfer, "state") else ("complete" if transfer.is_finished else "downloading" if not transfer.error else "failed")
+            state = transfer.state.VALUE if hasattr(transfer, "state") else ("failed" if transfer.error else "complete" if transfer.is_finished else "downloading")
             if state == TransferState.COMPLETE or state == "complete":
                 return 'complete'
             elif state in (TransferState.FAILED, TransferState.ABORTED, "failed",
@@ -1805,7 +1805,7 @@ class Orchestrator:
             failed = []
             for remote_path, info in list(self.active_downloads.items()):
                 transfer = info['transfer']
-                state = transfer.state.VALUE if hasattr(transfer, "state") else ("complete" if transfer.is_finished else "downloading" if not transfer.error else "failed")
+                state = transfer.state.VALUE if hasattr(transfer, "state") else ("failed" if transfer.error else "complete" if transfer.is_finished else "downloading")
                 if state == TransferState.COMPLETE or state == "complete":
                     local_path = getattr(transfer, 'local_path', None)
                     if local_path and os.path.exists(local_path):

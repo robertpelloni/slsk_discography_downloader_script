@@ -79,7 +79,7 @@ Key settings include:
 The FastAPI backend exposes several interactive routes. You can view the full interactive API documentation by navigating to `http://localhost:8000/docs` while the server is running.
 
 **Key Endpoints:**
-- `GET /api/library/status` - View current download queue and library statistics.
+- `GET /api/status` - View current download queue and library statistics.
 - `POST /api/library/batch_rename` - Pass a JSON payload of target paths to securely rename albums.
 - `POST /api/agent/cycle` - Trigger a manual tick of the autonomous agent to plan and execute pending background downloads.
 

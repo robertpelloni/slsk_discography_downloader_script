@@ -174,21 +174,19 @@ CRASH_LOG = os.path.join(BASE_DIR, "server_crash.log")
 def start_server() -> subprocess.Popen | None:
     """Start the uvicorn server process. Returns the Popen object or None.
 
-    Uses the system Python to avoid the venv Python 3.14.6
+    Uses the system Python (C:\Python314) to avoid the venv Python 3.14.6
     stub-process bug which creates a duplicate child process for every spawn.
     The venv's site-packages are added via PYTHONPATH so all project
     dependencies (fastapi, aioslsk, etc.) are available.
     """
-    import shutil
-
-    system_python = shutil.which("python") or shutil.which("python3")
+    system_python = "C:\\Python314\\python.exe"
     venv_site = os.path.join(BASE_DIR, "venv", "Lib", "site-packages")
-
     python_exe = system_python
-    if not python_exe or not os.path.isfile(python_exe):
+
+    if not os.path.isfile(python_exe):
         # Fallback to venv Python
         python_exe = VENV_PYTHON
-        log.warning(f"system python not found, using venv python")
+        log.warning(f"system python not found at {system_python}, using venv python")
 
     log.info(f"Starting server: {python_exe} {' '.join(UVICORN_ARGS)}")
 

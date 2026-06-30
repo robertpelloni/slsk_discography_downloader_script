@@ -105,7 +105,6 @@ fn rust_search_async<'py>(py: Python<'py>, query: String) -> PyResult<&'py PyAny
 struct TransferInner {
     is_finished: bool,
     error: Option<String>,
-    local_path: Option<String>,
 }
 
 #[pyclass]
@@ -131,11 +130,6 @@ impl RustTransfer {
     fn filename(&self) -> String {
         self.filename.clone()
     }
-
-    #[getter]
-    fn local_path(&self) -> Option<String> {
-        self.inner.lock().unwrap().local_path.clone()
-    }
 }
 
 /// An asynchronous Rust function that downloads a file from the Soulseek network
@@ -155,20 +149,9 @@ fn rust_download_async<'py>(py: Python<'py>, username: String, filename: String,
                 }
             }?;
 
-            // Generate standard soulseek-rs temporary local path
-            let safe_filename = filename.clone().replace("\\", "/");
-            let short_filename = std::path::Path::new(&safe_filename)
-                .file_name()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .into_owned();
-
-            let local_path = format!("{}/{}", download_directory, short_filename);
-
             let inner = std::sync::Arc::new(std::sync::Mutex::new(TransferInner {
                 is_finished: false,
                 error: None,
-                local_path: Some(local_path),
             }));
 
             let transfer = RustTransfer {
