@@ -1465,12 +1465,8 @@ class Orchestrator:
 
                     self.logger.info(f"  Downloading from {user}...")
                     try:
-                        # Find the matching file to get its size, we default to 0 if not found
-                        file_size = 0
-                        for rf in remote_files:
-                            if rf['filename'] == remote_path:
-                                file_size = rf.get('size', 0)
-                                break
+                        # Get file size from the candidate result directly
+                        file_size = cand.get('size', 0)
                         transfer = await self.slsk_service.download_file(
                             user, remote_path, size=file_size, download_directory=target_dir
                         )
@@ -2136,12 +2132,8 @@ class Orchestrator:
             self.logger.info(f"  [{i + 1}/{total}] ↓ {filename}")
 
             try:
-                # Find the matching file to get its size, we default to 0 if not found
-                file_size = 0
-                for rf in remote_files:
-                    if rf['filename'] == remote_path:
-                        file_size = rf.get('size', 0)
-                        break
+                # Get file size from the candidate result directly
+                file_size = file_info.get('size', 0)
                 transfer = await self.slsk_service.download_file(
                     user, remote_path, size=file_size, download_directory=target_dir
                 )
