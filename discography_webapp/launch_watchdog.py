@@ -1,6 +1,6 @@
 """Launch watchdog.py as a fully detached background process.
 
-Uses C:\Python314\python.exe (system Python) because it does NOT
+Uses the system Python because it does NOT
 have the venv Python 3.14.6 stub-process bug that spawns a child
 for every launched process, causing duplicates.
 """
@@ -8,10 +8,13 @@ for every launched process, causing duplicates.
 import os
 import subprocess
 import sys
+import shutil
 
 base = os.path.dirname(os.path.abspath(__file__))
 watchdog = os.path.join(base, "watchdog.py")
-system_python = r"C:\Python314\python.exe"
+
+# Find the system python executable, falling back to sys.executable if not found
+system_python = shutil.which("python") or shutil.which("python3") or sys.executable
 
 # Use wmic process call create for reliable independent process creation
 cmd = f'"{system_python}" "{watchdog}"'
