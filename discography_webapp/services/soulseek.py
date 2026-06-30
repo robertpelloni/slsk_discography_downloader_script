@@ -309,13 +309,17 @@ class SoulseekService:
                 RUST_AVAILABLE = False
 
             if RUST_AVAILABLE:
-                transfer = await bob_soulseek_rs.rust_download_async(
-                    user, filename, size, download_directory
-                )
-                return transfer
-            else:
-                transfer = await self.client.transfers.download(user, filename)
-                return transfer
+                try:
+                    transfer = await bob_soulseek_rs.rust_download_async(
+                        user, filename, size, download_directory
+                    )
+                    return transfer
+                except AttributeError:
+                    # Rust module exists but doesn't support rust_download_async
+                    RUST_AVAILABLE = False
+            # Fallback to Python Soulseek client
+            transfer = await self.client.transfers.download(user, filename)
+            return transfer
         except Exception as e:
             raise Exception(f"Failed to download {safe_name}: {e}")
 
