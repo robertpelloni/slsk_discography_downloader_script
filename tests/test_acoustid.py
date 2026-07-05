@@ -1,5 +1,4 @@
 import pytest
-import asyncio
 from unittest.mock import MagicMock, patch
 from discography_webapp.services.acoustid_service import AcoustidService
 

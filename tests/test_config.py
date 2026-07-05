@@ -1,7 +1,6 @@
 import pytest
 import os
 import sqlite3
-import json
 
 from discography_webapp.services.config import ConfigService, DB_PATH
 

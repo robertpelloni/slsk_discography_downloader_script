@@ -2,7 +2,6 @@ from fastapi import APIRouter, Request, Depends
 import os
 import re
 import shutil
-from typing import List
 from dependencies import get_orchestrator
 
 router = APIRouter()
@@ -265,7 +264,9 @@ async def organize_by_tags(orch=Depends(get_orch)):
         return {"moved": 0}
 
     try:
-        import mutagen, mutagen.easyid3, mutagen.flac
+        import mutagen
+        import mutagen.easyid3
+        import mutagen.flac
     except ImportError:
         return {"moved": 0, "error": "mutagen not installed"}
 

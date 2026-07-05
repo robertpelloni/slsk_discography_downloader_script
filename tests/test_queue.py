@@ -1,6 +1,5 @@
 import pytest
 import os
-import sqlite3
 from discography_webapp.services.queue import QueueService
 
 @pytest.fixture

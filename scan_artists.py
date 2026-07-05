@@ -1,5 +1,4 @@
 import requests
-import json
 
 artists = "1200 Micrograms, 1200 Mics, 1300 Micrograms, Bansi, Chicago, Raja Ram, Riktam, Riktam & Bansi, Growling Mad Scientists, GMS, Growling Machines, Growling Machine Sex, G.M.S., Ajja, Outsiders, Psysex, Talamasca, Space Tribe, ESP, E.S.P., Mad Maxx, Mad Tribe, DJ Stryker, Dickster, Laughing Buddha, Space Buddha, Alienatic, Electric Universe, Volcano, Alien Project, Save The Robot, Hypnocoustics, Faders, Soundaholix, 3 Of Life, Avalon, Astrix, DJ Technorch, Technorch, Betwixt & Between, Beatmania IIDX OST, Beatmania IIDX Soundtrack, Ace Ventura, KoxBox"
 artist_list = [a.strip() for a in artists.split(',')]

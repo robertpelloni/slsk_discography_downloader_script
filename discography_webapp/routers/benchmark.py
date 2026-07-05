@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Request
 from services.benchmark import SearchBenchmark
 from dependencies import get_orchestrator
-from services.rust_soulseek import RustSoulseekService, RUST_AVAILABLE
+from services.rust_soulseek import RustSoulseekService
 
 router = APIRouter()
 

@@ -1,7 +1,5 @@
 import pytest
-import asyncio
 import os
-import shutil
 from unittest.mock import MagicMock, patch
 from discography_webapp.services.orchestrator import Orchestrator
 from discography_webapp.services.post_processor import PostProcessor

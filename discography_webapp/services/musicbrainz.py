@@ -1,6 +1,10 @@
 import musicbrainzngs
 import time
+import socket
 from typing import List, Dict, Any, Optional
+
+# Enforce a global socket timeout so musicbrainzngs requests don't hang indefinitely
+socket.setdefaulttimeout(15)
 
 # Configure MusicBrainz
 musicbrainzngs.set_useragent(

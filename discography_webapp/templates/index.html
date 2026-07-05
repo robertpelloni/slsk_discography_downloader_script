@@ -1737,8 +1737,8 @@ async function loadLibrary() {
             html += `</div>`;
             html += `<div id="artist-${idx}" style="display: none; margin-top: 8px; margin-left: 20px;">`;
             artist.albums.forEach(album => {
-                const escapedArtist = artist.name.replace(/'/g, "\'");
-                const escapedAlbum = album.name.replace(/'/g, "\'");
+                const escapedArtist = artist.name.replace(/'/g, "\\'");
+                const escapedAlbum = album.name.replace(/'/g, "\\'");
                 const encodedArtist = artist.name.replace(/"/g, '&quot;');
                 const encodedAlbum = album.name.replace(/"/g, '&quot;');
 

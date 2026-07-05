@@ -6,7 +6,6 @@ import threading
 import time
 from typing import Dict, Any, Optional, Callable
 
-from aioslsk.transfer.state import TransferState
 
 AUDIO_EXTENSIONS = {".mp3", ".flac", ".m4a", ".ogg", ".wav", ".aac"}
 MIN_FILE_SIZE = 100 * 1024  # 100KB — ignore junk files
@@ -1465,11 +1464,6 @@ class Orchestrator:
 
                     self.logger.info(f"  Downloading from {user}...")
                     try:
-                        # Get file size from the candidate result directly
-                        file_size = cand.get('size', 0)
-                        transfer = await self.slsk_service.download_file(
-                            user, remote_path, size=file_size, download_directory=target_dir
-                        )
                         done = await self._wait_for_transfer(transfer, timeout=120)
                         if done == "complete":
                             local_path = getattr(transfer, "local_path", None)
@@ -1477,7 +1471,6 @@ class Orchestrator:
                                 shutil.move(local_path, local_target)
                                 self.logger.info(f"  ✓ Done: {final_filename}")
                                 success = True
-                        elif done == "failed":
                             self.logger.warning("  ✗ Transfer failed")
                         else:
                             self.logger.warning("  ⏱ Timeout")
@@ -2066,15 +2059,7 @@ class Orchestrator:
 
     # ─── Sequential Downloader ────────────────────────────────────
 
-    async def _download_sequential(self, user, candidate_files, target_dir, metadata):
-        os.makedirs(target_dir, exist_ok=True)
-
-        to_download = [
-            f
-            for f in candidate_files
-            if f["extension"].lower() in AUDIO_EXTENSIONS
-            or f["extension"].lower() in (".jpg", ".png")
-        ]
+    async def _download_from_user(self, user, to_download, metadata, target_dir):
         if not to_download:
             raise Exception("No audio files in candidate")
 
@@ -2195,15 +2180,6 @@ class Orchestrator:
         while waited < timeout:
             if self.should_stop:
                 return "stopped"
-            state = transfer.state.VALUE
-            if state == TransferState.COMPLETE:
-                return "complete"
-            elif state in (
-                TransferState.FAILED,
-                TransferState.ABORTED,
-                TransferState.INCOMPLETE,
-            ):
-                return "failed"
             await asyncio.sleep(1)
             waited += 1
         return "timeout"
@@ -2253,10 +2229,6 @@ class Orchestrator:
             finished = []
             failed = []
             for remote_path, info in list(self.active_downloads.items()):
-                transfer = info["transfer"]
-                state = transfer.state.VALUE
-                if state == TransferState.COMPLETE:
-                    local_path = getattr(transfer, "local_path", None)
                     if local_path and os.path.exists(local_path):
                         target_path = os.path.join(info["target_dir"], info["filename"])
                         try:
@@ -2264,11 +2236,6 @@ class Orchestrator:
                         except Exception as e:
                             self.logger.error(f"Move error: {e}")
                     finished.append(remote_path)
-                elif state in (
-                    TransferState.FAILED,
-                    TransferState.ABORTED,
-                    TransferState.INCOMPLETE,
-                ):
                     failed.append(remote_path)
 
             for key in finished + failed:
