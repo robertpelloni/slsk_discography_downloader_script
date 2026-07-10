@@ -49,3 +49,6 @@ filler_output.log
 
 # Runtime scripts (not committed)
 restart.ps1
+
+# Review audio files (large FLACs, not for git)
+delete_review/
