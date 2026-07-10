@@ -2118,7 +2118,7 @@ class Orchestrator:
 
             try:
                 # Get file size from the candidate result directly
-                file_size = file_info.get('size', 0)
+                file_size = file_info.get("size", 0)
                 transfer = await self.slsk_service.download_file(
                     user, remote_path, size=file_size, download_directory=target_dir
                 )
@@ -2229,14 +2229,14 @@ class Orchestrator:
             finished = []
             failed = []
             for remote_path, info in list(self.active_downloads.items()):
-                    if local_path and os.path.exists(local_path):
-                        target_path = os.path.join(info["target_dir"], info["filename"])
-                        try:
-                            shutil.move(local_path, target_path)
-                        except Exception as e:
-                            self.logger.error(f"Move error: {e}")
-                    finished.append(remote_path)
-                    failed.append(remote_path)
+                if local_path and os.path.exists(local_path):
+                    target_path = os.path.join(info["target_dir"], info["filename"])
+                    try:
+                        shutil.move(local_path, target_path)
+                    except Exception as e:
+                        self.logger.error(f"Move error: {e}")
+                finished.append(remote_path)
+                failed.append(remote_path)
 
             for key in finished + failed:
                 if key in self.active_downloads:
