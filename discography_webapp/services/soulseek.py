@@ -39,7 +39,7 @@ class SoulseekService:
         state = self._get_server_connection_state()
         if state is None:
             return self.is_connected  # fall back to cached flag
-        from aioslsk.events import ConnectionState as CS
+        from aioslsk.network.connection import ConnectionState as CS
 
         return state == CS.CONNECTED
 
