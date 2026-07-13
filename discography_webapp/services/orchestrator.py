@@ -1259,6 +1259,16 @@ class Orchestrator:
                         f"Found {total_missing} missing albums across {len(missing)} artists."
                     )
 
+                    # Log MB cache stats
+                    try:
+                        cs = self.mb_service.cache_stats()
+                        self.logger.info(
+                            f"MB cache: {cs['hits']} hits, {cs['misses']} misses, "
+                            f"{cs['hit_rate']} hit rate, {cs['entries']} entries"
+                        )
+                    except Exception:
+                        pass
+
                 # Run a single download pass (depth=0 since selection already includes related)
                 try:
                     await self._run_job_impl(

@@ -71,6 +71,16 @@ def main():
     pp = PostProcessor(mb, config, logger)
     orch = Orchestrator(logger, mb, slsk, config, pp, queue)
 
+    # Log MB cache stats at startup
+    try:
+        mb.clear_expired()
+        cs = mb.cache_stats()
+        logger.info(
+            f"MB cache: {cs['entries']} entries ({cs['hit_rate']} hit rate)"
+        )
+    except Exception:
+        pass
+
     try:
         asyncio.run(
             orch.run_autonomous_filler(
@@ -90,6 +100,16 @@ def main():
         traceback.print_exc()
         write_status({"running": False, "status": "failed", "error": str(e)})
         sys.exit(1)
+    finally:
+        # Log final cache stats
+        try:
+            cs = mb.cache_stats()
+            logger.info(
+                f"MB cache final: {cs['hits']} hits, {cs['misses']} misses, "
+                f"{cs['hit_rate']} hit rate, {cs['entries']} entries"
+            )
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":

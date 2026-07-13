@@ -1,4 +1,7 @@
+import json
 import musicbrainzngs
+import os
+import sqlite3
 import time
 import socket
 from typing import List, Dict, Any, Optional
@@ -11,19 +14,120 @@ musicbrainzngs.set_useragent(
     "DiscographyDownloader", "0.1", "https://github.com/jules/discography-downloader"
 )
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MB_CACHE_DB = os.path.join(BASE_DIR, "data", "mb_cache.db")
+
 
 class MusicBrainzService:
     def __init__(self):
-        pass
+        self._init_cache()
+        self._cache_hits = 0
+        self._cache_misses = 0
+
+    def _init_cache(self):
+        """Create the cache table if it doesn't exist."""
+        os.makedirs(os.path.dirname(MB_CACHE_DB), exist_ok=True)
+        conn = sqlite3.connect(MB_CACHE_DB, timeout=10)
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=5000")
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS cache (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                expires_at REAL NOT NULL,
+                created_at REAL NOT NULL
+            )
+        """)
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_cache_expires
+            ON cache(expires_at)
+        """)
+        conn.commit()
+        conn.close()
+
+    def _cache_get(self, key: str) -> Optional[Any]:
+        """Get a cached value if it exists and hasn't expired."""
+        try:
+            conn = sqlite3.connect(MB_CACHE_DB, timeout=10)
+            conn.execute("PRAGMA busy_timeout=5000")
+            row = conn.execute(
+                "SELECT value FROM cache WHERE key = ? AND expires_at > ?",
+                (key, time.time())
+            ).fetchone()
+            conn.close()
+            if row:
+                self._cache_hits += 1
+                return json.loads(row[0])
+        except Exception:
+            pass
+        self._cache_misses += 1
+        return None
+
+    def _cache_set(self, key: str, value: Any, ttl_seconds: float):
+        """Store a value in the cache with expiration."""
+        try:
+            conn = sqlite3.connect(MB_CACHE_DB, timeout=10)
+            conn.execute("PRAGMA busy_timeout=5000")
+            now = time.time()
+            conn.execute(
+                "INSERT OR REPLACE INTO cache (key, value, expires_at, created_at) VALUES (?, ?, ?, ?)",
+                (key, json.dumps(value, default=str), now + ttl_seconds, now)
+            )
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            print(f"MB cache write error: {e}")
+
+    def cache_stats(self) -> Dict[str, Any]:
+        """Return cache hit/miss stats."""
+        total = self._cache_hits + self._cache_misses
+        hit_rate = (self._cache_hits / total * 100) if total > 0 else 0
+        try:
+            conn = sqlite3.connect(MB_CACHE_DB, timeout=10)
+            count = conn.execute("SELECT COUNT(*) FROM cache").fetchone()[0]
+            expired = conn.execute(
+                "SELECT COUNT(*) FROM cache WHERE expires_at < ?", (time.time(),)
+            ).fetchone()[0]
+            conn.close()
+        except Exception:
+            count = 0
+            expired = 0
+        return {
+            "hits": self._cache_hits,
+            "misses": self._cache_misses,
+            "hit_rate": f"{hit_rate:.1f}%",
+            "entries": count,
+            "expired": expired,
+        }
+
+    def clear_expired(self):
+        """Remove expired entries from the cache."""
+        try:
+            conn = sqlite3.connect(MB_CACHE_DB, timeout=10)
+            cur = conn.execute(
+                "DELETE FROM cache WHERE expires_at < ?", (time.time(),)
+            )
+            conn.commit()
+            deleted = cur.rowcount
+            conn.close()
+            print(f"MB cache: cleared {deleted} expired entries")
+            return deleted
+        except Exception as e:
+            print(f"MB cache cleanup error: {e}")
+            return 0
 
     def search_artist(self, query: str) -> List[Dict[str, Any]]:
-        """
-        Search for an artist by name.
-        """
+        """Search for an artist by name (cached 30 days)."""
+        cache_key = f"search_artist:{query}"
+        cached = self._cache_get(cache_key)
+        if cached is not None:
+            return cached
+
         try:
-            # musicbrainzngs.search_artists returns {'artist-list': [], 'artist-count': ...}
             result = musicbrainzngs.search_artists(artist=query, limit=5)
-            return result.get("artist-list", [])
+            data = result.get("artist-list", [])
+            self._cache_set(cache_key, data, ttl_seconds=30 * 86400)
+            return data
         except Exception as e:
             print(f"Error searching artist: {e}")
             return []
@@ -31,14 +135,23 @@ class MusicBrainzService:
     def get_artist_by_id(
         self, artist_id: str, includes: List[str] = None
     ) -> Optional[Dict[str, Any]]:
-        try:
-            if includes is None:
-                includes = ["artist-rels", "url-rels", "tags"]
+        """Get artist details by ID (cached 30 days)."""
+        if includes is None:
+            includes = ["artist-rels", "url-rels", "tags"]
 
-            # Rate limit before call
+        includes_key = ",".join(sorted(includes))
+        cache_key = f"get_artist_by_id:{artist_id}:{includes_key}"
+        cached = self._cache_get(cache_key)
+        if cached is not None:
+            return cached
+
+        try:
             time.sleep(1.1)
             response = musicbrainzngs.get_artist_by_id(artist_id, includes=includes)
-            return response.get("artist")
+            data = response.get("artist")
+            if data:
+                self._cache_set(cache_key, data, ttl_seconds=30 * 86400)
+            return data
         except Exception as e:
             print(f"Error getting artist details for {artist_id}: {e}")
             return None
@@ -46,20 +159,17 @@ class MusicBrainzService:
     def get_discography(
         self, artist_id: str, cancel_event: Optional[callable] = None
     ) -> List[Dict[str, Any]]:
-        """
-        Get all official Release Groups (Albums/EPs) for an artist.
+        """Get all official Release Groups for an artist (cached 7 days)."""
+        cache_key = f"get_discography:{artist_id}"
+        cached = self._cache_get(cache_key)
+        if cached is not None:
+            return cached
 
-        If *cancel_event* is provided (a no-arg callable that returns True
-        when cancellation is requested), this method will bail early between
-        pages so orphan threads from timed-out to_thread() calls don't keep
-        running.
-        """
         release_groups = []
         offset = 0
         limit = 100
 
         while True:
-            # Check cancellation between pages
             if cancel_event is not None and cancel_event():
                 print(f"[get_discography] Cancelled for {artist_id}")
                 break
@@ -68,7 +178,7 @@ class MusicBrainzService:
                 time.sleep(1.1)
                 result = musicbrainzngs.browse_release_groups(
                     artist=artist_id,
-                    release_type=["album", "ep", "single"],  # Include singles for tributes/remixes
+                    release_type=["album", "ep", "single"],
                     limit=limit,
                     offset=offset,
                 )
@@ -82,40 +192,43 @@ class MusicBrainzService:
                 print(f"Error fetching discography: {e}")
                 break
 
+        if release_groups:
+            self._cache_set(cache_key, release_groups, ttl_seconds=7 * 86400)
         return release_groups
 
     def get_releases_in_group(self, rg_id: str) -> List[Dict[str, Any]]:
-        """
-        Get specific releases (e.g. CD, Digital) for a Release Group.
-        Useful to find track counts and specific formats.
-        """
+        """Get specific releases for a Release Group (cached 14 days)."""
+        cache_key = f"get_releases_in_group:{rg_id}"
+        cached = self._cache_get(cache_key)
+        if cached is not None:
+            return cached
+
         try:
             time.sleep(1.1)
             result = musicbrainzngs.browse_releases(
                 release_group=rg_id, includes=["media"], limit=100
             )
-            return result.get("release-list", [])
+            data = result.get("release-list", [])
+            self._cache_set(cache_key, data, ttl_seconds=14 * 86400)
+            return data
         except Exception as e:
             print(f"Error fetching releases for group {rg_id}: {e}")
             return []
 
     def get_best_release_with_tracks(self, rg_id: str) -> Optional[Dict[str, Any]]:
-        """
-        Find the 'best' release in a group (prioritizing Official, CD/Digital, Track Count)
-        and return it with full tracklist.
-        """
+        """Find the best release in a group with full tracklist (cached 14 days)."""
+        cache_key = f"get_best_release:{rg_id}"
+        cached = self._cache_get(cache_key)
+        if cached is not None:
+            return cached
+
         releases = self.get_releases_in_group(rg_id)
         if not releases:
             return None
 
-        # Sort/Filter logic
-        # 1. Prefer Official
         official = [r for r in releases if r.get("status") == "Official"]
         candidates = official if official else releases
 
-        # 2. Prefer specific formats (CD, Digital Media) over Vinyl/Cassette usually (for metadata quality/track count consistency)
-        # But maybe we just want the one with the most tracks?
-        # Let's sort by track count desc
         def get_track_count(rel):
             count = 0
             for medium in rel.get("medium-list", []):
@@ -127,13 +240,15 @@ class MusicBrainzService:
         best_release = candidates[0]
         release_id = best_release["id"]
 
-        # Fetch full details with recordings
         try:
             time.sleep(1.1)
             result = musicbrainzngs.get_release_by_id(
                 release_id, includes=["recordings", "media"]
             )
-            return result.get("release")
+            data = result.get("release")
+            if data:
+                self._cache_set(cache_key, data, ttl_seconds=14 * 86400)
+            return data
         except Exception as e:
             print(f"Error fetching release details {release_id}: {e}")
             return None
@@ -141,20 +256,21 @@ class MusicBrainzService:
     def get_related_artists(
         self, artist_id: str, depth: int = 1
     ) -> List[Dict[str, Any]]:
-        """
-        Find related bands/projects via members recursively up to the given depth.
-        Returns a list of dicts: {'id', 'name', 'relation_type', 'related_to', 'tag-list'}
-        """
+        """Find related artists recursively (cached 14 days)."""
+        cache_key = f"get_related_artists:{artist_id}:d{depth}"
+        cached = self._cache_get(cache_key)
+        if cached is not None:
+            return cached
+
         if depth <= 0:
             return []
 
-        found_artists = {}  # id -> dict
+        found_artists = {}
         visited = set([artist_id])
 
         def add_artist(artist_data, relation_desc):
             aid = artist_data.get("id")
             if aid and aid not in found_artists and aid not in visited:
-                # Fetch full artist info to get tags for filtering
                 full_info = self.get_artist_by_id(aid, includes=["tags"])
                 tags = []
                 if full_info:
@@ -220,4 +336,7 @@ class MusicBrainzService:
 
         traverse(artist_id, 1)
 
-        return list(found_artists.values())
+        result = list(found_artists.values())
+        if result:
+            self._cache_set(cache_key, result, ttl_seconds=14 * 86400)
+        return result

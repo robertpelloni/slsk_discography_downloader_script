@@ -377,3 +377,15 @@ async def cleanup_artists(orch=Depends(get_orch)):
 @router.get("/api/artist_discography/{artist_id}")
 async def get_artist_discography(artist_id: str, orch=Depends(get_orch)):
     return await orch.get_artist_discography_details(artist_id)
+
+
+@router.get("/api/mb_cache_stats")
+async def mb_cache_stats(orch=Depends(get_orch)):
+    stats = orch.mb_service.cache_stats()
+    return stats
+
+
+@router.post("/api/mb_cache_cleanup")
+async def mb_cache_cleanup(orch=Depends(get_orch)):
+    deleted = orch.mb_service.clear_expired()
+    return {"deleted": deleted}
