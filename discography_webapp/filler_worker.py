@@ -75,9 +75,7 @@ def main():
     try:
         mb.clear_expired()
         cs = mb.cache_stats()
-        logger.info(
-            f"MB cache: {cs['entries']} entries ({cs['hit_rate']} hit rate)"
-        )
+        logger.info(f"MB cache: {cs['entries']} entries ({cs['hit_rate']} hit rate)")
     except Exception:
         pass
 

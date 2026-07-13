@@ -3,7 +3,7 @@ import os
 import time
 from typing import List, Dict, Any
 
-AUDIO_EXTENSIONS = {'.mp3', '.flac', '.m4a', '.ogg', '.wav', '.aac', '.wma'}
+AUDIO_EXTENSIONS = {".mp3", ".flac", ".m4a", ".ogg", ".wav", ".aac", ".wma"}
 
 
 class SoulseekService:
@@ -40,6 +40,7 @@ class SoulseekService:
         if state is None:
             return self.is_connected  # fall back to cached flag
         from aioslsk.events import ConnectionState as CS
+
         return state == CS.CONNECTED
 
     def _wait_for_rate_limit(self):
@@ -73,6 +74,7 @@ class SoulseekService:
                 PeerConnectMode,
                 SearchSettings,
             )
+
             HAS_AIOSLSK = True
         except ImportError:
             HAS_AIOSLSK = False
@@ -98,20 +100,13 @@ class SoulseekService:
 
         settings = SlskSettings(
             credentials=CredentialsSettings(
-                username=self.username,
-                password=self.password
+                username=self.username, password=self.password
             ),
-            shares=SharesSettings(
-                download=self.download_path
-            ),
+            shares=SharesSettings(download=self.download_path),
             network=NetworkSettings(
-                peer=PeerSettings(
-                    connect_mode=PeerConnectMode.FALLBACK
-                )
+                peer=PeerSettings(connect_mode=PeerConnectMode.FALLBACK)
             ),
-            searches=SearchSettings(
-                max_results=200
-            ),
+            searches=SearchSettings(max_results=200),
         )
 
         self.client = SoulSeekClient(settings)
@@ -125,7 +120,9 @@ class SoulseekService:
             try:
                 network = self.client.network
                 if network._listening_ports:
-                    ports = [p.port for p in network._listening_ports if hasattr(p, 'port')]
+                    ports = [
+                        p.port for p in network._listening_ports if hasattr(p, "port")
+                    ]
                     print(f"Soulseek: Listening on ports: {ports}")
                 else:
                     print("Soulseek: Warning - No listening ports bound")
@@ -161,7 +158,7 @@ class SoulseekService:
 
     async def _perform_search(self, query: str, timeout: int) -> List[Dict[str, Any]]:
         """Low-level search — assumes connection is healthy. Returns parsed results or None on failure."""
-        safe_query = query.encode('ascii', errors='replace').decode('ascii')
+        safe_query = query.encode("ascii", errors="replace").decode("ascii")
 
         try:
             search_request = await self.client.searches.search(query)
@@ -206,6 +203,7 @@ class SoulseekService:
                         try:
                             attrs = item.get_attribute_map()
                             from aioslsk.protocol.attributes import AttributeKey
+
                             if AttributeKey.BITRATE in attrs:
                                 bitrate = attrs[AttributeKey.BITRATE]
                         except Exception:
@@ -219,18 +217,20 @@ class SoulseekService:
                             pass
                         if not ext and item.filename:
                             ext = os.path.splitext(item.filename)[1].lower()
-                        if ext and not ext.startswith('.'):
-                            ext = '.' + ext
+                        if ext and not ext.startswith("."):
+                            ext = "." + ext
 
-                        parsed.append({
-                            'filename': item.filename,
-                            'user': username,
-                            'size': item.filesize,
-                            'speed': avg_speed,
-                            'slots': has_slots,
-                            'bitrate': bitrate,
-                            'extension': ext,
-                        })
+                        parsed.append(
+                            {
+                                "filename": item.filename,
+                                "user": username,
+                                "size": item.filesize,
+                                "speed": avg_speed,
+                                "slots": has_slots,
+                                "bitrate": bitrate,
+                                "extension": ext,
+                            }
+                        )
                         if len(parsed) >= 200:
                             break
                     except Exception:
@@ -250,7 +250,12 @@ class SoulseekService:
         Returns parsed results (may be empty) on success, or empty list on failure.
         """
         import sys
-        print(f"SLK_SEARCH: query={query!r} timeout={timeout}", file=sys.stderr, flush=True)
+
+        print(
+            f"SLK_SEARCH: query={query!r} timeout={timeout}",
+            file=sys.stderr,
+            flush=True,
+        )
 
         if not self.client:
             print("Soulseek: No client — raising exception")
@@ -310,7 +315,9 @@ class SoulseekService:
                 raise Exception("Not connected and reconnection failed")
 
         # Sanitize filename for logging
-        safe_name = os.path.basename(filename).encode('ascii', errors='replace').decode('ascii')
+        safe_name = (
+            os.path.basename(filename).encode("ascii", errors="replace").decode("ascii")
+        )
 
         if not download_directory:
             download_directory = self.download_path
@@ -318,12 +325,15 @@ class SoulseekService:
         try:
             try:
                 import bob_soulseek_rs
+
                 RUST_AVAILABLE = True
             except ImportError:
                 RUST_AVAILABLE = False
 
             if RUST_AVAILABLE:
-                transfer = await bob_soulseek_rs.rust_download_async(user, filename, size, download_directory)
+                transfer = await bob_soulseek_rs.rust_download_async(
+                    user, filename, size, download_directory
+                )
                 return transfer
             else:
                 transfer = await self.client.transfers.download(user, filename)
@@ -340,6 +350,7 @@ class SoulseekService:
 
         try:
             from aioslsk.commands import PeerGetDirectoryContentCommand
+
             cmd = PeerGetDirectoryContentCommand(user, folder_path)
             response = await self.client.execute(cmd)
             return response or []

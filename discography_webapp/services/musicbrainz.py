@@ -52,7 +52,7 @@ class MusicBrainzService:
             conn.execute("PRAGMA busy_timeout=5000")
             row = conn.execute(
                 "SELECT value FROM cache WHERE key = ? AND expires_at > ?",
-                (key, time.time())
+                (key, time.time()),
             ).fetchone()
             conn.close()
             if row:
@@ -71,7 +71,7 @@ class MusicBrainzService:
             now = time.time()
             conn.execute(
                 "INSERT OR REPLACE INTO cache (key, value, expires_at, created_at) VALUES (?, ?, ?, ?)",
-                (key, json.dumps(value, default=str), now + ttl_seconds, now)
+                (key, json.dumps(value, default=str), now + ttl_seconds, now),
             )
             conn.commit()
             conn.close()
@@ -104,9 +104,7 @@ class MusicBrainzService:
         """Remove expired entries from the cache."""
         try:
             conn = sqlite3.connect(MB_CACHE_DB, timeout=10)
-            cur = conn.execute(
-                "DELETE FROM cache WHERE expires_at < ?", (time.time(),)
-            )
+            cur = conn.execute("DELETE FROM cache WHERE expires_at < ?", (time.time(),))
             conn.commit()
             deleted = cur.rowcount
             conn.close()
