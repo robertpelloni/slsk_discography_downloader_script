@@ -2194,6 +2194,10 @@ class Orchestrator:
             waited += 1
         return "timeout"
 
+    # Alias for backwards compatibility
+    async def _download_sequential(self, user, files, target_dir, metadata):
+        return await self._download_from_user(user, files, metadata, target_dir)
+
     async def _finalize_album(self, target_dir):
         if target_dir not in self.album_tracker:
             return
