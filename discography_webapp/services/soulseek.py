@@ -326,7 +326,7 @@ class SoulseekService:
             try:
                 import bob_soulseek_rs
 
-                RUST_AVAILABLE = True
+                RUST_AVAILABLE = hasattr(bob_soulseek_rs, 'rust_download_async')
             except ImportError:
                 RUST_AVAILABLE = False
 
