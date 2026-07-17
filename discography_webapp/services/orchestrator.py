@@ -2186,10 +2186,30 @@ class Orchestrator:
         await self._finalize_album(target_dir)
 
     async def _wait_for_transfer(self, transfer, timeout=180):
+        from aioslsk.transfer.state import TransferState
+
         waited = 0
         while waited < timeout:
             if self.should_stop:
                 return "stopped"
+
+            # Check actual transfer state
+            try:
+                state_val = transfer.state.VALUE
+                if state_val == TransferState.COMPLETE:
+                    return "complete"
+                if state_val in (TransferState.FAILED, TransferState.ABORTED):
+                    return "failed"
+            except Exception:
+                pass
+
+            # Also check if complete_time was set
+            if getattr(transfer, 'complete_time', None):
+                state_val = getattr(transfer.state, 'VALUE', None)
+                if state_val == TransferState.COMPLETE:
+                    return "complete"
+                return "failed"
+
             await asyncio.sleep(1)
             waited += 1
         return "timeout"
