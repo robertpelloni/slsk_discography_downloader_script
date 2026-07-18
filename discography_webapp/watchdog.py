@@ -95,7 +95,7 @@ def find_pid_on_port(port: int) -> int | None:
         import subprocess
 
         cmd = ["netstat", "-ano"]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10, creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0)
         for line in result.stdout.splitlines():
             if f":{port}" in line and "LISTENING" in line:
                 parts = line.strip().split()
@@ -126,6 +126,7 @@ def kill_process(pid: int) -> bool:
                         ["taskkill", "/F", "/PID", str(pid)],
                         capture_output=True,
                         timeout=10,
+                        creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
                     )
                 else:
                     os.kill(pid, signal.SIGKILL)
@@ -136,6 +137,7 @@ def kill_process(pid: int) -> bool:
                 ["taskkill", "/F", "/PID", str(pid)],
                 capture_output=True,
                 timeout=10,
+                creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
             )
         return True
     except ProcessLookupError:
@@ -148,6 +150,7 @@ def kill_process(pid: int) -> bool:
                 ["wmic", "process", "where", f"ProcessId={pid}", "delete"],
                 capture_output=True,
                 timeout=10,
+                creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
             )
         except Exception:
             pass
@@ -208,7 +211,7 @@ def start_server() -> subprocess.Popen | None:
             stdout=subprocess.DEVNULL,
             stderr=crash_fh,
             env=env,
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW
             if sys.platform == "win32"
             else 0,
         )
