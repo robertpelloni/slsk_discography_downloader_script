@@ -2019,15 +2019,11 @@ class Orchestrator:
             elif num_files > 20:
                 score -= (num_files - 20) * 15
 
-            # Artist folder/filename match with aliases
-            artist_match = False
+            # Artist folder/filename match with aliases (bonus, not penalty)
             if artist_norms:
                 folder_norm = re.sub(r"[^a-z0-9]", "", data["folder"].lower())
-                if any(a_norm in folder_norm for a_norm in artist_norms):
-                    score += 100
-                    artist_match = True
-                else:
-                    # Also check individual filenames for artist name
+                artist_match = any(a_norm in folder_norm for a_norm in artist_norms)
+                if not artist_match:
                     for f in audio[:5]:
                         fname_norm = re.sub(
                             r"[^a-z0-9]", "", os.path.basename(f["filename"]).lower()
@@ -2035,8 +2031,8 @@ class Orchestrator:
                         if any(a_norm in fname_norm for a_norm in artist_norms):
                             artist_match = True
                             break
-                if not artist_match:
-                    score -= 500  # Very strong penalty for artist mismatch
+                if artist_match:
+                    score += 100  # Bonus for matching artist
 
             # Free slots bonus
             if any(f.get("slots") for f in audio):
@@ -2049,7 +2045,7 @@ class Orchestrator:
         scored.sort(key=lambda x: x["score"], reverse=True)
 
         # Filter out low-quality candidates (likely wrong artist/album)
-        min_candidate_score = 0
+        min_candidate_score = -50
         before_filter = len(scored)
         scored = [c for c in scored if c["score"] >= min_candidate_score]
         if len(scored) < before_filter:
@@ -2204,8 +2200,8 @@ class Orchestrator:
                 pass
 
             # Also check if complete_time was set
-            if getattr(transfer, 'complete_time', None):
-                state_val = getattr(transfer.state, 'VALUE', None)
+            if getattr(transfer, "complete_time", None):
+                state_val = getattr(transfer.state, "VALUE", None)
                 if state_val == TransferState.COMPLETE:
                     return "complete"
                 return "failed"
