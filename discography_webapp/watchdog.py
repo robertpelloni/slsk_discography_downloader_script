@@ -5,6 +5,9 @@ Watchdog for the Discography Downloader web server.
 Monitors the server process and port, restarts on crash or hang,
 and logs all activity to a dedicated log file.
 
+Uses psutil everywhere to avoid console window flashes from
+taskkill/netstat/wmic subprocess calls.
+
 Usage:
     python watchdog.py              # Run in foreground
     python watchdog.py --daemon     # Detach (notify user to background manually)
@@ -19,12 +22,18 @@ import subprocess
 import sys
 import time
 
+try:
+    import psutil
+except ImportError:
+    psutil = None
+
 # ─── Configuration ───────────────────────────────────────────────
 HOST = "127.0.0.1"
 PORT = 8000
 CHECK_INTERVAL = 15  # seconds between health checks
 STARTUP_GRACE = 10  # seconds to wait before first health check
 HTTP_TIMEOUT = 5  # seconds for HTTP health check
+MEMORY_LIMIT_MB = 500  # restart if server exceeds this RSS (aioslsk leak)
 
 PID_FILE = "server.pid"
 WATCHDOG_PID_FILE = "watchdog.pid"
@@ -64,97 +73,102 @@ logging.basicConfig(
 log = logging.getLogger("watchdog")
 
 
-# ─── Platform-aware helpers ──────────────────────────────────────
+# ─── psutil-based helpers (no console window flashes) ────────────
 
 
 def find_pid_on_port(port: int) -> int | None:
-    """Return the PID listening on *port*, or None."""
+    """Return the PID listening on *port*, or None. Uses psutil only."""
+    if psutil:
+        try:
+            for conn in psutil.net_connections(kind="inet"):
+                try:
+                    laddr = conn.laddr
+                    if (
+                        conn.status == "LISTEN"
+                        and hasattr(laddr, "port")
+                        and laddr.port == port
+                    ):
+                        pid = conn.pid
+                        if pid and psutil.pid_exists(pid):
+                            return pid
+                except (AttributeError, TypeError):
+                    continue
+        except Exception:
+            pass
+
+    # Fallback: socket check only (no subprocess calls)
+    import socket
+
     try:
-        import psutil
-
-        for conn in psutil.net_connections(kind="inet"):
-            try:
-                laddr = conn.laddr
-                # type ignore below: psutil laddr may be a tuple in older versions
-                if (
-                    conn.status == "LISTEN"
-                    and hasattr(laddr, "port")
-                    and laddr.port == port
-                ):  # type: ignore[union-attr]
-                    pid = conn.pid
-                    # Verify the process still exists
-                    if pid and psutil.pid_exists(pid):
-                        return pid
-            except (AttributeError, TypeError):
-                continue
-    except ImportError:
-        pass
-
-    # Fallback: netstat
-    try:
-        import subprocess
-
-        cmd = ["netstat", "-ano"]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10, creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0)
-        for line in result.stdout.splitlines():
-            if f":{port}" in line and "LISTENING" in line:
-                parts = line.strip().split()
-                if parts:
-                    pid_str = parts[-1]
-                    if pid_str.isdigit():
-                        return int(pid_str)
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(1)
+            if s.connect_ex((HOST, port)) != 0:
+                return None
     except Exception:
-        pass
-
+        return None
     return None
 
 
 def kill_process(pid: int) -> bool:
-    """Force-kill a process by PID. Returns True on success."""
-    try:
-        # Try graceful first
-        os.kill(pid, signal.SIGTERM)
-        time.sleep(2)
-
-        # Verify it's gone
+    """Force-kill a process by PID using psutil (no console window)."""
+    if not psutil:
+        # Last resort: os.kill
         try:
-            import psutil
+            os.kill(pid, signal.SIGTERM)
+            time.sleep(2)
+            try:
+                os.kill(pid, 0)
+                os.kill(pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            return True
+        except Exception:
+            return False
 
-            if psutil.pid_exists(pid):
-                if sys.platform == "win32":
-                    subprocess.run(
-                        ["taskkill", "/F", "/PID", str(pid)],
-                        capture_output=True,
-                        timeout=10,
-                        creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
-                    )
-                else:
-                    os.kill(pid, signal.SIGKILL)
-                time.sleep(1)
-        except ImportError:
-            # Fallback: taskkill
-            subprocess.run(
-                ["taskkill", "/F", "/PID", str(pid)],
-                capture_output=True,
-                timeout=10,
-                creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
-            )
+    try:
+        proc = psutil.Process(pid)
+        # Try graceful first
+        proc.terminate()
+        try:
+            proc.wait(timeout=3)
+            return True
+        except psutil.TimeoutExpired:
+            pass
+
+        # Force kill
+        proc.kill()
+        try:
+            proc.wait(timeout=3)
+            return True
+        except psutil.TimeoutExpired:
+            pass
+
+        # Still alive? Kill the whole tree
+        for child in proc.children(recursive=True):
+            try:
+                child.kill()
+            except psutil.NoSuchProcess:
+                pass
+        proc.kill()
         return True
-    except ProcessLookupError:
+
+    except psutil.NoSuchProcess:
         return True  # Already dead
+    except psutil.AccessDenied:
+        log.warning(f"Access denied killing PID {pid}, trying os.kill")
+        try:
+            os.kill(pid, signal.SIGKILL)
+            return True
+        except Exception:
+            return False
     except Exception as e:
         log.warning(f"Failed to kill PID {pid}: {e}")
-        # Last resort on Windows: wmic to force-terminate
+        # Last resort: os.kill with SIGTERM
         try:
-            subprocess.run(
-                ["wmic", "process", "where", f"ProcessId={pid}", "delete"],
-                capture_output=True,
-                timeout=10,
-                creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
-            )
+            os.kill(pid, signal.SIGTERM)
+            return True
         except Exception:
-            pass
-        return False
+            return False
 
 
 def is_http_alive(host: str, port: int, timeout: int = HTTP_TIMEOUT) -> bool:
@@ -169,6 +183,17 @@ def is_http_alive(host: str, port: int, timeout: int = HTTP_TIMEOUT) -> bool:
             return resp.status == 200
     except (urllib.error.URLError, ConnectionRefusedError, TimeoutError, OSError):
         return False
+
+
+def get_process_memory_mb(pid: int) -> float | None:
+    """Return RSS memory in MB for a process, or None if unavailable."""
+    if not psutil:
+        return None
+    try:
+        proc = psutil.Process(pid)
+        return proc.memory_info().rss / (1024 * 1024)
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+        return None
 
 
 CRASH_LOG = os.path.join(BASE_DIR, "server_crash.log")
@@ -187,13 +212,11 @@ def start_server() -> subprocess.Popen | None:
     python_exe = system_python
 
     if not os.path.isfile(python_exe):
-        # Fallback to venv Python
         python_exe = VENV_PYTHON
         log.warning(f"system python not found at {system_python}, using venv python")
 
     log.info(f"Starting server: {python_exe} {' '.join(UVICORN_ARGS)}")
 
-    # Build environment: inherit current + PYTHONPATH pointing to venv site-packages
     env = os.environ.copy()
     existing = env.get("PYTHONPATH", "")
     env["PYTHONPATH"] = venv_site + (";" + existing if existing else "")
@@ -205,20 +228,20 @@ def start_server() -> subprocess.Popen | None:
         )
         crash_fh.flush()
 
+        flags = 0
+        if sys.platform == "win32":
+            flags = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW
+
         proc = subprocess.Popen(
             [python_exe] + UVICORN_ARGS,
             cwd=BASE_DIR,
             stdout=subprocess.DEVNULL,
             stderr=crash_fh,
             env=env,
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW
-            if sys.platform == "win32"
-            else 0,
+            creationflags=flags,
         )
-        # Don't close the handle — keep it open for the process to write to
         log.info(f"Server started with PID {proc.pid}")
 
-        # Write PID file for external management
         pid_file = os.path.join(BASE_DIR, PID_FILE)
         try:
             with open(pid_file, "w") as f:
@@ -237,50 +260,53 @@ def start_server() -> subprocess.Popen | None:
 
 async def run_watchdog(daemon: bool = False):
     """Main watchdog loop."""
-    import os as _os
+    my_pid = os.getpid()
+    log.info(f"[PID {my_pid}] Entered run_watchdog")
 
-    log.info(
-        f"[PID {_os.getpid()} PPID {_os.getppid() if hasattr(_os, 'getppid') else 'N/A'}] Entered run_watchdog"
-    )
     server_proc: subprocess.Popen | None = None
     consecutive_failures = 0
     max_consecutive_failures = 5
-    backoff = 15  # seconds, doubles on rapid cycling
+    backoff = 15
     min_backoff = 15
-    max_backoff = 600  # 10 minutes
+    max_backoff = 600
     last_restart_time = 0.0
 
-    if daemon:
-        log.info("--- Watchdog started (daemon mode) ---")
-    else:
-        log.info("--- Watchdog started (foreground) ---")
-
+    log.info("--- Watchdog started ---")
     log.info(f"Target: http://{HOST}:{PORT}")
-    log.info(f"Check interval: {CHECK_INTERVAL}s | Startup grace: {STARTUP_GRACE}s")
+    log.info(f"Check interval: {CHECK_INTERVAL}s | Memory limit: {MEMORY_LIMIT_MB}MB")
 
     while True:
-        # ── Step 1: Is the process alive? ──
         pid = find_pid_on_port(PORT)
 
         if pid:
-            # ── Step 2: Is it responding? ──
+            # Check HTTP responsiveness
             alive = is_http_alive(HOST, PORT)
 
             if alive:
-                consecutive_failures = 0
-                await asyncio.sleep(CHECK_INTERVAL)
-                continue
+                # Also check memory (aioslsk leak detection)
+                mem_mb = get_process_memory_mb(pid)
+                if mem_mb and mem_mb > MEMORY_LIMIT_MB:
+                    log.warning(
+                        f"Server PID {pid} using {mem_mb:.0f}MB (limit {MEMORY_LIMIT_MB}MB). "
+                        f"Likely aioslsk leak — restarting preemptively."
+                    )
+                    kill_process(pid)
+                    server_proc = None
+                else:
+                    consecutive_failures = 0
+                    await asyncio.sleep(CHECK_INTERVAL)
+                    continue
 
-            # Port is bound but HTTP is dead — hang
-            log.warning(
-                f"Server PID {pid} is listening but not responding HTTP. Restarting..."
-            )
-            kill_process(pid)
-            server_proc = None
+            else:
+                log.warning(
+                    f"Server PID {pid} is listening but not responding HTTP. Restarting..."
+                )
+                kill_process(pid)
+                server_proc = None
         else:
             log.warning("No server process found on port 8000")
 
-        # ── Step 3: Restart ──
+        # Restart
         consecutive_failures += 1
         if consecutive_failures > max_consecutive_failures:
             log.error(
@@ -289,20 +315,16 @@ async def run_watchdog(daemon: bool = False):
             )
             break
 
-        # Exponential backoff if restarts are too frequent
         now = time.time()
         if last_restart_time > 0 and (now - last_restart_time) < 120:
             backoff = min(backoff * 2, max_backoff)
         else:
-            backoff = min_backoff  # Reset if it's been stable for a while
+            backoff = min_backoff
         last_restart_time = now
 
         if backoff > min_backoff:
-            log.warning(
-                f"Rapid cycling detected — backing off {backoff}s before restart"
-            )
+            log.warning(f"Rapid cycling — backing off {backoff}s before restart")
 
-        # Clean up any orphaned PIDs
         if server_proc and server_proc.returncode is None:
             try:
                 kill_process(server_proc.pid)
@@ -316,11 +338,8 @@ async def run_watchdog(daemon: bool = False):
             log.info(f"Waiting {STARTUP_GRACE}s for startup...")
             await asyncio.sleep(STARTUP_GRACE)
 
-            # Verify it actually started
             if not is_http_alive(HOST, PORT):
-                log.warning(
-                    "Server started but not responding yet — will retry on next cycle"
-                )
+                log.warning("Server started but not responding yet — will retry next cycle")
             else:
                 log.info("Server is healthy and responding")
                 consecutive_failures = 0
@@ -330,7 +349,6 @@ async def run_watchdog(daemon: bool = False):
 
         await asyncio.sleep(CHECK_INTERVAL)
 
-    # Cleanup on shutdown
     if server_proc and server_proc.returncode is None:
         try:
             kill_process(server_proc.pid)
@@ -344,50 +362,43 @@ async def run_watchdog(daemon: bool = False):
 
 
 def _lock_with_pid() -> bool:
-    """Atomically claim the watchdog lock via PID file + Windows mutex.
-    Returns True if we own the lock, False if another instance owns it."""
+    """Atomically claim the watchdog lock via PID file."""
     my_pid = os.getpid()
     wpid_file = os.path.join(BASE_DIR, WATCHDOG_PID_FILE)
-    log.info(f"[_lock_with_pid PID={my_pid}] Acquiring lock...")
 
-    # PID file check first
     try:
         if os.path.exists(wpid_file):
             with open(wpid_file) as f:
                 existing_pid = int(f.read().strip())
             try:
-                os.kill(existing_pid, 0)
-                log.warning(
-                    f"[_lock_with_pid PID={my_pid}] Another watchdog is running (PID {existing_pid}). Exiting."
-                )
-                return False
+                if psutil:
+                    if psutil.pid_exists(existing_pid):
+                        log.warning(f"Another watchdog running (PID {existing_pid}). Exiting.")
+                        return False
+                else:
+                    os.kill(existing_pid, 0)
+                    log.warning(f"Another watchdog running (PID {existing_pid}). Exiting.")
+                    return False
             except (OSError, ValueError):
-                log.info(
-                    f"[_lock_with_pid PID={my_pid}] Stale PID file ({existing_pid}), will overwrite."
-                )
+                log.info(f"Stale PID file ({existing_pid}), overwriting.")
 
         with open(wpid_file, "w") as f:
             f.write(str(my_pid))
-        log.info(f"[_lock_with_pid PID={my_pid}] Lock acquired.")
         return True
     except Exception as e:
-        log.warning(f"[_lock_with_pid PID={my_pid}] Lock error: {e}, proceeding anyway")
+        log.warning(f"Lock error: {e}, proceeding anyway")
         return True
 
 
 def main():
     parser = argparse.ArgumentParser(description="Discography Downloader Watchdog")
     parser.add_argument(
-        "--daemon",
-        action="store_true",
-        help="Start in daemon mode (background yourself)",
+        "--daemon", action="store_true", help="Start in daemon mode"
     )
     args = parser.parse_args()
 
-    # Make sure we're in the correct directory
     os.chdir(BASE_DIR)
 
-    # ── Single-instance lock ──
     if not _lock_with_pid():
         return
 
@@ -395,7 +406,6 @@ def main():
         asyncio.run(run_watchdog(daemon=args.daemon))
     except KeyboardInterrupt:
         log.info("Watchdog interrupted by user")
-        # Cleanup
         pid = find_pid_on_port(PORT)
         if pid:
             log.info(f"Shutting down server PID {pid}")
