@@ -393,6 +393,13 @@ class Orchestrator:
         self._failed_album_counts = {}  # Track per-album failures to avoid infinite retries
         self._pre_download_files = {}  # Snapshot of files before download attempt
         self._max_album_failures = 3  # Skip album after this many failures per session
+        # Persistent completed-albums tracker (survives restarts)
+        self._completed_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'completed_downloads.json')
+        self._persistent_completed = self._load_persistent_completed()
+        # Merge persistent into session completed
+        for entry in self._persistent_completed:
+            if not any(c['artist'] == entry['artist'] and c['album'] == entry['album'] for c in self.completed_albums):
+                self.completed_albums.append(entry)
         self.slsk_user = self.config_service.get("slsk_user", "")
         self.slsk_pass = self.config_service.get("slsk_pass", "")
         # ── Thread safety: limit concurrent to_thread() workers ──
@@ -416,6 +423,41 @@ class Orchestrator:
             except Exception as e:
                 self.logger.warning(f"Failed to load artist blacklist: {e}")
         return set()
+
+    def _load_persistent_completed(self) -> list:
+        """Load completed downloads from persistent JSON file."""
+        import json
+        try:
+            if os.path.exists(self._completed_file):
+                with open(self._completed_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                entries = data if isinstance(data, list) else data.get('completed', [])
+                self.logger.info(f"Loaded {len(entries)} completed albums from persistent tracker")
+                return entries
+        except Exception as e:
+            self.logger.warning(f"Failed to load completed tracker: {e}")
+        return []
+
+    def _save_persistent_completed(self):
+        """Save completed downloads to persistent JSON file."""
+        import json
+        try:
+            os.makedirs(os.path.dirname(self._completed_file), exist_ok=True)
+            with open(self._completed_file, 'w', encoding='utf-8') as f:
+                json.dump(self._persistent_completed, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            self.logger.warning(f"Failed to save completed tracker: {e}")
+
+    def _mark_album_completed(self, artist, album, year, path, status):
+        """Mark an album as completed in both session and persistent trackers."""
+        entry = {'artist': artist, 'album': album, 'year': year, 'path': path, 'status': status}
+        # Session tracker
+        if not any(c['artist'] == artist and c['album'] == album for c in self.completed_albums):
+            self.completed_albums.append(entry)
+        # Persistent tracker
+        if not any(c['artist'] == artist and c['album'] == album for c in self._persistent_completed):
+            self._persistent_completed.append(entry)
+            self._save_persistent_completed()
 
     async def _run_in_thread(
         self,
@@ -1670,12 +1712,8 @@ class Orchestrator:
                     "path": "",
                     "status": "Skipped",
                 }
-                if not any(
-                    c["artist"] == name and c["album"] == title
-                    for c in self.completed_albums
-                ):
-                    self.completed_albums.append(skip_entry)
-                    self.queue_service.add_completed(skip_entry)
+                self._mark_album_completed(name, title, year, "", "Skipped")
+                self.queue_service.add_completed(skip_entry)
                 continue
 
             # ── Check 2: Already on disk (and actually completed)
@@ -1693,15 +1731,11 @@ class Orchestrator:
                     self.logger.info(
                         f"                    ⊘ Skip {title} ({existing['count']} tracks on disk)"
                     )
-                    self.queue_service.add_completed(
-                        {
-                            "artist": name,
-                            "album": title,
-                            "year": year,
-                            "path": existing["dir"],
-                            "status": "Existing",
-                        }
-                    )
+                    self._mark_album_completed(name, title, year, existing["dir"], "Existing")
+                    self.queue_service.add_completed({
+                        "artist": name, "album": title, "year": year,
+                        "path": existing["dir"], "status": "Existing",
+                    })
                     continue
                 else:
                     # Directory in downloads/ but not completed - interrupted download, retry
@@ -1800,15 +1834,11 @@ class Orchestrator:
                         # Verify we actually got files before marking as success
                         if self._count_audio_files(target_dir) > 0:
                             success = True
-                            self.queue_service.add_completed(
-                                {
-                                    "artist": name,
-                                    "album": title,
-                                    "year": year,
-                                    "path": target_dir,
-                                    "status": "Downloaded",
-                                }
-                            )
+                            self._mark_album_completed(name, title, year, target_dir, "Downloaded")
+                            self.queue_service.add_completed({
+                                "artist": name, "album": title, "year": year,
+                                "path": target_dir, "status": "Downloaded",
+                            })
                             self.invalidate_cache()
                             # Flatten album files to downloads/ root (non-fatal)
                             try:
@@ -1925,7 +1955,7 @@ class Orchestrator:
         return any(
             c["artist"] == artist
             and c["album"] == album
-            and c["status"] in ("Downloaded", "Queued")
+            and c["status"] in ("Downloaded", "Queued", "Existing", "Skipped")
             for c in self.completed_albums
         )
 

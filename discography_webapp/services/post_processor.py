@@ -102,7 +102,23 @@ class PostProcessor:
                             }))
 
         if not matched:
-            self.logger.warning("No files could be matched to tracks. Leaving as-is.")
+            self.logger.warning("No files could be matched to tracks. Renaming with metadata.")
+            # Fallback: rename files using metadata even without track matching
+            artist = metadata.get('artist', 'Unknown')
+            album = metadata.get('album', 'Unknown')
+            year = metadata.get('year', '')
+            for i, f in enumerate(sorted(local_files), 1):
+                try:
+                    ext = os.path.splitext(f)[1]
+                    safe_artist = re.sub(r'[<>:"/\\|?*]', '', artist)
+                    safe_album = re.sub(r'[<>:"/\\|?*]', '', album)
+                    new_name = f"{safe_artist} - {year} - {safe_album} - {i:02d}{ext}"
+                    src = os.path.join(target_dir, f)
+                    dst = os.path.join(target_dir, new_name)
+                    if src != dst and not os.path.exists(dst):
+                        os.rename(src, dst)
+                except Exception as e:
+                    self.logger.warning(f"Fallback rename failed for {f}: {e}")
             return
 
         # 4. Rename and tag
