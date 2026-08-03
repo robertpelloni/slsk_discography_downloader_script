@@ -287,8 +287,8 @@ def is_filler_log_stale() -> bool:
         return True
 
 
-def start_filler():
-    """Start a filler worker via the server API."""
+def start_filler() -> bool:
+    """Start a filler worker via the server API. Returns True on success or already running."""
     import urllib.request
     import json
 
@@ -302,8 +302,20 @@ def start_filler():
         with urllib.request.urlopen(req, timeout=30) as resp:
             result = json.loads(resp.read().decode())
             log.info(f"Filler started: {result.get('message', 'ok')}")
+            return True
+    except urllib.error.HTTPError as e:
+        if e.code == 429:
+            log.info("Filler API on cooldown. Will retry next check.")
+            return True  # Treat as success — filler will start when cooldown expires
+        elif e.code == 400:
+            log.info("Filler already running (API returned 400).")
+            return True
+        else:
+            log.warning(f"Failed to start filler: {e}")
+            return False
     except Exception as e:
         log.warning(f"Failed to start filler: {e}")
+        return False
 
 
 async def run_watchdog(daemon: bool = False):
@@ -367,15 +379,14 @@ async def run_watchdog(daemon: bool = False):
                                 filler_consecutive_failures = 0
                         else:
                             # No filler running — start one (if server is up)
-                            log.info("No filler process found. Starting filler...")
+                            if filler_consecutive_failures == 0:
+                                log.info("No filler process found. Starting filler...")
+                            elif filler_consecutive_failures < 3:
+                                log.info(f"Filler not found (attempt {filler_consecutive_failures + 1}). Restarting...")
                             start_filler()
                             filler_consecutive_failures += 1
                             if filler_consecutive_failures >= max_filler_consecutive_failures:
-                                log.warning(
-                                    f"Filler crashed {filler_consecutive_failures} times in a row. "
-                                    f"Will keep retrying."
-                                )
-                                filler_consecutive_failures = 0  # Reset to keep retrying
+                                filler_consecutive_failures = 0  # Reset to keep retrying quietly
 
                     await asyncio.sleep(CHECK_INTERVAL)
                     continue
