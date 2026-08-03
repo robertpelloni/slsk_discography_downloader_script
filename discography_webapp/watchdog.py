@@ -258,6 +258,54 @@ def start_server() -> subprocess.Popen | None:
 # ─── Watchdog Core ───────────────────────────────────────────────
 
 
+FILLER_LOG = os.path.join(BASE_DIR, "filler_output.log")
+FILLER_STALE_SECONDS = 900  # 15 min with no log write = stuck
+FILLER_CHECK_INTERVAL = 60  # check filler every 60s
+
+
+def find_filler_process() -> int | None:
+    """Return PID of a running filler_worker.py, or None."""
+    if psutil:
+        try:
+            for proc in psutil.process_iter(["pid", "name", "cmdline"]):
+                try:
+                    cmdline = " ".join(proc.info["cmdline"] or [])
+                    if "filler_worker" in cmdline and proc.info["name"] == "pythonw.exe":
+                        return proc.info["pid"]
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+        except Exception:
+            pass
+    return None
+
+
+def is_filler_log_stale() -> bool:
+    """Check if the filler log hasn't been updated in too long."""
+    try:
+        return time.time() - os.path.getmtime(FILLER_LOG) > FILLER_STALE_SECONDS
+    except FileNotFoundError:
+        return True
+
+
+def start_filler():
+    """Start a filler worker via the server API."""
+    import urllib.request
+    import json
+
+    try:
+        req = urllib.request.Request(
+            f"http://{HOST}:{PORT}/api/autonomous_fill",
+            data=json.dumps({"artist_names": ["1200 Micrograms"], "depth": 1, "dry_run": False}).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            result = json.loads(resp.read().decode())
+            log.info(f"Filler started: {result.get('message', 'ok')}")
+    except Exception as e:
+        log.warning(f"Failed to start filler: {e}")
+
+
 async def run_watchdog(daemon: bool = False):
     """Main watchdog loop."""
     my_pid = os.getpid()
@@ -270,12 +318,17 @@ async def run_watchdog(daemon: bool = False):
     min_backoff = 15
     max_backoff = 600
     last_restart_time = 0.0
+    last_filler_check = 0.0
+    filler_consecutive_failures = 0
+    max_filler_consecutive_failures = 3
 
     log.info("--- Watchdog started ---")
     log.info(f"Target: http://{HOST}:{PORT}")
     log.info(f"Check interval: {CHECK_INTERVAL}s | Memory limit: {MEMORY_LIMIT_MB}MB")
+    log.info(f"Filler check interval: {FILLER_CHECK_INTERVAL}s | Stale threshold: {FILLER_STALE_SECONDS}s")
 
     while True:
+        now = time.time()
         pid = find_pid_on_port(PORT)
 
         if pid:
@@ -294,6 +347,36 @@ async def run_watchdog(daemon: bool = False):
                     server_proc = None
                 else:
                     consecutive_failures = 0
+
+                    # ── Filler health check (only when server is healthy) ──
+                    if now - last_filler_check >= FILLER_CHECK_INTERVAL:
+                        last_filler_check = now
+                        filler_pid = find_filler_process()
+                        if filler_pid:
+                            # Filler is running — check if stuck
+                            if is_filler_log_stale():
+                                log.warning(
+                                    f"Filler PID {filler_pid} stuck (no log update in {FILLER_STALE_SECONDS}s). "
+                                    f"Killing and restarting."
+                                )
+                                kill_process(filler_pid)
+                                await asyncio.sleep(5)
+                                start_filler()
+                                filler_consecutive_failures = 0
+                            else:
+                                filler_consecutive_failures = 0
+                        else:
+                            # No filler running — start one (if server is up)
+                            log.info("No filler process found. Starting filler...")
+                            start_filler()
+                            filler_consecutive_failures += 1
+                            if filler_consecutive_failures >= max_filler_consecutive_failures:
+                                log.warning(
+                                    f"Filler crashed {filler_consecutive_failures} times in a row. "
+                                    f"Will keep retrying."
+                                )
+                                filler_consecutive_failures = 0  # Reset to keep retrying
+
                     await asyncio.sleep(CHECK_INTERVAL)
                     continue
 
@@ -339,7 +422,9 @@ async def run_watchdog(daemon: bool = False):
             await asyncio.sleep(STARTUP_GRACE)
 
             if not is_http_alive(HOST, PORT):
-                log.warning("Server started but not responding yet — will retry next cycle")
+                log.warning(
+                    "Server started but not responding yet — will retry next cycle"
+                )
             else:
                 log.info("Server is healthy and responding")
                 consecutive_failures = 0
@@ -373,11 +458,15 @@ def _lock_with_pid() -> bool:
             try:
                 if psutil:
                     if psutil.pid_exists(existing_pid):
-                        log.warning(f"Another watchdog running (PID {existing_pid}). Exiting.")
+                        log.warning(
+                            f"Another watchdog running (PID {existing_pid}). Exiting."
+                        )
                         return False
                 else:
                     os.kill(existing_pid, 0)
-                    log.warning(f"Another watchdog running (PID {existing_pid}). Exiting.")
+                    log.warning(
+                        f"Another watchdog running (PID {existing_pid}). Exiting."
+                    )
                     return False
             except (OSError, ValueError):
                 log.info(f"Stale PID file ({existing_pid}), overwriting.")
@@ -392,9 +481,7 @@ def _lock_with_pid() -> bool:
 
 def main():
     parser = argparse.ArgumentParser(description="Discography Downloader Watchdog")
-    parser.add_argument(
-        "--daemon", action="store_true", help="Start in daemon mode"
-    )
+    parser.add_argument("--daemon", action="store_true", help="Start in daemon mode")
     args = parser.parse_args()
 
     os.chdir(BASE_DIR)
