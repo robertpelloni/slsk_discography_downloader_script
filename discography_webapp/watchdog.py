@@ -270,7 +270,10 @@ def find_filler_process() -> int | None:
             for proc in psutil.process_iter(["pid", "name", "cmdline"]):
                 try:
                     cmdline = " ".join(proc.info["cmdline"] or [])
-                    if "filler_worker" in cmdline and proc.info["name"] == "pythonw.exe":
+                    if (
+                        "filler_worker" in cmdline
+                        and proc.info["name"] == "pythonw.exe"
+                    ):
                         return proc.info["pid"]
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     continue
@@ -287,21 +290,44 @@ def is_filler_log_stale() -> bool:
         return True
 
 
+def load_artist_list() -> list[str]:
+    """Load artist names from the managed_artists database table."""
+    try:
+        import sqlite3
+        db_path = os.path.join(BASE_DIR, "data", "app.db")
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM managed_artists WHERE user_id=1 ORDER BY name")
+        artists = [row[0] for row in cursor.fetchall()]
+        conn.close()
+        return artists
+    except Exception as e:
+        log.warning(f"Failed to load artist list from DB: {e}")
+        return []
+
+
 def start_filler() -> bool:
     """Start a filler worker via the server API. Returns True on success or already running."""
     import urllib.request
     import json
 
+    artists = load_artist_list()
+    if not artists:
+        log.warning("No artists found in database. Cannot start filler.")
+        return False
+
     try:
         req = urllib.request.Request(
             f"http://{HOST}:{PORT}/api/autonomous_fill",
-            data=json.dumps({"artist_names": ["1200 Micrograms"], "depth": 1, "dry_run": False}).encode(),
+            data=json.dumps(
+                {"artist_names": artists, "depth": 1, "dry_run": False}
+            ).encode(),
             headers={"Content-Type": "application/json"},
             method="POST",
         )
         with urllib.request.urlopen(req, timeout=30) as resp:
             result = json.loads(resp.read().decode())
-            log.info(f"Filler started: {result.get('message', 'ok')}")
+            log.info(f"Filler started: {result.get('message', 'ok')} ({len(artists)} artists)")
             return True
     except urllib.error.HTTPError as e:
         if e.code == 429:
@@ -337,7 +363,9 @@ async def run_watchdog(daemon: bool = False):
     log.info("--- Watchdog started ---")
     log.info(f"Target: http://{HOST}:{PORT}")
     log.info(f"Check interval: {CHECK_INTERVAL}s | Memory limit: {MEMORY_LIMIT_MB}MB")
-    log.info(f"Filler check interval: {FILLER_CHECK_INTERVAL}s | Stale threshold: {FILLER_STALE_SECONDS}s")
+    log.info(
+        f"Filler check interval: {FILLER_CHECK_INTERVAL}s | Stale threshold: {FILLER_STALE_SECONDS}s"
+    )
 
     while True:
         now = time.time()
@@ -382,11 +410,18 @@ async def run_watchdog(daemon: bool = False):
                             if filler_consecutive_failures == 0:
                                 log.info("No filler process found. Starting filler...")
                             elif filler_consecutive_failures < 3:
-                                log.info(f"Filler not found (attempt {filler_consecutive_failures + 1}). Restarting...")
+                                log.info(
+                                    f"Filler not found (attempt {filler_consecutive_failures + 1}). Restarting..."
+                                )
                             start_filler()
                             filler_consecutive_failures += 1
-                            if filler_consecutive_failures >= max_filler_consecutive_failures:
-                                filler_consecutive_failures = 0  # Reset to keep retrying quietly
+                            if (
+                                filler_consecutive_failures
+                                >= max_filler_consecutive_failures
+                            ):
+                                filler_consecutive_failures = (
+                                    0  # Reset to keep retrying quietly
+                                )
 
                     await asyncio.sleep(CHECK_INTERVAL)
                     continue
