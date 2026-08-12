@@ -294,6 +294,7 @@ def load_artist_list() -> list[str]:
     """Load artist names from the managed_artists database table."""
     try:
         import sqlite3
+
         db_path = os.path.join(BASE_DIR, "data", "app.db")
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
@@ -327,7 +328,9 @@ def start_filler() -> bool:
         )
         with urllib.request.urlopen(req, timeout=30) as resp:
             result = json.loads(resp.read().decode())
-            log.info(f"Filler started: {result.get('message', 'ok')} ({len(artists)} artists)")
+            log.info(
+                f"Filler started: {result.get('message', 'ok')} ({len(artists)} artists)"
+            )
             return True
     except urllib.error.HTTPError as e:
         if e.code == 429:

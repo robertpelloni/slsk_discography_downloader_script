@@ -26,7 +26,7 @@ class PostProcessor:
 
     def _get_acoustid(self):
         if not self.acoustid_service:
-            api_key = self.config_service.get('acoustid_api_key', '')
+            api_key = self.config_service.get("acoustid_api_key", "")
             self.acoustid_service = AcoustidService(api_key, self.logger)
         return self.acoustid_service
 
@@ -38,27 +38,31 @@ class PostProcessor:
         self.logger.info(f"Post-processing: {os.path.basename(target_dir)}")
 
         # 1. Fetch release metadata from MusicBrainz
-        rg_id = metadata.get('mb_release_group_id')
+        rg_id = metadata.get("mb_release_group_id")
         if not rg_id:
             self.logger.warning("No release group ID, skipping tagging.")
             return
 
-        release = await asyncio.to_thread(self.mb_service.get_best_release_with_tracks, rg_id)
+        release = await asyncio.to_thread(
+            self.mb_service.get_best_release_with_tracks, rg_id
+        )
         if not release:
             self.logger.warning("Could not fetch release metadata. Skipping tagging.")
             return
 
         # Build track list
         tracks = []
-        for medium in release.get('medium-list', []):
-            for track in medium.get('track-list', []):
-                rec = track.get('recording', {})
-                tracks.append({
-                    'number': track.get('number', '0'),
-                    'title': rec.get('title', 'Unknown'),
-                    'length': int(rec.get('length', 0) or 0),
-                    'recording_id': rec.get('id'),
-                })
+        for medium in release.get("medium-list", []):
+            for track in medium.get("track-list", []):
+                rec = track.get("recording", {})
+                tracks.append(
+                    {
+                        "number": track.get("number", "0"),
+                        "title": rec.get("title", "Unknown"),
+                        "length": int(rec.get("length", 0) or 0),
+                        "recording_id": rec.get("id"),
+                    }
+                )
 
         if not tracks:
             self.logger.warning("No tracks found in release metadata.")
@@ -66,8 +70,9 @@ class PostProcessor:
 
         # 2. List local audio files
         local_files = [
-            f for f in os.listdir(target_dir)
-            if f.lower().endswith(('.mp3', '.flac', '.m4a'))
+            f
+            for f in os.listdir(target_dir)
+            if f.lower().endswith((".mp3", ".flac", ".m4a"))
             and os.path.getsize(os.path.join(target_dir, f)) > 100 * 1024
         ]
 
@@ -79,39 +84,61 @@ class PostProcessor:
         matched = self._match_files_to_tracks(local_files, tracks, target_dir)
 
         # 3b. Try AcoustID for unmatched files if enabled
-        if self.config_service.get('acoustid_enabled', False):
+        if self.config_service.get("acoustid_enabled", False):
             matched_files = {m[0] for m in matched}
             unmatched = [f for f in local_files if f not in matched_files]
             if unmatched:
-                self.logger.info(f"Attempting AcoustID identification for {len(unmatched)} unmatched files...")
+                self.logger.info(
+                    f"Attempting AcoustID identification for {len(unmatched)} unmatched files..."
+                )
                 for f in unmatched:
-                    ac_match = await self._get_acoustid().identify_file(os.path.join(target_dir, f))
+                    ac_match = await self._get_acoustid().identify_file(
+                        os.path.join(target_dir, f)
+                    )
                     if ac_match:
                         # Try to find this AcoustID recording ID in our MB track list
-                        mb_track = next((t for t in tracks if t.get('recording_id') == ac_match['recording_id']), None)
+                        mb_track = next(
+                            (
+                                t
+                                for t in tracks
+                                if t.get("recording_id") == ac_match["recording_id"]
+                            ),
+                            None,
+                        )
                         if mb_track:
-                            self.logger.info(f"AcoustID matched {f} to MB track: {mb_track['title']}")
+                            self.logger.info(
+                                f"AcoustID matched {f} to MB track: {mb_track['title']}"
+                            )
                             matched.append((f, mb_track))
-                        elif self.config_service.get('acoustid_verify', False) == False:
+                        elif self.config_service.get("acoustid_verify", False) == False:
                             # If not strict, use AcoustID metadata even if not in this specific release
-                            self.logger.info(f"AcoustID identified {f} as {ac_match['title']} (not in current MB release)")
-                            matched.append((f, {
-                                'number': '0',
-                                'title': ac_match['title'],
-                                'recording_id': ac_match['recording_id']
-                            }))
+                            self.logger.info(
+                                f"AcoustID identified {f} as {ac_match['title']} (not in current MB release)"
+                            )
+                            matched.append(
+                                (
+                                    f,
+                                    {
+                                        "number": "0",
+                                        "title": ac_match["title"],
+                                        "recording_id": ac_match["recording_id"],
+                                    },
+                                )
+                            )
 
         if not matched:
-            self.logger.warning("No files could be matched to tracks. Renaming with metadata.")
+            self.logger.warning(
+                "No files could be matched to tracks. Renaming with metadata."
+            )
             # Fallback: rename files using metadata even without track matching
-            artist = metadata.get('artist', 'Unknown')
-            album = metadata.get('album', 'Unknown')
-            year = metadata.get('year', '')
+            artist = metadata.get("artist", "Unknown")
+            album = metadata.get("album", "Unknown")
+            year = metadata.get("year", "")
             for i, f in enumerate(sorted(local_files), 1):
                 try:
                     ext = os.path.splitext(f)[1]
-                    safe_artist = re.sub(r'[<>:"/\\|?*]', '', artist)
-                    safe_album = re.sub(r'[<>:"/\\|?*]', '', album)
+                    safe_artist = re.sub(r'[<>:"/\\|?*]', "", artist)
+                    safe_album = re.sub(r'[<>:"/\\|?*]', "", album)
                     new_name = f"{safe_artist} - {year} - {safe_album} - {i:02d}{ext}"
                     src = os.path.join(target_dir, f)
                     dst = os.path.join(target_dir, new_name)
@@ -127,46 +154,54 @@ class PostProcessor:
 
         for filename, track in matched:
             try:
-                await self._process_file(target_dir, filename, track, metadata, cover_path if has_cover else None)
+                await self._process_file(
+                    target_dir,
+                    filename,
+                    track,
+                    metadata,
+                    cover_path if has_cover else None,
+                )
             except Exception as e:
                 if "Fake FLAC" in str(e):
                     raise e
                 self.logger.error(f"Error processing {filename}: {e}")
 
-        self.logger.info(f"Tagged {len(matched)} files in {os.path.basename(target_dir)}")
+        self.logger.info(
+            f"Tagged {len(matched)} files in {os.path.basename(target_dir)}"
+        )
 
     def _flatten_to_root(self, target_dir):
         """Move processed files from album subdirectory to the flat downloads/ root.
-        
+
         After files are renamed to 'Artist - Year - Album - XX - Title.ext',
         move them up to downloads/ and clean up the empty subdirectories.
         """
-        
+
         # downloads/ root is 2 levels up from downloads/Artist/Album/
         # or 1 level up from downloads/Artist/Unsorted/
-        parts = target_dir.replace('\\', '/').split('/')
+        parts = target_dir.replace("\\", "/").split("/")
         if len(parts) >= 3:
             # downloads/Artist/Album -> downloads/
-            root = '/'.join(parts[:-2])
+            root = "/".join(parts[:-2])
         elif len(parts) == 2:
             # downloads/Album -> downloads/
             root = parts[0]
         else:
             return
-        
+
         if not os.path.isdir(root):
             os.makedirs(root, exist_ok=True)
-        
+
         moved = 0
         for f in os.listdir(target_dir):
             fp = os.path.join(target_dir, f)
             if not os.path.isfile(fp):
                 continue
             # Skip cover art and metadata files
-            if f.lower() in ('folder.jpg', '.organized'):
+            if f.lower() in ("folder.jpg", ".organized"):
                 continue
             ext = os.path.splitext(f)[1].lower()
-            if ext not in ('.mp3', '.flac', '.m4a', '.ogg', '.wav'):
+            if ext not in (".mp3", ".flac", ".m4a", ".ogg", ".wav"):
                 continue
             dest = os.path.join(root, f)
             # Handle name collisions by appending (1), (2), etc.
@@ -181,21 +216,21 @@ class PostProcessor:
                 moved += 1
             except Exception as e:
                 self.logger.warning(f"Failed to move {f} to root: {e}")
-        
+
         # Move cover art if it exists
-        cover_src = os.path.join(target_dir, 'folder.jpg')
+        cover_src = os.path.join(target_dir, "folder.jpg")
         if os.path.exists(cover_src):
             # Place cover in artist subdir if it exists, otherwise skip
             if len(parts) >= 3:
-                artist_dir = '/'.join(parts[:-1])
+                artist_dir = "/".join(parts[:-1])
                 if os.path.isdir(artist_dir):
-                    cover_dest = os.path.join(artist_dir, 'folder.jpg')
+                    cover_dest = os.path.join(artist_dir, "folder.jpg")
                     if not os.path.exists(cover_dest):
                         try:
                             shutil.move(cover_src, cover_dest)
                         except Exception:
                             pass
-        
+
         # Clean up empty directories
         try:
             remaining = os.listdir(target_dir)
@@ -204,7 +239,7 @@ class PostProcessor:
                 self.logger.info(f"Removed empty album dir: {target_dir}")
                 # Also try to remove empty artist dir
                 if len(parts) >= 3:
-                    artist_dir = '/'.join(parts[:-1])
+                    artist_dir = "/".join(parts[:-1])
                     try:
                         if not os.listdir(artist_dir):
                             os.rmdir(artist_dir)
@@ -215,16 +250,16 @@ class PostProcessor:
                 self.logger.info(f"Album dir not empty, keeping: {target_dir}")
         except Exception as e:
             self.logger.warning(f"Cleanup error for {target_dir}: {e}")
-        
+
         if moved > 0:
             self.logger.info(f"Flattened {moved} files to {root}/")
-    
+
     def flatten_album(self, target_dir):
         """Move processed files from album subdirectory to the flat downloads/ root.
         Called by the orchestrator AFTER the success check, so files are
         still in target_dir for the audio count verification.
         """
-        if self.config_service.get('flat_file_structure', True):
+        if self.config_service.get("flat_file_structure", True):
             self._flatten_to_root(target_dir)
 
     def _match_files_to_tracks(self, local_files, tracks, target_dir):
@@ -235,16 +270,16 @@ class PostProcessor:
             best_match = None
             best_ratio = 0
 
-            name_clean = f.lower().replace('-', ' ').replace('_', ' ')
+            name_clean = f.lower().replace("-", " ").replace("_", " ")
 
             for t in tracks:
-                title_clean = t['title'].lower()
+                title_clean = t["title"].lower()
                 ratio = difflib.SequenceMatcher(None, name_clean, title_clean).ratio()
 
                 # Boost if track number appears in filename
                 try:
-                    num = re.escape(str(t['number']))
-                    if re.search(r'\b0?' + num + r'\b', f):
+                    num = re.escape(str(t["number"]))
+                    if re.search(r"\b0?" + num + r"\b", f):
                         ratio += 0.3
                 except Exception:
                     pass
@@ -267,16 +302,22 @@ class PostProcessor:
         ext = os.path.splitext(filename)[1]
 
         # Build new filename
-        track_num_raw = str(track.get('number', '0'))
-        num_match = re.search(r'\d+', track_num_raw)
+        track_num_raw = str(track.get("number", "0"))
+        num_match = re.search(r"\d+", track_num_raw)
         num = num_match.group(0).zfill(2) if num_match else "00"
-        safe_title = self._sanitize(track.get('title', 'Unknown'))
-        safe_artist = self._sanitize(metadata.get('artist', 'Unknown Artist'))
-        safe_album = self._sanitize(metadata.get('album', 'Unknown Album'))
-        year = metadata.get('year', '')
-        if self.config_service.get('flat_file_structure', True) and year and year not in ('Unknown', ''):
+        safe_title = self._sanitize(track.get("title", "Unknown"))
+        safe_artist = self._sanitize(metadata.get("artist", "Unknown Artist"))
+        safe_album = self._sanitize(metadata.get("album", "Unknown Album"))
+        year = metadata.get("year", "")
+        if (
+            self.config_service.get("flat_file_structure", True)
+            and year
+            and year not in ("Unknown", "")
+        ):
             # Flat: Artist - Year - Album - XX - Title.ext
-            new_name = f"{safe_artist} - {year} - {safe_album} - {num} - {safe_title}{ext}"
+            new_name = (
+                f"{safe_artist} - {year} - {safe_album} - {num} - {safe_title}{ext}"
+            )
         else:
             # Simple: XX - Title.ext
             new_name = f"{num} - {safe_title}{ext}"
@@ -290,7 +331,10 @@ class PostProcessor:
                 new_path = old_path
 
         # Optional: verify lossless integrity
-        if self.config_service.get('sentinel_enabled', False) and ext in ('.flac', '.wav'):
+        if self.config_service.get("sentinel_enabled", False) and ext in (
+            ".flac",
+            ".wav",
+        ):
             if not await self._verify_lossless(new_path):
                 self.logger.warning(f"Fake FLAC detected, removing: {filename}")
                 try:
@@ -301,23 +345,26 @@ class PostProcessor:
 
         # Fetch lyrics if enabled
         lyrics = None
-        if self.config_service.get('embed_lyrics', False):
+        if self.config_service.get("embed_lyrics", False):
             lyrics = await asyncio.to_thread(
-                self._fetch_lyrics, metadata.get('artist'), track.get('title')
+                self._fetch_lyrics, metadata.get("artist"), track.get("title")
             )
 
         # Tag the file
         tags = {
-            'artist': metadata.get('artist', 'Unknown Artist'),
-            'album': metadata.get('album', 'Unknown Album'),
-            'title': track.get('title', 'Unknown Title'),
-            'tracknumber': track_num_raw,
-            'year': metadata.get('year', 'Unknown'),
+            "artist": metadata.get("artist", "Unknown Artist"),
+            "album": metadata.get("album", "Unknown Album"),
+            "title": track.get("title", "Unknown Title"),
+            "tracknumber": track_num_raw,
+            "year": metadata.get("year", "Unknown"),
         }
         self.tag_file(new_path, tags, cover_path, lyrics)
 
         # Optional: convert FLAC → MP3
-        if self.config_service.get('convert_to_mp3', False) and ext in ('.flac', '.wav'):
+        if self.config_service.get("convert_to_mp3", False) and ext in (
+            ".flac",
+            ".wav",
+        ):
             mp3_path = await self._convert_to_mp3(new_path, target_dir, metadata)
             if mp3_path:
                 self.tag_file(mp3_path, tags, cover_path, lyrics)
@@ -331,17 +378,22 @@ class PostProcessor:
             self.logger.info(f"Sentinel: checking {os.path.basename(file_path)}")
 
             cmd = [
-                'ffmpeg', '-i', file_path,
-                '-af', 'highpass=f=18000,volumedetect',
-                '-f', 'null', os.devnull
+                "ffmpeg",
+                "-i",
+                file_path,
+                "-af",
+                "highpass=f=18000,volumedetect",
+                "-f",
+                "null",
+                os.devnull,
             ]
             proc = await asyncio.to_thread(
                 subprocess.run, cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
-            output = proc.stderr.decode('utf-8', errors='ignore')
+            output = proc.stderr.decode("utf-8", errors="ignore")
 
             # Parse max_volume from ffmpeg output
-            match = re.search(r'max_volume:\s*([-\d.]+)\s*dB', output)
+            match = re.search(r"max_volume:\s*([-\d.]+)\s*dB", output)
             if match:
                 max_vol = float(match.group(1))
                 if max_vol < -55.0:
@@ -364,11 +416,11 @@ class PostProcessor:
         try:
             ext = os.path.splitext(filepath)[1].lower()
 
-            if ext == '.mp3':
+            if ext == ".mp3":
                 self._tag_mp3(filepath, tags, cover_path, lyrics)
-            elif ext == '.flac':
+            elif ext == ".flac":
                 self._tag_flac(filepath, tags, cover_path, lyrics)
-            elif ext == '.m4a':
+            elif ext == ".m4a":
                 self._tag_m4a(filepath, tags, cover_path, lyrics)
         except Exception as e:
             self.logger.error(f"Tag error on {os.path.basename(filepath)}: {e}")
@@ -380,68 +432,80 @@ class PostProcessor:
             audio = mutagen.File(filepath, easy=True)
             audio.add_tags()
 
-        audio['artist'] = tags['artist']
-        audio['album'] = tags['album']
-        audio['title'] = tags.get('title', '')
-        audio['tracknumber'] = tags.get('tracknumber', '')
-        if tags.get('year') not in (None, 'Unknown', ''):
-            audio['date'] = tags['year']
+        audio["artist"] = tags["artist"]
+        audio["album"] = tags["album"]
+        audio["title"] = tags.get("title", "")
+        audio["tracknumber"] = tags.get("tracknumber", "")
+        if tags.get("year") not in (None, "Unknown", ""):
+            audio["date"] = tags["year"]
         audio.save()
 
         audio_full = MP3(filepath, ID3=mutagen.id3.ID3)
         if cover_path and os.path.exists(cover_path):
-            with open(cover_path, 'rb') as f:
-                audio_full.tags.add(APIC(encoding=3, mime='image/jpeg', type=3, desc='Cover', data=f.read()))
+            with open(cover_path, "rb") as f:
+                audio_full.tags.add(
+                    APIC(
+                        encoding=3,
+                        mime="image/jpeg",
+                        type=3,
+                        desc="Cover",
+                        data=f.read(),
+                    )
+                )
         if lyrics:
-            audio_full.tags.add(USLT(encoding=3, lang='eng', desc='', text=lyrics))
+            audio_full.tags.add(USLT(encoding=3, lang="eng", desc="", text=lyrics))
         audio_full.save()
 
     def _tag_flac(self, filepath, tags, cover_path, lyrics):
         audio = FLAC(filepath)
-        audio['artist'] = tags['artist']
-        audio['album'] = tags['album']
-        audio['title'] = tags.get('title', '')
-        audio['tracknumber'] = tags.get('tracknumber', '')
-        if tags.get('year') not in (None, 'Unknown', ''):
-            audio['date'] = tags['year']
+        audio["artist"] = tags["artist"]
+        audio["album"] = tags["album"]
+        audio["title"] = tags.get("title", "")
+        audio["tracknumber"] = tags.get("tracknumber", "")
+        if tags.get("year") not in (None, "Unknown", ""):
+            audio["date"] = tags["year"]
         if lyrics:
-            audio['LYRICS'] = lyrics
+            audio["LYRICS"] = lyrics
         if cover_path and os.path.exists(cover_path):
             # Remove existing cover art first
             audio.clear_pictures()
             img = Picture()
             img.type = 3
-            img.mime = 'image/jpeg'
-            with open(cover_path, 'rb') as f:
+            img.mime = "image/jpeg"
+            with open(cover_path, "rb") as f:
                 img.data = f.read()
             audio.add_picture(img)
         audio.save()
 
     def _tag_m4a(self, filepath, tags, cover_path, lyrics):
         audio = MP4(filepath)
-        audio['\xa9ART'] = tags['artist']
-        audio['\xa9alb'] = tags['album']
-        audio['\xa9nam'] = tags.get('title', '')
+        audio["\xa9ART"] = tags["artist"]
+        audio["\xa9alb"] = tags["album"]
+        audio["\xa9nam"] = tags.get("title", "")
         try:
-            num = int(re.search(r'\d+', str(tags.get('tracknumber', '0'))).group())
-            audio['trkn'] = [(num, 0)]
+            num = int(re.search(r"\d+", str(tags.get("tracknumber", "0"))).group())
+            audio["trkn"] = [(num, 0)]
         except (ValueError, AttributeError):
             pass
-        if tags.get('year') not in (None, 'Unknown', ''):
-            audio['\xa9day'] = tags['year']
+        if tags.get("year") not in (None, "Unknown", ""):
+            audio["\xa9day"] = tags["year"]
         if lyrics:
-            audio['\xa9lyr'] = lyrics
+            audio["\xa9lyr"] = lyrics
         if cover_path and os.path.exists(cover_path):
-            with open(cover_path, 'rb') as f:
-                audio['covr'] = [MP4Cover(f.read(), imageformat=MP4Cover.FORMAT_JPEG)]
+            with open(cover_path, "rb") as f:
+                audio["covr"] = [MP4Cover(f.read(), imageformat=MP4Cover.FORMAT_JPEG)]
         audio.save()
 
     # ─── MP3 Conversion ───────────────────────────────────────────
 
     async def _convert_to_mp3(self, source_path, target_dir, metadata):
         try:
-            parts = target_dir.replace('\\', '/').split('/')
-            artist_album = os.path.join(*parts[-2:]) if len(parts) >= 2 else os.path.basename(target_dir)
+            parts = target_dir.replace("\\", "/").split("/")
+            artist_album = (
+                os.path.join(*parts[-2:])
+                if len(parts) >= 2
+                else os.path.basename(target_dir)
+            )
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             mp3_dir = os.path.join(base_dir, "converted_mp3s", artist_album)
             os.makedirs(mp3_dir, exist_ok=True)
@@ -453,15 +517,25 @@ class PostProcessor:
                 return target_path
 
             cmd = [
-                'ffmpeg', '-y', '-i', source_path,
-                '-codec:a', 'libmp3lame', '-q:a', '0',
-                '-map_metadata', '0', target_path
+                "ffmpeg",
+                "-y",
+                "-i",
+                source_path,
+                "-codec:a",
+                "libmp3lame",
+                "-q:a",
+                "0",
+                "-map_metadata",
+                "0",
+                target_path,
             ]
             proc = await asyncio.to_thread(
                 subprocess.run, cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
             if proc.returncode != 0:
-                self.logger.error(f"ffmpeg error converting {os.path.basename(source_path)}")
+                self.logger.error(
+                    f"ffmpeg error converting {os.path.basename(source_path)}"
+                )
                 return None
             return target_path
         except Exception as e:
@@ -477,24 +551,25 @@ class PostProcessor:
         # 1. lrclib.net
         try:
             import urllib.parse
+
             url = f"https://lrclib.net/api/search?artist_name={urllib.parse.quote(artist)}&track_name={urllib.parse.quote(title)}"
             r = requests.get(url, timeout=5)
             if r.status_code == 200:
                 data = r.json()
                 if data and len(data) > 0:
-                    return data[0].get('syncedLyrics') or data[0].get('plainLyrics')
+                    return data[0].get("syncedLyrics") or data[0].get("plainLyrics")
         except Exception:
             pass
 
         # 2. Genius fallback
-        genius_key = self.config_service.get('genius_api_key', '')
+        genius_key = self.config_service.get("genius_api_key", "")
         if genius_key:
             try:
                 res = requests.get(
                     "https://api.genius.com/search",
                     headers={"Authorization": f"Bearer {genius_key}"},
                     params={"q": f"{artist} {title}"},
-                    timeout=5
+                    timeout=5,
                 )
                 if res.status_code == 200:
                     hits = res.json().get("response", {}).get("hits", [])
@@ -527,20 +602,26 @@ class PostProcessor:
                 try:
                     asyncio.create_task(self._fetch_cover_art(rg_id, target_dir))
                 except RuntimeError:
-                    self.logger.warning("Could not schedule cover art download (no event loop)")
+                    self.logger.warning(
+                        "Could not schedule cover art download (no event loop)"
+                    )
 
     async def _fetch_cover_art(self, rg_id, target_dir):
         try:
-            releases = await asyncio.to_thread(self.mb_service.get_releases_in_group, rg_id)
+            releases = await asyncio.to_thread(
+                self.mb_service.get_releases_in_group, rg_id
+            )
             if not releases:
                 return
-            release_id = releases[0]['id']
+            release_id = releases[0]["id"]
             url = f"https://coverartarchive.org/release/{release_id}/front"
-            r = await asyncio.to_thread(requests.get, url, allow_redirects=True, timeout=10)
+            r = await asyncio.to_thread(
+                requests.get, url, allow_redirects=True, timeout=10
+            )
             if r.status_code == 200 and len(r.content) > 1000:
                 os.makedirs(target_dir, exist_ok=True)
                 path = os.path.join(target_dir, "folder.jpg")
-                with open(path, 'wb') as f:
+                with open(path, "wb") as f:
                     f.write(r.content)
         except Exception:
             pass
@@ -548,4 +629,8 @@ class PostProcessor:
     # ─── Utility ──────────────────────────────────────────────────
 
     def _sanitize(self, name):
-        return "".join(c for c in name if c.isalpha() or c.isdigit() or c in " .-_").strip().rstrip(". ")
+        return (
+            "".join(c for c in name if c.isalpha() or c.isdigit() or c in " .-_")
+            .strip()
+            .rstrip(". ")
+        )
