@@ -67,3 +67,15 @@ Automated Soulseek-based discography downloader with MusicBrainz integration. Do
   - `watchdog.py` — Health monitor and auto-restart
   - `static/` — Frontend assets
   - `templates/` — Jinja2 HTML templates
+
+## Ajja FLAC Discography Run (latest)
+
+Completed a full download pass for **Ajja** (MB `6e6e3359-1291-4a71-83d2-181c5ece4acd`) in FLAC only (preferred_format=flac, depth=0).
+
+- Server: FastAPI/uvicorn running from `discography_webapp/` on http://127.0.0.1:8000 (venv: `discography_webapp/venv`, Python 3.12).
+- Credentials live only in `discography_webapp/.env` (gitignored). Top-level `.env` stays placeholder (tracked).
+- Library: `discography_webapp/downloads/` — flat naming `Ajja - YYYY - Album - NN - Title.flac`. 76 FLAC files, ~4.1 GB.
+- 15 of 16 MusicBrainz release groups fully present. **Only gap: Ultrasonic (2025) track 6 "Time Reactor"** — not shared on Soulseek in FLAC (searched repeatedly; the other 8 tracks were fetched individually from peers AndyBoPandy / web-graffiti compilations).
+- "The Other Side" 2017 has 2 copies (VA "The Psychedelic Astronaut" appears twice).
+- Removed an MP3-only Maze of Mirrors copy after obtaining FLAC.
+- Leftover failed-candidate partials moved to `downloads/_stray_orphans/` (review/delete at leisure).
