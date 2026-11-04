@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.2.0]
+- **Consolidated Dashboard Architecture**: Redesigned UI into a unified view categorized by high-value hierarchy (Primary workflows on top, consolidated artist discography and playlist tabs, organized library actions).
+- **Interactive Guidance & Tooltips**: Deployed `[data-tooltip]` hover markers and help badges (`?`) across all inputs, action triggers, switches, and metrics.
+- **Server Lifecycle Management**: Added `/api/server/shutdown` and `/api/server/restart` API endpoints with interactive frontend confirmation dialogs.
+- **Enhanced Systray Integration**: Updated `discography_webapp/systray.py` to support graceful server process quit and restart actions with robust health monitoring.
+- **Full Backend-to-Frontend Feature Wiring**: Wired MusicBrainz SQLite cache monitoring & cleanup (`/api/mb_cache_stats`, `/api/mb_cache_cleanup`), Autonomous Agent cycle triggers (`/api/agent/cycle`, `/api/agent/status`), and single-artist library organization (`/api/organize_artist`).
+- **Nondestructive Script Architecture**: Backed up original automation files in `scripts_archive/` and unified `run_server.sh` for cross-platform execution.
+
 ## [2.1.0]
 - **DevOps Hardening**: Completed 130 Ruff linter fixes and Mypy typings.
 - **Docker Ready**: Audited and confirmed Docker deployments using multi-arch Github Actions `ci.yml`.

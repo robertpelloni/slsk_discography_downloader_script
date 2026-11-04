@@ -520,266 +520,318 @@
           min-width: 100%;
         }
       }
-    </style>
+
+      /* Enhanced Interactive Tooltips & Markers */
+      [data-tooltip] { position: relative; }
+      [data-tooltip]::before {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: 125%;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 6px 10px;
+        background: #18181b;
+        color: #f4f4f5;
+        font-size: 11px;
+        font-weight: 400;
+        line-height: 1.35;
+        border-radius: 6px;
+        white-space: normal;
+        width: max-content;
+        max-width: 260px;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease, transform 0.2s ease;
+        z-index: 10000;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        text-align: center;
+      }
+      [data-tooltip]::after {
+        content: "";
+        position: absolute;
+        bottom: 115%;
+        left: 50%;
+        transform: translateX(-50%);
+        border-width: 5px;
+        border-style: solid;
+        border-color: #18181b transparent transparent transparent;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+        z-index: 10000;
+      }
+      [data-tooltip]:hover::before,
+      [data-tooltip]:hover::after { opacity: 1; }
+      .tip-marker {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 15px;
+        height: 15px;
+        border-radius: 50%;
+        background: var(--border);
+        color: var(--text2);
+        font-size: 10px;
+        font-weight: bold;
+        margin-left: 5px;
+        cursor: help;
+        vertical-align: middle;
+      }
+      .nav-pills {
+        display: flex;
+        gap: 8px;
+        border-bottom: 2px solid var(--border);
+        margin-bottom: 16px;
+        padding-bottom: 8px;
+      }
+      .nav-pill {
+        background: transparent;
+        border: 1px solid transparent;
+        padding: 8px 16px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text2);
+        cursor: pointer;
+        border-radius: 6px;
+        transition: all 0.15s ease-in-out;
+      }
+      .nav-pill:hover { background: var(--border); color: var(--text); }
+      .nav-pill.active {
+        background: var(--primary);
+        color: #fff;
+        border-color: var(--primary);
+      }
+      .tab-panel { display: none; }
+      .tab-panel.active { display: block; }
+      .card-header-flex {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+</style>
   </head>
   <body>
     <div class="app">
-      <!-- Header -->
+      <!-- Top Header & Server Controls -->
       <div class="header">
-        <h1>
-          🎵 Discography Downloader
-          <span
-            style="font-size: 12px; color: var(--text2); vertical-align: middle"
-            >v{{ version }}</span
-          >
-        </h1>
-        <div class="header-btns">
-          <button class="btn btn-ghost btn-sm" onclick="toggleTheme()">
+        <div>
+          <h1 style="display: flex; align-items: center; gap: 8px;">
+            <span>🎵 Discography Downloader</span>
+            <span style="font-size: 12px; color: var(--text2); font-weight: normal; background: var(--border); padding: 2px 8px; border-radius: 12px;">v{{ version }}</span>
+          </h1>
+          <p style="font-size: 13px; color: var(--text2); margin-top: 2px;">
+            Autonomous P2P Artist Discography & Gap-Filling Suite
+          </p>
+        </div>
+        <div class="header-btns" style="display: flex; align-items: center; gap: 8px;">
+          <!-- Server Process Controls -->
+          <button class="btn btn-ghost btn-sm" data-tooltip="Re-execute the server process" onclick="restartServer()">
+            🔄 Restart Server
+          </button>
+          <button class="btn btn-ghost btn-sm" style="color: var(--danger);" data-tooltip="Gracefully shut down server background workers and process" onclick="shutdownServer()">
+            ⏹️ Shutdown
+          </button>
+          <button class="btn btn-ghost btn-sm" onclick="toggleTheme()" data-tooltip="Switch light/dark theme">
             🌗 Theme
           </button>
         </div>
       </div>
 
-      <!-- Status Bar -->
-      <div class="status-bar">
+      <!-- Live Status & Activity Indicator -->
+      <div class="status-bar" style="background: var(--surface); border: 1px solid var(--border); padding: 10px 16px; border-radius: 8px; margin-bottom: 20px;">
         <div class="status-dot" id="statusDot"></div>
-        <span class="status-text" id="statusText">Idle</span>
+        <span class="status-text" id="statusText" style="font-weight: 600;">Idle</span>
+        <span style="color: var(--border);">|</span>
+        <span id="agentStatusBadge" style="font-size: 12px; color: var(--text2);">Agent: Idle</span>
+        <span style="color: var(--border);">|</span>
+        <span id="mbCacheBadge" style="font-size: 12px; color: var(--text2);">MB Cache: Active</span>
+        <div style="margin-left: auto; display: flex; gap: 8px; align-items: center;">
+          <span id="statsText" style="font-size: 12px; color: var(--text2);"></span>
+          <button class="btn btn-ghost btn-sm" onclick="loadStats()" data-tooltip="Refresh audio library counts">↻ Stats</button>
+        </div>
       </div>
 
-      <!-- Control Panel -->
-      <div class="card">
-        <div class="card-title">Download</div>
-        <div class="form-row" style="margin-bottom: 12px">
-          <div class="form-group flex-1">
-            <label>Artist(s) — comma separated</label>
-            <input
-              type="text"
-              class="input"
-              id="artistName"
-              placeholder="e.g. Radiohead, GMS, Transwave"
-            />
-          </div>
-          <div class="form-group">
-            <label>Related Depth</label>
-            <input
-              type="number"
-              class="input"
-              id="relatedDepth"
-              value="1"
-              min="0"
-              max="5"
-              style="width: 70px"
-            />
-          </div>
-          <div class="form-group" style="justify-content: end">
-            <label>&nbsp;</label>
-            <div style="display: flex; gap: 8px; flex-wrap: wrap">
-              <button
-                class="btn btn-primary"
-                id="startBtn"
-                onclick="startJob()"
-              >
-                ▶ Start
-              </button>
-              <button class="btn btn-ghost" id="scanBtn" onclick="scanArtist()">
-                🔍 Scan
-              </button>
-              <button
-                class="btn btn-ghost"
-                id="fillBtn"
-                onclick="startAutonomousFill()"
-              >
-                🧩 Fill Gaps
-              </button>
-              <button
-                class="btn btn-warning"
-                id="pauseBtn"
-                onclick="togglePause()"
-                style="display: none"
-              >
-                ⏸ Pause
-              </button>
-              <button
-                class="btn btn-danger"
-                id="stopBtn"
-                onclick="stopJob()"
-                style="display: none"
-              >
-                ⏹ Stop
-              </button>
+      <!-- Consolidated Download Workflow (Primary High-Value Hub) -->
+      <div class="card" style="border-top: 3px solid var(--primary);">
+        <div class="nav-pills">
+          <button class="nav-pill active" id="tabBtnArtist" onclick="switchDownloadTab('artist')">
+            🎯 Artist Discography & Gap Filler
+          </button>
+          <button class="nav-pill" id="tabBtnPlaylist" onclick="switchDownloadTab('playlist')">
+            📑 Playlist & Single Tracks
+          </button>
+        </div>
+
+        <!-- Tab 1: Artist Discography -->
+        <div class="tab-panel active" id="tabPanelArtist">
+          <div class="form-row" style="margin-bottom: 12px">
+            <div class="form-group flex-1">
+              <label>
+                Artist(s) — comma separated
+                <span class="tip-marker" data-tooltip="Names of artists whose full discographies you want to discover and download via Soulseek.">?</span>
+              </label>
+              <input
+                type="text"
+                class="input"
+                id="artistName"
+                placeholder="e.g. Radiohead, GMS, Transwave, Infected Mushroom"
+              />
+            </div>
+            <div class="form-group">
+              <label>
+                Related Depth
+                <span class="tip-marker" data-tooltip="Depth of related artist discovery traversal on MusicBrainz (0 = target only, 1 = direct collaborators/remixers, 2+ = deep spider).">?</span>
+              </label>
+              <input
+                type="number"
+                class="input"
+                id="relatedDepth"
+                value="1"
+                min="0"
+                max="5"
+                style="width: 75px"
+              />
+            </div>
+            <div class="form-group" style="justify-content: end">
+              <label>&nbsp;</label>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap">
+                <button
+                  class="btn btn-primary"
+                  id="startBtn"
+                  onclick="startJob()"
+                  data-tooltip="Initiate immediate autonomous discography acquisition"
+                >
+                  ▶ Start Download
+                </button>
+                <button
+                  class="btn btn-ghost"
+                  id="scanBtn"
+                  onclick="scanArtist()"
+                  data-tooltip="Inspect MusicBrainz releases and select specific albums before downloading"
+                >
+                  🔍 Scan Releases
+                </button>
+                <button
+                  class="btn btn-ghost"
+                  id="fillBtn"
+                  onclick="startAutonomousFill()"
+                  data-tooltip="Run isolated background worker to automatically download missing albums for managed artists"
+                >
+                  🧩 Autonomous Fill
+                </button>
+                <button
+                  class="btn btn-warning"
+                  id="pauseBtn"
+                  onclick="togglePause()"
+                  style="display: none"
+                  data-tooltip="Pause or resume the active download queue"
+                >
+                  ⏸ Pause
+                </button>
+                <button
+                  class="btn btn-danger"
+                  id="stopBtn"
+                  onclick="stopJob()"
+                  style="display: none"
+                  data-tooltip="Halt active orchestrator downloads"
+                >
+                  ⏹ Stop
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="check-row">
-          <label
-            ><input type="checkbox" id="dryRun" /> Dry run (no downloads)</label
-          >
+          <div class="check-row">
+            <label data-tooltip="Simulate searches without transferring audio files">
+              <input type="checkbox" id="dryRun" /> Dry run (test query and candidate resolution only)
+            </label>
+          </div>
+
+          <!-- Review Tree (hidden until scan) -->
+          <div class="tree-panel" id="reviewSection" style="display: none; margin-top: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <strong>Review Selected Releases:</strong>
+              <button class="btn btn-success btn-sm" onclick="startJob(true)" data-tooltip="Begin downloading checked albums">
+                ✓ Download Selected
+              </button>
+            </div>
+            <div id="treeRoot"></div>
+          </div>
         </div>
 
-        <!-- Review Tree (hidden until scan) -->
-        <div class="tree-panel" id="reviewSection" style="display: none">
-          <div
-            style="
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              margin-bottom: 8px;
-            "
-          >
-            <strong>Review Selection</strong>
-            <button class="btn btn-success btn-sm" onclick="startJob(true)">
-              ✓ Download Selected
-            </button>
+        <!-- Tab 2: Playlist & Single Tracks -->
+        <div class="tab-panel" id="tabPanelPlaylist">
+          <div class="form-row" style="margin-bottom: 12px">
+            <div class="form-group flex-1">
+              <label>
+                Playlist / Folder Name
+                <span class="tip-marker" data-tooltip="Folder under downloads/ where these tracks will be stored.">?</span>
+              </label>
+              <input
+                type="text"
+                class="input"
+                id="playlistName"
+                placeholder="e.g. Goa Classics 2026 or Summer Mix"
+              />
+            </div>
           </div>
-          <div id="treeRoot"></div>
-        </div>
-      </div>
-
-      <!-- Playlist Download Panel -->
-      <div class="card">
-        <div class="card-title">Playlist / Single Tracks</div>
-        <div class="form-row" style="margin-bottom: 12px">
-          <div class="form-group flex-1">
-            <label>Playlist / Folder Name</label>
-            <input
-              type="text"
-              class="input"
-              id="playlistName"
-              placeholder="e.g. Summer Mix 2026"
-            />
+          <div class="form-row" style="margin-bottom: 12px">
+            <div class="form-group" style="width: 100%">
+              <label>
+                Song List (One song per line: "Artist - Title")
+                <span class="tip-marker" data-tooltip="Enter track lines formatted as Artist - Title">?</span>
+              </label>
+              <textarea
+                class="input"
+                id="playlistSongs"
+                rows="5"
+                placeholder="Infected Mushroom - Becoming Insane&#10;Astral Projection - Mahadeva&#10;Shpongle - Divine Moments of Truth"
+                style="resize: vertical; font-family: monospace"
+              ></textarea>
+            </div>
           </div>
-        </div>
-        <div class="form-row" style="margin-bottom: 12px">
-          <div class="form-group" style="width: 100%">
-            <label
-              >List of Songs (one per line, e.g. 'Artist - Track Title')</label
-            >
-            <textarea
-              class="input"
-              id="playlistSongs"
-              rows="5"
-              placeholder="Radiohead - Creep&#10;GMS - Juice"
-            ></textarea>
-          </div>
-        </div>
-        <div
-          class="form-row"
-          style="justify-content: space-between; align-items: center"
-        >
-          <div class="check-row" style="margin-top: 0">
-            <label
-              ><input type="checkbox" id="playlistNumberTracks" checked />
-              Number tracks sequentially (01 - , 02 - , ...)</label
-            >
+          <div class="check-row" style="margin-bottom: 14px">
+            <label data-tooltip="Prefix downloaded files with numbered track positions">
+              <input type="checkbox" id="playlistNumberTracks" checked />
+              Number tracks in order
+            </label>
           </div>
           <button
             class="btn btn-primary"
             id="playlistStartBtn"
             onclick="startPlaylistJob()"
+            data-tooltip="Queue playlist tracks for search and download"
           >
             ▶ Download Playlist
           </button>
         </div>
       </div>
 
-      <!-- Artist Manager -->
-      <div class="card">
-        <div
-          style="
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-          "
-        >
-          <div class="card-title" style="margin-bottom: 0">Artist Manager</div>
-          <div style="display: flex; gap: 8px">
-            <button class="btn btn-ghost btn-sm" onclick="cleanupArtists()">
-              🧹 Cleanup
-            </button>
-            <button class="btn btn-ghost btn-sm" onclick="loadManagedArtists()">
-              🔄 Sync
-            </button>
-          </div>
-        </div>
-        <p style="font-size: 12px; color: var(--text2); margin-top: 4px">
-          Click an artist to view discography and track-level gaps.
-        </p>
-
-        <div class="artist-grid" id="managedArtistList">
-          <!-- Managed artists will be loaded here -->
-        </div>
-
-        <div
-          style="
-            margin-top: 16px;
-            border-top: 1px solid var(--border);
-            padding-top: 16px;
-          "
-        >
-          <div class="card-title" style="font-size: 11px">
-            Secondary / Suggested Artists
-          </div>
-          <div class="artist-grid" id="secondaryArtistList">
-            <!-- Secondary artists will be loaded here -->
-          </div>
-        </div>
-      </div>
-
-      <!-- Modal for Artist Details -->
-      <div
-        class="modal-overlay"
-        id="artistModal"
-        onclick="if (event.target == this) closeArtistModal();"
-      >
-        <div class="modal">
-          <div class="modal-header">
-            <h2 id="modalTitle">Artist Discography</h2>
-            <button class="btn btn-ghost btn-sm" onclick="closeArtistModal()">
-              ✕
-            </button>
-          </div>
-          <div class="modal-body" id="modalBody">
-            <!-- Discography details loaded here -->
-            <div style="text-align: center; padding: 40px; color: var(--text2)">
-              Loading discography and comparing tracks...
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-ghost" onclick="closeArtistModal()">
-              Close
-            </button>
-            <button class="btn btn-primary" id="modalStartBtn">
-              Download Missing
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Active Progress -->
-      <div class="card" id="progressCard" style="display: none">
-        <div class="card-title">Progress</div>
+      <!-- Real-Time Progress Monitor -->
+      <div class="card" id="progressCard" style="display: none; border-left: 4px solid var(--info);">
+        <div class="card-title">Active Transfers</div>
         <div id="progressContainer"></div>
       </div>
 
-      <!-- Live Logs -->
+      <!-- Live Logs Console -->
       <div class="card">
-        <div class="card-title">Logs</div>
+        <div class="card-header-flex">
+          <div class="card-title" style="margin-bottom: 0;">System Event Stream & Live Logs</div>
+          <button class="btn btn-ghost btn-sm" onclick="$('logBox').innerHTML=''" data-tooltip="Clear console log stream">
+            Clear Logs
+          </button>
+        </div>
         <div class="log-box" id="logBox">Waiting for input...</div>
       </div>
 
-      <!-- Completed Downloads -->
+      <!-- Download History & Completed Queue -->
       <div class="card">
-        <div
-          style="
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-          "
-        >
+        <div class="card-header-flex">
           <div class="card-title" style="margin-bottom: 0">
             Download History
           </div>
-          <button class="btn btn-ghost btn-sm" onclick="clearQueue()">
+          <button class="btn btn-ghost btn-sm" onclick="clearQueue()" data-tooltip="Erase history log and queue records">
             Clear History
           </button>
         </div>
@@ -798,52 +850,182 @@
         </div>
       </div>
 
-    <!-- Library Browser -->
-    <div class="card">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div class="card-title" style="margin-bottom: 0;">Library</div>
-            <div style="display: flex; gap: 8px;">
-                <button class="btn btn-ghost btn-sm" id="batchRenameBtn" onclick="batchRename()" style="display:none;">✏️ Rename Selected</button>
-                <button class="btn btn-ghost btn-sm" id="batchDeleteBtn" onclick="batchDelete()" style="display:none; color: var(--accent1);">🗑 Delete Selected</button>
-                <button class="btn btn-ghost btn-sm" onclick="loadLibrary()">Refresh</button>
-            </div>
+      <!-- Managed Artists Dashboard Section -->
+      <div class="card">
+        <div class="card-header-flex">
+          <div class="card-title" style="margin-bottom: 0">
+            Managed Artists
+            <span class="tip-marker" data-tooltip="Target artists tracked for comprehensive discography synchronization and gap-filling.">?</span>
+          </div>
+          <div style="display: flex; gap: 8px">
+            <button class="btn btn-ghost btn-sm" onclick="cleanupArtists()" data-tooltip="Remove non-psytrance / invalid electronic artists from DB">
+              🧹 Cleanup
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="loadManagedArtists()" data-tooltip="Reload managed artists from database">
+              🔄 Sync
+            </button>
+          </div>
         </div>
-        <div
-          id="libraryContent"
-          style="margin-top: 12px; max-height: 400px; overflow-y: auto"
-        >
+        <div class="artist-grid" id="managedArtistList">
+          <p style="color: var(--text2); font-size: 13px">Loading artists...</p>
+        </div>
+
+        <div style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px;">
+          <div class="card-title" style="font-size: 11px; margin-bottom: 8px;">
+            Suggested / Related Artists
+            <span class="tip-marker" data-tooltip="Artists discovered through related collaborations. Click any chip to promote to Managed.">?</span>
+          </div>
+          <div class="artist-grid" id="secondaryArtistList">
+            <p style="color: var(--text2); font-size: 12px">No suggestions yet.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Artist Details Modal -->
+      <div class="modal-overlay" id="artistModal">
+        <div class="modal">
+          <div class="modal-header">
+            <h2 id="modalTitle">Artist Discography</h2>
+            <button class="btn btn-ghost btn-sm" onclick="closeArtistModal()">&times;</button>
+          </div>
+          <div class="modal-body" id="modalBody">
+            <!-- Items injected by JS -->
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeArtistModal()">
+              Close
+            </button>
+            <button class="btn btn-primary" id="modalStartBtn" data-tooltip="Trigger download of all missing tracks for this artist">
+              Download Missing
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Library Organizer & Management Hub -->
+      <div class="card">
+        <div class="card-header-flex">
+          <div>
+            <div class="card-title" style="margin-bottom: 0;">Local Music Library</div>
+            <div style="font-size: 12px; color: var(--text2); margin-top: 2px;">
+              Manage downloaded albums, inspect files, batch rename, and organize folders
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-ghost btn-sm" id="batchRenameBtn" onclick="batchRename()" style="display:none;" data-tooltip="Rename checked album folders">✏️ Rename Selected</button>
+            <button class="btn btn-ghost btn-sm" id="batchDeleteBtn" onclick="batchDelete()" style="display:none; color: var(--danger);" data-tooltip="Permanently delete checked folders">🗑 Delete Selected</button>
+            <button class="btn btn-ghost btn-sm" onclick="loadLibrary()" data-tooltip="Scan disk and reload library view">Refresh Library</button>
+          </div>
+        </div>
+
+        <!-- Library Content Explorer -->
+        <div id="libraryContent" style="margin-top: 12px; max-height: 400px; overflow-y: auto">
           <p style="color: var(--text2); font-size: 13px">
             Click Refresh to browse your library.
           </p>
         </div>
+
+        <!-- Organizer Tools Palette -->
+        <div style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 14px;">
+          <div style="font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 8px; text-transform: uppercase;">
+            Library Organization & Curation Tools
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap">
+            <button class="btn btn-primary btn-sm" onclick="oneClickClean()" data-tooltip="Execute full pipeline: tidy, root organize, ID3 tags, deduplicate, and empty folder cleanup">
+              ✨ One-Click Clean All
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="tidyLibrary()" data-tooltip="Move loose audio files into artist Unsorted directories">
+              📦 Tidy Loose Files
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="organizeAlbums()" data-tooltip="Parse artist - album folder names into proper Artist/Year - Album hierarchy">
+              📂 Organize Folders
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="organizeRoot()" data-tooltip="Parse audio files in downloads/ root into Artist/Year - Album/">
+              📂 Organize Root Files
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="organizeByTags()" data-tooltip="Read Mutagen ID3 / FLAC metadata tags to sort into artist and album subfolders">
+              🏷 Organize by Tags
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="cleanupIncomplete()" data-tooltip="Remove album folders containing fewer than 3 tracks">
+              🧹 Cleanup Incomplete
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="deduplicateLibrary()" data-tooltip="Erase duplicate tracks present in multiple folders">
+              🗑 Deduplicate
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="cleanupEmpty()" data-tooltip="Prune empty directories and unused Unsorted folders">
+              🧹 Clean Empty Folders
+            </button>
+          </div>
+        </div>
       </div>
 
-      <!-- Performance Metrics -->
+      <!-- Autonomous Agent Protocol & System Maintenance -->
       <div class="card">
-        <div
-          class="settings-toggle"
-          onclick="
-            this.nextElementSibling.classList.toggle('open');
-            this.classList.toggle('open');
-          "
-        >
+        <div class="settings-toggle" onclick="this.nextElementSibling.classList.toggle('open'); this.classList.toggle('open');">
           <div class="card-title" style="margin-bottom: 0">
-            Performance Metrics (Search Boost)
+            Autonomous Agent Protocol & Git Engine
           </div>
         </div>
         <div class="settings-body">
           <p style="font-size: 12px; color: var(--text2); margin-bottom: 12px">
-            Compare Python aioslsk search latency vs. Rust FFI bridge.
+            Trigger automated maintenance cycles, multi-remote git synchronization, roadmap extraction, and autonomous agent planning.
+          </p>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
+            <button class="btn btn-ghost btn-sm" onclick="runMaintenance('/api/maintenance/sync', 'Syncing repository with upstream & origin...')" data-tooltip="Fetch, pull, and sync git repository with remotes">
+              🔄 Sync Repository
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="runMaintenance('/api/maintenance/reconcile', 'Reconciling local and remote branches...')" data-tooltip="Merge local branches cleanly into main">
+              🔀 Merge Branches
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="runMaintenance('/api/maintenance/roadmap', 'Extracting roadmap and updating documentation...')" data-tooltip="Extract goals and refresh ROADMAP.md">
+              📝 Extract Roadmap
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="runMaintenance('/api/maintenance/full_protocol', 'Executing full Autonomous Protocol...')" data-tooltip="Run complete cycle: git sync, branch reconcile, roadmap refresh">
+              🚀 Full Protocol Refresh
+            </button>
+            <button class="btn btn-success btn-sm" onclick="triggerAgentCycle()" data-tooltip="Run autonomous AI agent cycle: plan, inspect friction, and execute">
+              🤖 Trigger Agent Cycle
+            </button>
+          </div>
+
+          <!-- MusicBrainz SQLite Cache Controls -->
+          <div style="border-top: 1px solid var(--border); padding-top: 10px; margin-top: 10px;">
+            <div style="font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 6px;">
+              MusicBrainz Metadata Cache Controls
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <span id="mbCacheDetail" style="font-size: 12px; color: var(--text2);">Cache: Loading...</span>
+              <button class="btn btn-ghost btn-sm" onclick="refreshMbCacheStats()" data-tooltip="Fetch current MusicBrainz SQLite cache statistics">
+                ↻ Check Cache
+              </button>
+              <button class="btn btn-ghost btn-sm" onclick="cleanMbCache()" data-tooltip="Delete expired MusicBrainz cache records">
+                🧹 Clear Expired Cache
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Performance Metrics & Soulseek Rust Bridge Benchmark -->
+      <div class="card">
+        <div class="settings-toggle" onclick="this.nextElementSibling.classList.toggle('open'); this.classList.toggle('open');">
+          <div class="card-title" style="margin-bottom: 0">
+            Performance Metrics & P2P Rust Bridge
+          </div>
+        </div>
+        <div class="settings-body">
+          <p style="font-size: 12px; color: var(--text2); margin-bottom: 12px">
+            Compare Python aioslsk async network search latency vs. compiled Rust FFI Tokio bridge.
           </p>
           <div style="display: flex; gap: 8px; margin-bottom: 16px">
             <input
               type="text"
               class="input"
               id="benchQuery"
-              placeholder="Benchmark Query"
-              style="max-width: 200px"
+              placeholder="e.g. Infected Mushroom"
+              style="max-width: 250px"
             />
-            <button class="btn btn-primary btn-sm" onclick="runBenchmark()">
+            <button class="btn btn-primary btn-sm" onclick="runBenchmark()" data-tooltip="Run concurrent latency search benchmark">
               Run Benchmark
             </button>
           </div>
@@ -853,172 +1035,69 @@
         </div>
       </div>
 
-      <!-- System Maintenance -->
+      <!-- Global Settings & Soulseek Credentials -->
       <div class="card">
-        <div
-          class="settings-toggle"
-          onclick="
-            this.nextElementSibling.classList.toggle('open');
-            this.classList.toggle('open');
-          "
-        >
-          <div class="card-title" style="margin-bottom: 0">
-            System Maintenance (AI Protocol)
-          </div>
-        </div>
-        <div class="settings-body">
-          <p style="font-size: 12px; color: var(--text2); margin-bottom: 12px">
-            Codified Autonomous AI Development Protocol actions.
-          </p>
-          <div style="display: flex; gap: 10px; flex-wrap: wrap">
-            <button
-              class="btn btn-ghost btn-sm"
-              onclick="
-                runMaintenance('/api/maintenance/sync', 'Syncing repository...')
-              "
-            >
-              🔄 Sync Repo
-            </button>
-            <button
-              class="btn btn-ghost btn-sm"
-              onclick="
-                runMaintenance(
-                  '/api/maintenance/reconcile',
-                  'Reconciling branches...',
-                )
-              "
-            >
-              Merge Branches
-            </button>
-            <button
-              class="btn btn-ghost btn-sm"
-              onclick="
-                runMaintenance(
-                  '/api/maintenance/roadmap',
-                  'Extracting roadmap...',
-                )
-              "
-            >
-              Update Roadmap
-            </button>
-            <button
-              class="btn btn-primary btn-sm"
-              onclick="
-                runMaintenance(
-                  '/api/maintenance/full_protocol',
-                  'Running full AI protocol...',
-                )
-              "
-            >
-              🚀 Full Protocol Refresh
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Settings (collapsed) -->
-      <div class="card">
-        <div
-          class="settings-toggle"
-          id="settingsToggle"
-          onclick="toggleSettings()"
-        >
-          <div class="card-title" style="margin-bottom: 0">Settings</div>
+        <div class="settings-toggle" id="settingsToggle" onclick="toggleSettings()">
+          <div class="card-title" style="margin-bottom: 0">Settings & Connectivity</div>
         </div>
         <div class="settings-body" id="settingsBody">
           <div class="form-row" style="margin-top: 4px">
             <div class="form-group flex-1">
               <label>Soulseek Username</label>
-              <input type="text" class="input" id="slskUser" />
+              <input type="text" class="input" id="slskUser" placeholder="Soulseek User" />
             </div>
             <div class="form-group flex-1">
               <label>Soulseek Password</label>
-              <input type="password" class="input" id="slskPass" />
+              <input type="password" class="input" id="slskPass" placeholder="••••••••" />
             </div>
             <div class="form-group">
               <label>Preferred Format</label>
               <select class="input" id="prefFormat">
-                <option value="flac">FLAC</option>
+                <option value="flac">FLAC (Lossless)</option>
                 <option value="mp3">MP3 (320kbps)</option>
               </select>
             </div>
           </div>
           <div class="check-row" style="margin-top: 12px">
-            <label
-              ><input type="checkbox" id="acoustidEnabled" /> AcoustID
-              Fallback</label
-            >
-            <label
-              ><input type="checkbox" id="acoustidVerify" /> Strict AcoustID
-              Verification</label
-            >
-            <label
-              ><input type="checkbox" id="sentinelEnabled" /> Neural Audio
-              Sentinel (Fake FLAC Detection)</label
-            >
-            <label
-              ><input type="checkbox" id="embedLyrics" /> Embed Lyrics</label
-            >
-            <label
-              ><input type="checkbox" id="convertMp3" /> Auto-Convert FLAC → MP3
-              V0</label
-            >
+            <label data-tooltip="Use AcoustID audio fingerprinting to identify untagged tracks">
+              <input type="checkbox" id="acoustidEnabled" /> AcoustID Fingerprint Fallback
+            </label>
+            <label data-tooltip="Reject downloads that fail strict AcoustID fingerprint verification">
+              <input type="checkbox" id="acoustidVerify" /> Strict AcoustID Verification
+            </label>
+            <label data-tooltip="Detect upsampled MP3-to-FLAC fakes using high-frequency cutoff analysis">
+              <input type="checkbox" id="sentinelEnabled" /> Neural Audio Sentinel (Fake FLAC Detection)
+            </label>
+            <label data-tooltip="Fetch synchronized lyrics from Genius and embed into audio tags">
+              <input type="checkbox" id="embedLyrics" /> Embed Lyrics
+            </label>
+            <label data-tooltip="Transcode lossless FLAC files into MP3 V0 after download">
+              <input type="checkbox" id="convertMp3" /> Auto-Convert FLAC → MP3 V0
+            </label>
           </div>
           <div class="form-row" style="margin-top: 12px">
             <div class="form-group flex-1">
               <label>AcoustID API Key</label>
-              <input type="text" class="input" id="acoustidKey" />
+              <input type="text" class="input" id="acoustidKey" placeholder="AcoustID Client Application Key" />
             </div>
             <div class="form-group flex-1">
               <label>Genius API Token (optional)</label>
-              <input type="text" class="input" id="geniusApiKey" />
+              <input type="text" class="input" id="geniusApiKey" placeholder="Genius Access Token" />
             </div>
           </div>
-          <div style="margin-top: 16px">
-            <button class="btn btn-primary btn-sm" onclick="saveConfig()">
+          <div style="margin-top: 16px; display: flex; gap: 8px;">
+            <button class="btn btn-primary btn-sm" onclick="saveConfig()" data-tooltip="Save configuration changes to SQLite DB">
               Save Settings
             </button>
-            <button class="btn btn-ghost btn-sm" onclick="testSearch()">
+            <button class="btn btn-ghost btn-sm" onclick="testSearch()" data-tooltip="Execute a test search across Soulseek P2P">
               🔍 Test Search
             </button>
           </div>
         </div>
-        <div
-          style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap"
-        >
-          <button class="btn btn-ghost btn-sm" onclick="tidyLibrary()">
-            📦 Tidy Flat Files
-          </button>
-          <button class="btn btn-primary btn-sm" onclick="oneClickClean()">
-            ✨ One-Click Clean All
-          </button>
-          <button class="btn btn-primary btn-sm" onclick="organizeAlbums()">
-            📂 Organize Albums
-          </button>
-          <button class="btn btn-primary btn-sm" onclick="organizeRoot()">
-            📂 Organize Root Files
-          </button>
-          <button class="btn btn-ghost btn-sm" onclick="organizeByTags()">
-            🏷 Organize by Tags
-          </button>
-          <button class="btn btn-ghost btn-sm" onclick="cleanupIncomplete()">
-            🧹 Cleanup Incomplete
-          </button>
-          <button class="btn btn-ghost btn-sm" onclick="deduplicateLibrary()">
-            🗑 Deduplicate
-          </button>
-          <button class="btn btn-ghost btn-sm" onclick="cleanupEmpty()">
-            🧹 Clean Empty Folders
-          </button>
-          <span
-            id="statsText"
-            style="font-size: 12px; color: var(--text2); align-self: center"
-          ></span>
-        </div>
       </div>
     </div>
 
-    <script>
+<script>
       // ─── DOM refs ──────────────────────────────────────────────────
       const $ = (id) => document.getElementById(id);
       const logBox = $("logBox");
@@ -1969,12 +2048,122 @@ async function renameAlbum(artist, oldName) {
         }
       }
 
-      // ─── Init ──────────────────────────────────────────────────────
+
+      // ─── Consolidated Tab Navigation ──────────────────────────────
+      function switchDownloadTab(tab) {
+        $('tabBtnArtist').classList.toggle('active', tab === 'artist');
+        $('tabBtnPlaylist').classList.toggle('active', tab === 'playlist');
+        $('tabPanelArtist').classList.toggle('active', tab === 'artist');
+        $('tabPanelPlaylist').classList.toggle('active', tab === 'playlist');
+      }
+
+      // ─── Server Process Lifecycle ──────────────────────────────────
+      async function restartServer() {
+        if (!confirm('Restart the Discography Downloader server? Active downloads will pause.')) return;
+        appendLog('🔄 Initiating server restart...');
+        try {
+          const r = await fetch('/api/server/restart', { method: 'POST' });
+          const d = await r.json();
+          appendLog(d.message);
+          setTimeout(() => location.reload(), 2500);
+        } catch (e) {
+          appendLog('Failed to restart server: ' + e);
+        }
+      }
+
+      async function shutdownServer() {
+        if (!confirm('Gracefully shut down the server process? You will need to start it manually.')) return;
+        appendLog('⏹️ Initiating server shutdown...');
+        try {
+          const r = await fetch('/api/server/shutdown', { method: 'POST' });
+          const d = await r.json();
+          appendLog(d.message);
+        } catch (e) {
+          appendLog('Failed to shut down server: ' + e);
+        }
+      }
+
+      // ─── Agent Framework & MB Cache ────────────────────────────────
+      async function triggerAgentCycle() {
+        appendLog('🤖 Initiating Autonomous Agent cycle...');
+        try {
+          const r = await fetch('/api/agent/cycle', { method: 'POST' });
+          const d = await r.json();
+          appendLog('✨ ' + d.message);
+          pollAgentStatus();
+        } catch (e) {
+          appendLog('❌ Agent cycle trigger failed: ' + e);
+        }
+      }
+
+      async function pollAgentStatus() {
+        try {
+          const r = await fetch('/api/agent/status');
+          const d = await r.json();
+          const badge = $('agentStatusBadge');
+          if (badge) {
+            badge.textContent = 'Agent: ' + (d.is_busy ? 'Running Cycle 🤖' : 'Idle');
+            badge.style.color = d.is_busy ? 'var(--primary)' : 'var(--text2)';
+          }
+        } catch (e) {}
+      }
+
+      async function refreshMbCacheStats() {
+        try {
+          const r = await fetch('/api/mb_cache_stats');
+          const d = await r.json();
+          const detail = $('mbCacheDetail');
+          if (detail) {
+            detail.textContent = `Artists: ${d.artists_cached || 0} | Releases: ${d.discographies_cached || 0} | Hit Ratio: ${d.cache_hits ? d.cache_hits : 0}`;
+          }
+          const badge = $('mbCacheBadge');
+          if (badge) {
+            badge.textContent = `MB Cache: ${d.artists_cached || 0} artists`;
+          }
+        } catch (e) {}
+      }
+
+      async function cleanMbCache() {
+        appendLog('🧹 Cleaning expired MusicBrainz cache records...');
+        try {
+          const r = await fetch('/api/mb_cache_cleanup', { method: 'POST' });
+          const d = await r.json();
+          appendLog(`Cleaned ${d.deleted} expired MusicBrainz cache records.`);
+          refreshMbCacheStats();
+        } catch (e) {
+          appendLog('Cache cleanup failed: ' + e);
+        }
+      }
+
+      async function organizeSingleArtist(artist) {
+        appendLog(`Organizing files for artist "${artist}"...`);
+        try {
+          const r = await fetch('/api/organize_artist', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ artist })
+          });
+          const d = await r.json();
+          if (d.error) {
+            appendLog(`❌ Error: ${d.error}`);
+          } else {
+            appendLog(`Organized ${artist}: ${d.moved} moved, ${d.skipped} skipped, ${d.errors} errors`);
+            loadStats();
+            loadLibrary();
+          }
+        } catch (e) {
+          appendLog(`❌ Failed to organize artist: ${e}`);
+        }
+      }
+
+// ─── Init ──────────────────────────────────────────────────────
       loadConfig();
       connectWS();
       loadStats();
       loadManagedArtists();
       setInterval(pollStatus, 2000);
+      setInterval(pollAgentStatus, 5000);
+      refreshMbCacheStats();
     </script>
   </body>
 </html>
