@@ -988,6 +988,20 @@
             </button>
           </div>
 
+          <!-- Real-Time Agent Telemetry & Session Monitoring -->
+          <div style="border-top: 1px solid var(--border); padding-top: 10px; margin-top: 10px;">
+            <div style="font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 6px;">
+              Agent Session Telemetry & Task Monitoring
+              <span class="tip-marker" data-tooltip="Real-time monitoring of autonomous cycle executions, active background tasks, and learned friction scores.">?</span>
+            </div>
+            <div id="agentTelemetryBox" style="font-size: 12px; color: var(--text2); background: var(--bg); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border);">
+              <span>Cycles Completed: <strong id="agentCyclesCount" style="color: var(--text);">0</strong></span> ·
+              <span>Tasks Executed: <strong id="agentTasksCount" style="color: var(--text);">0</strong></span> ·
+              <span>Active Task: <strong id="agentActiveTask" style="color: var(--text);">None</strong></span> ·
+              <span>Friction Metrics: <strong id="agentFrictionScore" style="color: var(--text);">Nominal</strong></span>
+            </div>
+          </div>
+
           <!-- MusicBrainz SQLite Cache Controls -->
           <div style="border-top: 1px solid var(--border); padding-top: 10px; margin-top: 10px;">
             <div style="font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 6px;">
@@ -2098,12 +2112,25 @@ async function renameAlbum(artist, oldName) {
 
       async function pollAgentStatus() {
         try {
-          const r = await fetch('/api/agent/status');
+          const r = await fetch('/api/agent/telemetry');
           const d = await r.json();
           const badge = $('agentStatusBadge');
           if (badge) {
             badge.textContent = 'Agent: ' + (d.is_busy ? 'Running Cycle 🤖' : 'Idle');
             badge.style.color = d.is_busy ? 'var(--primary)' : 'var(--text2)';
+          }
+          if ($('agentCyclesCount')) $('agentCyclesCount').textContent = d.cycles_completed || 0;
+          if ($('agentTasksCount')) $('agentTasksCount').textContent = d.tasks_executed_count || 0;
+          if ($('agentActiveTask')) $('agentActiveTask').textContent = d.active_task || 'None (Idle)';
+          if ($('agentFrictionScore')) {
+            const fp = d.friction_profile || {};
+            const keys = Object.keys(fp);
+            if (keys.length > 0) {
+              const summary = keys.map(k => `${k}:${fp[k].toFixed(1)}s`).join(', ');
+              $('agentFrictionScore').textContent = summary;
+            } else {
+              $('agentFrictionScore').textContent = 'Nominal (No friction recorded)';
+            }
           }
         } catch (e) {}
       }

@@ -17,7 +17,8 @@
 
 ### 3. Comprehensive Backend-to-Frontend Feature Wiring
 - Exposed and wired MusicBrainz SQLite cache statistics (`/api/mb_cache_stats`) and expired cache cleanup (`/api/mb_cache_cleanup`).
-- Exposed and wired Autonomous AI Agent cycle execution (`/api/agent/cycle`) and status monitoring (`/api/agent/status`).
+- Exposed and wired Autonomous AI Agent cycle execution (`/api/agent/cycle`), status monitoring, and real-time session telemetry (`/api/agent/telemetry`).
+- Surfaced real-time telemetry metrics in dashboard (cycles completed, tasks executed count, active task name, and learned friction profile).
 - Added per-artist library folder organization buttons (`/api/organize_artist`).
 
 ### 4. Nondestructive Script Organization

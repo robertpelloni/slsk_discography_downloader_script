@@ -155,6 +155,22 @@ class AgentService:
         self.planner = PlanningModule(self.root_dir, self.learner, logger)
         self.executor = ExecutionModule(orchestrator, protocol_service, logger)
         self.is_busy = False
+        self.cycles_completed = 0
+        self.tasks_executed_count = 0
+        self.active_task: Optional[str] = None
+        self.last_cycle_time: Optional[float] = None
+
+    def get_session_telemetry(self) -> Dict[str, Any]:
+        """Return runtime metrics and monitoring data for the autonomous agent session."""
+        profile = self.learner.get_friction_profile()
+        return {
+            "is_busy": self.is_busy,
+            "active_task": self.active_task,
+            "cycles_completed": self.cycles_completed,
+            "tasks_executed_count": self.tasks_executed_count,
+            "last_cycle_time": self.last_cycle_time,
+            "friction_profile": profile,
+        }
 
     async def run_cycle(self) -> Dict[str, Any]:
         """Perform a single autonomous cycle: Plan -> Execute -> Review."""
@@ -166,6 +182,7 @@ class AgentService:
 
         try:
             self.logger.info("--- Starting Autonomous Agent Cycle ---")
+            self.last_cycle_time = time.time()
 
             # 1. Plan
             objectives = self.planner.prioritize_objectives()
@@ -173,11 +190,13 @@ class AgentService:
 
             # 2. Execute (Handle top 2 for now to prevent runaway loops)
             for obj in objectives[:2]:
+                self.active_task = obj["task"]
                 execution_result = await self.executor.execute_task(obj)
                 results["tasks_executed"].append({
                     "task": obj["task"],
                     "success": execution_result["success"]
                 })
+                self.tasks_executed_count += 1
 
                 # 3. Learn (Self-Learning Loop)
                 self.learner.record_experience(
@@ -187,9 +206,11 @@ class AgentService:
                 )
 
             # 4. Review (Re-run protocol to update workspace state)
+            self.active_task = "Protocol Workspace Review"
             self.logger.info("Agent cycle review: updating technical debt...")
             await self.protocol_review()
 
+            self.cycles_completed += 1
             self.logger.info("--- Autonomous Agent Cycle Complete ---")
 
         except Exception as e:
@@ -197,6 +218,7 @@ class AgentService:
             results["status"] = "failed"
             results["error"] = str(e)
         finally:
+            self.active_task = None
             self.is_busy = False
 
         return results

@@ -103,3 +103,17 @@ async def test_agent_learning_loop(mock_orch, mock_protocol, mock_logger, tmp_pa
     # objectives[0] should be the boosted Documentation task
     assert any(obj['type'] == 'docs' and obj['priority'] == 1 for obj in objectives)
     assert objectives[0]['type'] == 'docs'
+
+@pytest.mark.asyncio
+async def test_agent_telemetry_endpoint():
+    mock_orch = MagicMock()
+    mock_proto = MagicMock()
+    mock_logger = MagicMock()
+    agent = AgentService(orchestrator=mock_orch, protocol_service=mock_proto, logger=mock_logger)
+    telemetry = agent.get_session_telemetry()
+    assert "is_busy" in telemetry
+    assert "cycles_completed" in telemetry
+    assert "tasks_executed_count" in telemetry
+    assert "active_task" in telemetry
+    assert "friction_profile" in telemetry
+    assert telemetry["cycles_completed"] == 0
