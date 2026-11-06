@@ -289,11 +289,18 @@ async def autonomous_fill(
 
     # Run filler as a detached subprocess — isolated from the web server
     base = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
-    python_exe = r"C:\Python314\pythonw.exe"
-    venv_site = _os.path.join(base, "venv", "Lib", "site-packages")
+    is_win = _sys.platform == "win32"
+    if is_win:
+        python_exe = r"C:\Python314\pythonw.exe"
+        if not _os.path.exists(python_exe):
+            python_exe = _sys.executable
+    else:
+        python_exe = _sys.executable
+
     env = _os.environ.copy()
     existing = env.get("PYTHONPATH", "")
-    env["PYTHONPATH"] = venv_site + (";" + existing if existing else "")
+    sep = ";" if is_win else ":"
+    env["PYTHONPATH"] = base + (sep + existing if existing else "")
     env["PYTHONIOENCODING"] = "utf-8"
     filler_script = _os.path.join(base, "filler_worker.py")
     log_path = _os.path.join(base, "filler_output.log")
@@ -309,16 +316,25 @@ async def autonomous_fill(
     ]
     args.extend(request.artist_names)
 
+    popen_kwargs = {
+        "cwd": base,
+        "stdout": log_fh,
+        "stderr": _subprocess.STDOUT,
+        "env": env,
+    }
+    if is_win:
+        creation_flags = 0
+        if hasattr(_subprocess, "CREATE_NO_WINDOW"):
+            creation_flags |= _subprocess.CREATE_NO_WINDOW
+        if hasattr(_subprocess, "CREATE_NEW_PROCESS_GROUP"):
+            creation_flags |= _subprocess.CREATE_NEW_PROCESS_GROUP
+        if creation_flags:
+            popen_kwargs["creationflags"] = creation_flags
+    else:
+        popen_kwargs["start_new_session"] = True
+
     try:
-        proc = _subprocess.Popen(
-            args,
-            cwd=base,
-            stdout=log_fh,
-            stderr=_subprocess.STDOUT,
-            env=env,
-            creationflags=_subprocess.CREATE_NO_WINDOW
-            | _subprocess.CREATE_NEW_PROCESS_GROUP,
-        )
+        proc = _subprocess.Popen(args, **popen_kwargs)
         _write_fill_pid(proc.pid)
         return {
             "message": f"Autonomous fill started (PID {proc.pid})",

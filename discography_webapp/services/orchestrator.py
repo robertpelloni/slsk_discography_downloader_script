@@ -274,46 +274,6 @@ _KNOWN_PSYTRANCE_NAMES = [
     "Nerso",
     "Zyce",
     "Aquafeel",
-    # --- Added 2026-09-14: legitimate psytrance acts that were being rejected
-    # by the genre filter purely because MusicBrainz carries no genre tags for
-    # them. Whitelisting lets them through; DISALLOWED_TAGS still filters out
-    # same-named artists from other genres (e.g. the pop/rock band Chicago, the
-    # metal band Lunatica).
-    "Arma",
-    "ARMA",
-    "Ashtar Command",
-    "Avan7",
-    "Basic Element",
-    "Beat Hackers",
-    "Bionix",
-    "ClayHeadz",
-    "Cronyx",
-    "Crop Circles",
-    "Epsylon 9",
-    "Fungus Funk",
-    "Jumpstreet",
-    "Lunatica",
-    "Madnetic",
-    "Magik",
-    "Solitary Shell",
-    "Synkronic",
-    "Transient Disorder",
-    "Zephirus Kane",
-    "Zeridium",
-    "Chicago",
-    "1300 Micrograms",
-    "Shanti V Deedrah",
-    "Tyler Jack",
-    "Spectra Sonics",
-    "Galactic Explorers",
-    "Sonic Entity",
-    "Man With No Name",
-    "Ital",
-    "Andrea Braggio",
-    "Abomination",
-    "DJ KETAFLUSH",
-    "Mosq Intelligence",
-    "Kraftwek Orange",
 ]
 
 
@@ -1579,17 +1539,6 @@ class Orchestrator:
 
                     self.logger.info(f"  Downloading from {user}...")
                     try:
-                        transfer = await self.slsk_service.download_file(
-                            user,
-                            remote_path,
-                            size=cand.get("size", 0),
-                            download_directory=target_dir,
-                        )
-                    except Exception as e:
-                        self.logger.warning(f"  Queue failed: {e}")
-                        continue
-
-                    try:
                         done = await self._wait_for_transfer(transfer, timeout=120)
                         if done == "complete":
                             local_path = getattr(transfer, "local_path", None)
@@ -1597,11 +1546,7 @@ class Orchestrator:
                                 shutil.move(local_path, local_target)
                                 self.logger.info(f"  ✓ Done: {final_filename}")
                                 success = True
-                            else:
-                                self.logger.warning(
-                                    "  ✗ Transfer complete but file missing: "
-                                    f"{final_filename}"
-                                )
+                            self.logger.warning("  ✗ Transfer failed")
                         else:
                             self.logger.warning("  ⏱ Timeout")
                     except Exception as e:
@@ -2421,10 +2366,32 @@ class Orchestrator:
             if target_dir in self.album_tracker:
                 del self.album_tracker[target_dir]
 
-    # NOTE: the old `monitor_downloads()` legacy loop was removed on 2026-09-14.
-    # It was never called from anywhere and its body referenced an undefined
-    # `local_path`, so it could only ever have raised NameError. Downloads are
-    # tracked by _wait_for_transfer/_finalize_album instead.
+    # ─── Legacy Monitor ───────────────────────────────────────────
+
+    async def monitor_downloads(self):
+        while self.is_running or self.active_downloads:
+            if self.should_stop and not self.active_downloads:
+                break
+            finished = []
+            failed = []
+            for remote_path, info in list(self.active_downloads.items()):
+                if local_path and os.path.exists(local_path):
+                    target_path = os.path.join(info["target_dir"], info["filename"])
+                    try:
+                        shutil.move(local_path, target_path)
+                    except Exception as e:
+                        self.logger.error(f"Move error: {e}")
+                finished.append(remote_path)
+                failed.append(remote_path)
+
+            for key in finished + failed:
+                if key in self.active_downloads:
+                    info = self.active_downloads.pop(key)
+                    td = info["target_dir"]
+                    if td in self.album_tracker:
+                        self.album_tracker[td]["done"] += 1
+                    await self._finalize_album(td)
+            await asyncio.sleep(1)
 
     async def check_album_completion(self, target_dir):
         await self._finalize_album(target_dir)
