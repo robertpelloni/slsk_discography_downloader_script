@@ -20,6 +20,9 @@
 - Exposed and wired Autonomous AI Agent cycle execution (`/api/agent/cycle`), status monitoring, and real-time session telemetry (`/api/agent/telemetry`).
 - Surfaced real-time telemetry metrics in dashboard (cycles completed, tasks executed count, active task name, and learned friction profile).
 - Added per-artist library folder organization buttons (`/api/organize_artist`).
+- Stabilized `bob_soulseek_rs` bridge with `RateLimiter` (concurrency and interval throttling) and exponential backoff retry with jitter to prevent peer 429/400 errors.
+- Added comprehensive unit tests in `tests/test_rust_soulseek.py` for retry and rate limiter functionality.
+- Restored `discography_webapp/watchdog.py` health monitoring service.
 
 ### 4. Nondestructive Script Organization
 - Backed up and organized scripts into `scripts_archive/`.
