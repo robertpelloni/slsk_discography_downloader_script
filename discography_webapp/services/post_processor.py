@@ -330,13 +330,14 @@ class PostProcessor:
             except OSError:
                 new_path = old_path
 
-        # Optional: verify lossless integrity
-        if self.config_service.get("sentinel_enabled", False) and ext in (
-            ".flac",
-            ".wav",
-        ):
-            if not await self._verify_lossless(new_path):
-                self.logger.warning(f"Fake FLAC detected, removing: {filename}")
+        # Optional: verify lossless integrity using Neural Sentinel and AcoustID fingerprinting
+        sentinel_enabled = self.config_service.get("sentinel_enabled", False)
+        acoustid_verify = self.config_service.get("acoustid_verify", False)
+
+        if (sentinel_enabled or acoustid_verify) and ext in (".flac", ".wav"):
+            is_valid_lossless = await self._verify_lossless(new_path)
+            if not is_valid_lossless:
+                self.logger.warning(f"Fake or up-scaled FLAC detected by audio forensics, removing: {filename}")
                 try:
                     os.remove(new_path)
                 except Exception:
