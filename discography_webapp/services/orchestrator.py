@@ -2213,7 +2213,23 @@ class Orchestrator:
                     )
                 continue
 
-            done = await self._wait_for_transfer(transfer, timeout=120)
+            # Automatic retry loop for stalled or timed-out transfers
+            done = "failed"
+            max_item_retries = 2
+            for item_attempt in range(max_item_retries + 1):
+                if item_attempt > 0:
+                    self.logger.info(f"  [{i + 1}/{total}] Retrying stalled download (attempt {item_attempt + 1})...")
+                    try:
+                        transfer = await self.slsk_service.download_file(
+                            user, remote_path, size=file_size, download_directory=target_dir
+                        )
+                    except Exception as retry_err:
+                        self.logger.warning(f"  [{i + 1}/{total}] Retry queue failed: {retry_err}")
+                        break
+
+                done = await self._wait_for_transfer(transfer, timeout=120)
+                if done == "complete" or self.should_stop:
+                    break
 
             if done == "complete":
                 local_path = getattr(transfer, "local_path", None)
@@ -2229,6 +2245,7 @@ class Orchestrator:
                 reason = (
                     getattr(transfer, "fail_reason", "")
                     or getattr(transfer, "abort_reason", "")
+                    or getattr(transfer, "error", None)
                     or "unknown"
                 )
                 self.logger.warning(f"  [{i + 1}/{total}] ✗ Failed: {reason}")
@@ -2240,7 +2257,7 @@ class Orchestrator:
                         f"{MAX_CONSECUTIVE_FAILURES} failures"
                     )
             else:
-                self.logger.warning(f"  [{i + 1}/{total}] ⏱ Timeout")
+                self.logger.warning(f"  [{i + 1}/{total}] ⏱ Timeout / Stalled")
                 self.album_tracker[target_dir]["done"] += 1
                 consecutive_failures += 1
                 if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
@@ -2251,15 +2268,26 @@ class Orchestrator:
 
         await self._finalize_album(target_dir)
 
-    async def _wait_for_transfer(self, transfer, timeout=180):
+    async def _wait_for_transfer(self, transfer, timeout=180, stall_threshold=45):
+        """Wait for a transfer to complete, detecting stalled progress or peer hangs."""
         from aioslsk.transfer.state import TransferState
 
         waited = 0
+        last_bytes = -1
+        stalled_seconds = 0
+
         while waited < timeout:
             if self.should_stop:
                 return "stopped"
 
-            # Check actual transfer state
+            # Check RustTransfer object FFI states
+            if hasattr(transfer, "is_finished"):
+                if getattr(transfer, "is_finished", False):
+                    if getattr(transfer, "error", None):
+                        return "failed"
+                    return "complete"
+
+            # Check actual aioslsk transfer state
             try:
                 state_val = transfer.state.VALUE
                 if state_val == TransferState.COMPLETE:
@@ -2275,6 +2303,24 @@ class Orchestrator:
                 if state_val == TransferState.COMPLETE:
                     return "complete"
                 return "failed"
+
+            # Stalled transfer detection: check byte progress
+            current_bytes = (
+                getattr(transfer, "bytes_transferred", None)
+                or getattr(transfer, "offset", None)
+                or -1
+            )
+            if current_bytes != -1:
+                if current_bytes == last_bytes:
+                    stalled_seconds += 1
+                    if stalled_seconds >= stall_threshold:
+                        self.logger.warning(
+                            f"Transfer stalled at {current_bytes} bytes for {stalled_seconds}s. Aborting wait."
+                        )
+                        return "stalled"
+                else:
+                    stalled_seconds = 0
+                    last_bytes = current_bytes
 
             await asyncio.sleep(1)
             waited += 1

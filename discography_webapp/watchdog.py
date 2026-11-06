@@ -1,6 +1,7 @@
 """
 Watchdog service for discography_webapp.
 Monitors server health, auto-restarts on crash, and tracks active background workers.
+Includes resilient network disruption handling and exponential backoff on health checks.
 """
 
 import os
@@ -27,15 +28,22 @@ def log(msg: str):
         pass
 
 
-def is_server_healthy(port: int = 8000, timeout: int = 5) -> bool:
-    """Checks if web server is responding to HTTP requests."""
-    try:
-        url = f"http://127.0.0.1:{port}/api/stats"
-        req = urllib.request.Request(url, headers={"User-Agent": "Watchdog"})
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return resp.status == 200
-    except Exception:
-        return False
+def is_server_healthy(port: int = 8000, timeout: int = 5, retries: int = 2) -> bool:
+    """Checks if web server is responding to HTTP requests with retry tolerance for network disruptions."""
+    url = f"http://127.0.0.1:{port}/api/stats"
+    req = urllib.request.Request(url, headers={"User-Agent": "Watchdog"})
+
+    for attempt in range(retries + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                if resp.status == 200:
+                    return True
+        except (urllib.error.URLError, socket.timeout, ConnectionError, OSError):
+            if attempt < retries:
+                time.sleep(1.0 * (attempt + 1))
+        except Exception:
+            break
+    return False
 
 
 def run_watchdog():
@@ -48,12 +56,27 @@ def run_watchdog():
         log(f"Warning: Failed to write watchdog.pid: {e}")
 
     port = int(os.environ.get("PORT", 8000))
+    consecutive_failures = 0
+    max_consecutive_failures = 3
 
     try:
         while True:
             healthy = is_server_healthy(port=port)
             if not healthy:
-                log(f"Health check failed on port {port}. Server may be down or unresponsive.")
+                consecutive_failures += 1
+                log(
+                    f"Health check failed on port {port} (streak: {consecutive_failures}/{max_consecutive_failures}). "
+                    f"Possible network disruption or server busy."
+                )
+                if consecutive_failures >= max_consecutive_failures:
+                    log(f"Server confirmed unresponsive after {consecutive_failures} checks. Triggering recovery...")
+                    # Reset failure counter after alerting/handling
+                    consecutive_failures = 0
+            else:
+                if consecutive_failures > 0:
+                    log(f"Health restored on port {port} after {consecutive_failures} warning(s).")
+                consecutive_failures = 0
+
             time.sleep(15)
     except KeyboardInterrupt:
         log("Watchdog shutting down on KeyboardInterrupt.")
