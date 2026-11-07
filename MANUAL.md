@@ -64,5 +64,12 @@ Visit the **Performance Metrics** tab to compare implementation speeds. Enter a 
 - **Path Safety:** All file operations are protected by path-traversal validation.
 - **Credentials:** Your Soulseek credentials and API keys are stored locally in `.env` and are never shared or logged.
 
+### 6. Consolidated Dashboard & Interactive Guidance (v2.2.0)
+- **High-Value Consolidation:** Primary workflows (Artist Discography and Playlist downloads) are featured at the top with intuitive tab switching.
+- **Interactive Tooltips:** Every button, input field, and configuration checkbox is annotated with hover guidance (`[data-tooltip]` and `?` badges) explaining its purpose and operation.
+- **Server Process Control:** Convenient `Restart Server` and `Shutdown` buttons in the top navbar enable quick service management with confirmation dialogs.
+- **System Tray Integration:** System tray monitor supporting background health polling, activity event streams, and menu actions to open web UI, restart server, shut down server, or exit.
+- **Comprehensive Backend Controls:** Integrated controls for MusicBrainz metadata cache statistics and expiration cleanup, autonomous agent cycle triggering, and single-artist library organization.
+
 ---
-*Version: v0.9.9 · Created by Jules AI*
+*Version: v2.2.0 · Maintained by Jules AI*

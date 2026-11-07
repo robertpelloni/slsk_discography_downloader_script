@@ -65,3 +65,50 @@ async def test_rust_soulseek_download():
             assert transfer.is_finished is True
             assert transfer.error is None
             mock_download.assert_called_once_with("user1", "test.mp3", 100, ".")
+
+@pytest.mark.asyncio
+async def test_rust_soulseek_download_retry_and_reconnect():
+    """Verify that download_file retries on transient errors, attempts reconnect, and succeeds."""
+    service = RustSoulseekService('testuser', 'testpass', max_retries=2, base_backoff=0.01)
+    service._connected = True
+
+    with patch('discography_webapp.services.rust_soulseek.RUST_AVAILABLE', True):
+        with patch('bob_soulseek_rs.connect_to_soulseek_async') as mock_connect, \
+             patch('bob_soulseek_rs.rust_download_async') as mock_download:
+
+            f_connect = asyncio.Future()
+            f_connect.set_result(True)
+            mock_connect.return_value = f_connect
+
+            # Fail first attempt, succeed on second attempt
+            f_fail = asyncio.Future()
+            f_fail.set_exception(RuntimeError("Peer 429 rate limit error"))
+
+            mock_transfer = MockTransfer("retry_test.flac")
+            f_succ = asyncio.Future()
+            f_succ.set_result(mock_transfer)
+
+            mock_download.side_effect = [f_fail, f_succ]
+
+            transfer = await service.download_file("user2", "retry_test.flac", 500, ".")
+            assert transfer.filename == "retry_test.flac"
+            assert mock_download.call_count == 2
+            assert mock_connect.call_count == 1
+
+@pytest.mark.asyncio
+async def test_rust_soulseek_rate_limiter_throttles():
+    """Verify that RateLimiter limits rapid burst calls."""
+    from discography_webapp.services.rust_soulseek import RateLimiter
+    import time
+
+    limiter = RateLimiter(min_interval=0.1, max_concurrent=2)
+
+    start = time.monotonic()
+    await limiter.acquire()
+    limiter.release()
+
+    await limiter.acquire()
+    limiter.release()
+
+    elapsed = time.monotonic() - start
+    assert elapsed >= 0.09

@@ -119,19 +119,38 @@ def _open_ui(icon):
     log_event("Opened web UI in browser")
 
 
-def _restart(icon):
+def _restart(icon=None):
     log_event("Restart request sent to server")
     try:
-        req = urllib.request.Request(f"{HOST}/api/stop", method="POST")
+        req = urllib.request.Request(f"{HOST}/api/server/restart", method="POST")
         urllib.request.urlopen(req, timeout=5)
+        log_event("Server restart triggered successfully")
     except Exception as e:
         log_event(f"Restart failed: {e}")
 
 
-def _exit_app(icon):
+def _shutdown_server(icon=None):
+    log_event("Shutdown request sent to server")
+    try:
+        req = urllib.request.Request(f"{HOST}/api/server/shutdown", method="POST")
+        urllib.request.urlopen(req, timeout=5)
+        log_event("Server shutdown triggered successfully")
+    except Exception as e:
+        log_event(f"Shutdown failed: {e}")
+
+
+def _exit_app(icon=None):
     log_event("Systray exiting")
-    icon.stop()
+    if icon is not None and hasattr(icon, "stop"):
+        icon.stop()
     os._exit(0)
+
+
+def _quit_all(icon=None):
+    log_event("Quit all requested: stopping server and systray")
+    _shutdown_server(icon)
+    time.sleep(1)
+    _exit_app(icon)
 
 
 # ── Windows tray icon ────────────────────────────────────────────
@@ -192,8 +211,10 @@ def run_tray():
             items.append(Menu.SEPARATOR)
         items.append(MenuItem("🌐 Open Web UI", _open_ui, default=True))
         items.append(MenuItem("🔄 Restart Server", _restart))
+        items.append(MenuItem("⏹️ Shutdown Server", _shutdown_server))
         items.append(Menu.SEPARATOR)
-        items.append(MenuItem("❌ Exit", _exit_app))
+        items.append(MenuItem("❌ Quit All (Server & Tray)", _quit_all))
+        items.append(MenuItem("🚪 Exit Systray Only", _exit_app))
         return Menu(*items)
 
     icon = Icon(

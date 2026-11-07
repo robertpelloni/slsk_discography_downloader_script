@@ -1,5 +1,6 @@
 import json as _json
 import os as _os
+import sys as _sys
 import subprocess as _subprocess
 
 from fastapi import APIRouter, BackgroundTasks, Request, Depends
@@ -288,11 +289,18 @@ async def autonomous_fill(
 
     # Run filler as a detached subprocess — isolated from the web server
     base = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
-    python_exe = r"C:\Python314\pythonw.exe"
-    venv_site = _os.path.join(base, "venv", "Lib", "site-packages")
+    is_win = _sys.platform == "win32"
+    if is_win:
+        python_exe = r"C:\Python314\pythonw.exe"
+        if not _os.path.exists(python_exe):
+            python_exe = _sys.executable
+    else:
+        python_exe = _sys.executable
+
     env = _os.environ.copy()
     existing = env.get("PYTHONPATH", "")
-    env["PYTHONPATH"] = venv_site + (";" + existing if existing else "")
+    sep = ";" if is_win else ":"
+    env["PYTHONPATH"] = base + (sep + existing if existing else "")
     env["PYTHONIOENCODING"] = "utf-8"
     filler_script = _os.path.join(base, "filler_worker.py")
     log_path = _os.path.join(base, "filler_output.log")
@@ -308,16 +316,25 @@ async def autonomous_fill(
     ]
     args.extend(request.artist_names)
 
+    popen_kwargs = {
+        "cwd": base,
+        "stdout": log_fh,
+        "stderr": _subprocess.STDOUT,
+        "env": env,
+    }
+    if is_win:
+        creation_flags = 0
+        if hasattr(_subprocess, "CREATE_NO_WINDOW"):
+            creation_flags |= _subprocess.CREATE_NO_WINDOW
+        if hasattr(_subprocess, "CREATE_NEW_PROCESS_GROUP"):
+            creation_flags |= _subprocess.CREATE_NEW_PROCESS_GROUP
+        if creation_flags:
+            popen_kwargs["creationflags"] = creation_flags
+    else:
+        popen_kwargs["start_new_session"] = True
+
     try:
-        proc = _subprocess.Popen(
-            args,
-            cwd=base,
-            stdout=log_fh,
-            stderr=_subprocess.STDOUT,
-            env=env,
-            creationflags=_subprocess.CREATE_NO_WINDOW
-            | _subprocess.CREATE_NEW_PROCESS_GROUP,
-        )
+        proc = _subprocess.Popen(args, **popen_kwargs)
         _write_fill_pid(proc.pid)
         return {
             "message": f"Autonomous fill started (PID {proc.pid})",
@@ -332,9 +349,40 @@ async def autonomous_fill(
 
 @router.post("/api/stop")
 async def stop_job(orch=Depends(get_orch)):
+    """Stop the currently running download/filling job."""
     if orch.is_running:
         orch.stop_job()
     return {"message": "Stopped"}
+
+
+@router.post("/api/server/shutdown")
+async def shutdown_server(background_tasks: BackgroundTasks, orch=Depends(get_orch)):
+    """Gracefully terminate background jobs and shut down the web server process."""
+    if orch.is_running:
+        orch.stop_job()
+
+    def _delayed_exit():
+        import time as _t
+        _t.sleep(0.5)
+        _os._exit(0)
+
+    background_tasks.add_task(_delayed_exit)
+    return {"message": "Server shutting down"}
+
+
+@router.post("/api/server/restart")
+async def restart_server(background_tasks: BackgroundTasks, orch=Depends(get_orch)):
+    """Gracefully stop current job and re-exec / restart the server process."""
+    if orch.is_running:
+        orch.stop_job()
+
+    def _delayed_restart():
+        import time as _t
+        _t.sleep(0.8)
+        _os.execv(_sys.executable, [_sys.executable] + _sys.argv)
+
+    background_tasks.add_task(_delayed_restart)
+    return {"message": "Server restarting"}
 
 
 @router.post("/api/pause")

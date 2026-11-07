@@ -18,3 +18,7 @@ async def run_agent_cycle(background_tasks: BackgroundTasks, agent: AgentService
 @router.get("/api/agent/status")
 async def get_agent_status(agent: AgentService = Depends(get_agent_service)):
     return {"is_busy": agent.is_busy}
+
+@router.get("/api/agent/telemetry")
+async def get_agent_telemetry(agent: AgentService = Depends(get_agent_service)):
+    return agent.get_session_telemetry()
