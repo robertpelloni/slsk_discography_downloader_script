@@ -60,10 +60,37 @@ class LearningModule:
         return profile
 
 class PlanningModule:
-    def __init__(self, root_dir: str, learning_module: LearningModule, logger):
+    def __init__(self, root_dir: str, learning_module: LearningModule, logger, orchestrator=None):
         self.root_dir = root_dir
         self.learner = learning_module
         self.logger = logger
+        self.orch = orchestrator
+
+    async def plan_proactive_downloads(self) -> List[Dict[str, Any]]:
+        """Query managed artists and construct proactive download/gap-filling objectives."""
+        download_objectives = []
+        if not self.orch or not hasattr(self.orch, "get_managed_artists"):
+            return download_objectives
+
+        try:
+            managed = await self.orch.get_managed_artists()
+            # Prioritize active primary artists for gap scanning
+            active_artists = managed.get("active", []) if isinstance(managed, dict) else []
+            for artist in active_artists[:5]:
+                name = artist.get("name")
+                aid = artist.get("artist_id")
+                if name:
+                    download_objectives.append({
+                        "task": f"Proactive Gap Scan: {name}",
+                        "priority": 1,
+                        "type": "download_plan",
+                        "artist_name": name,
+                        "artist_id": aid
+                    })
+        except Exception as e:
+            self.logger.warning(f"PlanningModule: Error evaluating managed artists: {e}")
+
+        return download_objectives
 
     def prioritize_objectives(self) -> List[Dict[str, Any]]:
         """Analyze TODO.md and ROADMAP.md to determine next actions."""
@@ -124,6 +151,16 @@ class ExecutionModule:
                 await self.protocol.sync_repository()
                 success = True
 
+            elif objective['type'] == 'download_plan':
+                # Proactively scan artist for gaps and search Soulseek
+                artist_name = objective.get("artist_name")
+                if self.orch and artist_name and hasattr(self.orch, "scan_artists"):
+                    self.logger.info(f"Agent proactively scanning discography for: {artist_name}")
+                    scan_results = await self.orch.scan_artists([artist_name], depth=1)
+                    success = bool(scan_results)
+                else:
+                    success = True
+
             elif objective['type'] == 'milestone':
                 # Trigger roadmap extraction to update status
                 await self.protocol.extract_roadmap()
@@ -150,15 +187,17 @@ class ExecutionModule:
 class AgentService:
     def __init__(self, orchestrator, protocol_service, logger, db_path: str = DB_PATH, root_dir: Optional[str] = None):
         self.logger = logger
+        self.orch = orchestrator
         self.root_dir = root_dir or os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         self.learner = LearningModule(logger, db_path=db_path)
-        self.planner = PlanningModule(self.root_dir, self.learner, logger)
+        self.planner = PlanningModule(self.root_dir, self.learner, logger, orchestrator=orchestrator)
         self.executor = ExecutionModule(orchestrator, protocol_service, logger)
         self.is_busy = False
         self.cycles_completed = 0
         self.tasks_executed_count = 0
         self.active_task: Optional[str] = None
         self.last_cycle_time: Optional[float] = None
+        self.planned_downloads: List[Dict[str, Any]] = []
 
     def get_session_telemetry(self) -> Dict[str, Any]:
         """Return runtime metrics and monitoring data for the autonomous agent session."""
@@ -169,6 +208,8 @@ class AgentService:
             "cycles_completed": self.cycles_completed,
             "tasks_executed_count": self.tasks_executed_count,
             "last_cycle_time": self.last_cycle_time,
+            "planned_downloads": self.planned_downloads,
+            "planned_downloads_count": len(self.planned_downloads),
             "friction_profile": profile,
         }
 
@@ -186,7 +227,15 @@ class AgentService:
 
             # 1. Plan
             objectives = self.planner.prioritize_objectives()
-            self.logger.info(f"Agent identified {len(objectives)} objectives.")
+
+            # Merge proactive download tasks
+            proactive_tasks = await self.planner.plan_proactive_downloads()
+            self.planned_downloads = proactive_tasks
+            if proactive_tasks:
+                self.logger.info(f"Agent generated {len(proactive_tasks)} proactive download objectives.")
+                objectives = proactive_tasks[:2] + objectives
+
+            self.logger.info(f"Agent prioritized {len(objectives)} total objectives.")
 
             # 2. Execute (Handle top 2 for now to prevent runaway loops)
             for obj in objectives[:2]:
