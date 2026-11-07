@@ -85,3 +85,4 @@ Fixed merge markers visible in the dashboard by resolving `VERSION.md` conflict.
 - Systray: star icon with activity log
 - Filler: active, searches working at 94% success rate (was 2.5%)
 - MB cache: ready, will speed up subsequent scans from hours to seconds
+- Agent Service: proactive download planning and telemetry metrics integrated (`/api/agent/telemetry`)

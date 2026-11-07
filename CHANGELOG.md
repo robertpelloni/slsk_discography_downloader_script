@@ -6,6 +6,8 @@
 - **Server Lifecycle Management**: Added `/api/server/shutdown` and `/api/server/restart` API endpoints with interactive frontend confirmation dialogs.
 - **Enhanced Systray Integration**: Updated `discography_webapp/systray.py` to support graceful server process quit and restart actions with robust health monitoring.
 - **Full Backend-to-Frontend Feature Wiring**: Wired MusicBrainz SQLite cache monitoring & cleanup (`/api/mb_cache_stats`, `/api/mb_cache_cleanup`), Autonomous Agent cycle triggers (`/api/agent/cycle`, `/api/agent/status`), and single-artist library organization (`/api/organize_artist`).
+- **Proactive Download Planning & Agent Telemetry**: Added `plan_proactive_downloads` in `PlanningModule` to query managed artists and proactively scan discographies; surfaced real-time agent session telemetry and download queue state via `/api/agent/telemetry`.
+- **P2P Rate Limiter & Stalled Transfer Auto-Recovery**: Added token-bucket `RateLimiter` with jittered exponential retry in `RustSoulseekService` and byte-progress monitoring in `Orchestrator._wait_for_transfer`.
 - **Nondestructive Script Architecture**: Backed up original automation files in `scripts_archive/` and unified `run_server.sh` for cross-platform execution.
 
 ## [2.1.0]
