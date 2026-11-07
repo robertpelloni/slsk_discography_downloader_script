@@ -128,3 +128,31 @@ def test_filter_related_artists(orchestrator):
     ]
     filtered_member = orchestrator._filter_related_artists(related_with_member, "GMS")
     assert 'Artist D' in [a['name'] for a in filtered_member]
+
+@pytest.mark.asyncio
+async def test_wait_for_transfer_rust_transfer():
+    logger = MagicMock()
+    orch = Orchestrator(logger, MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock())
+
+    class DummyRustTransfer:
+        def __init__(self, finished=True, error=None):
+            self.is_finished = finished
+            self.error = error
+
+    res_succ = await orch._wait_for_transfer(DummyRustTransfer(finished=True), timeout=5)
+    assert res_succ == "complete"
+
+    res_err = await orch._wait_for_transfer(DummyRustTransfer(finished=True, error="Peer dropped"), timeout=5)
+    assert res_err == "failed"
+
+@pytest.mark.asyncio
+async def test_wait_for_transfer_stalled_detection():
+    logger = MagicMock()
+    orch = Orchestrator(logger, MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock())
+
+    class DummyStalledTransfer:
+        def __init__(self):
+            self.bytes_transferred = 1024
+
+    res = await orch._wait_for_transfer(DummyStalledTransfer(), timeout=5, stall_threshold=2)
+    assert res == "stalled"

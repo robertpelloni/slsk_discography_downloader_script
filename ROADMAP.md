@@ -9,3 +9,4 @@
 - [x] Phase 7: Server stability - thread safety, socket timeouts, filler subprocess isolation, watchdog hardening.
 - [x] Phase 8: MusicBrainz caching - SQLite cache with TTL for artist/discography data.
 - [x] Phase 9: Soulseek reliability - connection state detection, rate limiting, auto-retry.
+- [x] Phase 10: Unified UX & High-Value Dashboard Consolidation - Single-page consolidated workflows, interactive tooltips, server lifecycle endpoints, and comprehensive backend wiring.

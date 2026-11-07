@@ -1,3 +1,39 @@
+# Handoff — Session 2026-07-14 (v2.2.0)
+
+## Summary of Accomplishments (v2.2.0)
+
+### 1. High-Value Consolidated Dashboard Redesign
+- Redesigned `discography_webapp/templates/index.html` into a unified single-page layout without fragmented subpages.
+- Consolidated the top-tier primary workflows into organized tab panels:
+  - **Artist Discography & Gap Filler**: Artist input, related depth spidering, autonomous fill, dry run, and MusicBrainz release tree review.
+  - **Playlist & Single Tracks**: Custom folder target, line-separated track parser, sequential track numbering switch, and batch downloader.
+- Deployed comprehensive interactive tooltips (`[data-tooltip]` and `?` guidance badges) across all inputs, action triggers, switches, and metrics.
+- Added live status bar showing Server state, Agent state, MusicBrainz cache indicators, and audio library counts.
+
+### 2. Server Lifecycle & System Tray Control
+- Implemented `/api/server/shutdown` and `/api/server/restart` API endpoints in `discography_webapp/routers/core.py` with graceful subprocess and worker termination.
+- Upgraded `discography_webapp/systray.py` menu actions to allow restarting the server, shutting down the server, and full graceful app exit ("Quit All").
+- Wired frontend header buttons with confirmation prompts for restarting or shutting down the server.
+
+### 3. Comprehensive Backend-to-Frontend Feature Wiring
+- Exposed and wired MusicBrainz SQLite cache statistics (`/api/mb_cache_stats`) and expired cache cleanup (`/api/mb_cache_cleanup`).
+- Exposed and wired Autonomous AI Agent cycle execution (`/api/agent/cycle`), status monitoring, and real-time session telemetry (`/api/agent/telemetry`).
+- Surfaced real-time telemetry metrics in dashboard (cycles completed, tasks executed count, active task name, and learned friction profile).
+- Added per-artist library folder organization buttons (`/api/organize_artist`).
+- Stabilized `bob_soulseek_rs` bridge with `RateLimiter` (concurrency and interval throttling) and exponential backoff retry with jitter to prevent peer 429/400 errors.
+- Added comprehensive unit tests in `tests/test_rust_soulseek.py` for retry and rate limiter functionality.
+- Restored `discography_webapp/watchdog.py` health monitoring service.
+
+### 4. Nondestructive Script Organization
+- Backed up and organized scripts into `scripts_archive/`.
+- Modernized `discography_webapp/run_server.sh` with robust Python interpreter detection and cross-platform execution.
+
+### 5. Verification & Testing
+- Full unit and integration test suite passing cleanly (`PYTHONPATH=. python -m pytest tests/` - 28 passed, 3 skipped).
+- Visual UI verification conducted with Playwright capturing screenshots of overview and playlist modes (`/home/jules/verification/dashboard_overview.png`).
+
+---
+
 # Handoff — Session 2026-07-12/13
 
 ## Completed Work
@@ -49,3 +85,4 @@ Fixed merge markers visible in the dashboard by resolving `VERSION.md` conflict.
 - Systray: star icon with activity log
 - Filler: active, searches working at 94% success rate (was 2.5%)
 - MB cache: ready, will speed up subsequent scans from hours to seconds
+- Agent Service: proactive download planning and telemetry metrics integrated (`/api/agent/telemetry`)
