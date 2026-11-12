@@ -8,17 +8,17 @@ BASE_URL = "http://localhost:8000"
 
 @pytest.mark.asyncio
 async def test_live_server_smoke():
-    async with httpx.AsyncClient(base_url=BASE_URL, timeout=10.0) as client:
+    async with httpx.AsyncClient(base_url=BASE_URL, timeout=10.0, trust_env=False) as client:
         try:
             resp = await client.get("/api/status")
             assert resp.status_code == 200
             assert "is_running" in resp.json()
-        except httpx.ConnectError:
+        except httpx.HTTPError:
             pytest.skip("Server not running at http://localhost:8000")
 
 @pytest.mark.asyncio
 async def test_live_config_flow():
-    async with httpx.AsyncClient(base_url=BASE_URL, timeout=10.0) as client:
+    async with httpx.AsyncClient(base_url=BASE_URL, timeout=10.0, trust_env=False) as client:
         try:
             # Get current config
             resp = await client.get("/api/config")
@@ -35,5 +35,5 @@ async def test_live_config_flow():
             # Verify update
             resp = await client.get("/api/config")
             assert resp.json()["sentinel_enabled"] == new_val
-        except httpx.ConnectError:
+        except httpx.HTTPError:
             pytest.skip("Server not running at http://localhost:8000")

@@ -10,3 +10,4 @@
 - [x] Phase 8: MusicBrainz caching - SQLite cache with TTL for artist/discography data.
 - [x] Phase 9: Soulseek reliability - connection state detection, rate limiting, auto-retry.
 - [x] Phase 10: Unified UX & High-Value Dashboard Consolidation - Single-page consolidated workflows, interactive tooltips, server lifecycle endpoints, and comprehensive backend wiring.
+- [x] Phase 11: Multi-Branch & Stash Reconciliation, Credential Isolation, and Persistent Memory/Database Tracking (v2.3.0).

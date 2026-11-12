@@ -156,3 +156,25 @@ async def test_wait_for_transfer_stalled_detection():
 
     res = await orch._wait_for_transfer(DummyStalledTransfer(), timeout=5, stall_threshold=2)
     assert res == "stalled"
+
+
+def test_cooldown_blacklist_expiry():
+    from discography_webapp.services.orchestrator import _CooldownBlacklist
+
+    bl = _CooldownBlacklist(cooldown_seconds=0.05)
+    bl.add("slow_peer")
+    assert "slow_peer" in bl
+    import time as _t
+
+    _t.sleep(0.08)
+    assert "slow_peer" not in bl
+
+
+def test_reconciled_psytrance_whitelist():
+    from discography_webapp.services.orchestrator import is_psytrance_artist
+
+    assert is_psytrance_artist({"name": "Jumpstreet", "tag-list": []}) is True
+    assert is_psytrance_artist({"name": "Eskimo", "tag-list": []}) is True
+    # Ambiguous homonym with disallowed rock tag must still be rejected
+    assert is_psytrance_artist({"name": "Chicago", "tag-list": [{"name": "rock"}]}) is False
+

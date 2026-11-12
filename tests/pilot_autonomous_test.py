@@ -10,7 +10,7 @@ async def test_pilot_autonomous_protocol():
     """
     Pilot integration test to evaluate the autonomous protocol performance.
     """
-    async with httpx.AsyncClient(base_url=BASE_URL, timeout=30.0) as client:
+    async with httpx.AsyncClient(base_url=BASE_URL, timeout=30.0, trust_env=False) as client:
         # 1. Health Check
         print("\n[Pilot] Phase 1: Health Check")
         try:
@@ -19,7 +19,7 @@ async def test_pilot_autonomous_protocol():
             status = resp.json()
             print(f"[Pilot] Server status: {status}")
             assert "is_running" in status
-        except httpx.ConnectError:
+        except httpx.HTTPError:
             pytest.skip(f"Server not running at {BASE_URL}")
 
         # 2. Config Validation

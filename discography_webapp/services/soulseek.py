@@ -63,7 +63,6 @@ class SoulseekService:
 
     async def connect(self, username, password):
         try:
-            import aioslsk
             from aioslsk.client import SoulSeekClient
             from aioslsk.settings import (
                 Settings as SlskSettings,
@@ -98,19 +97,57 @@ class SoulseekService:
         self.username = username
         self.password = password
 
+        import random as _random
+
+        _listen_port = _random.randint(50000, 59999)
+        try:
+            from aioslsk.settings import ListeningSettings
+
+            network_cfg = NetworkSettings(
+                peer=PeerSettings(connect_mode=PeerConnectMode.FALLBACK),
+                listening=ListeningSettings(
+                    port=_listen_port, obfuscated_port=_listen_port + 1
+                ),
+            )
+            has_listening_cfg = True
+        except Exception:
+            network_cfg = NetworkSettings(
+                peer=PeerSettings(connect_mode=PeerConnectMode.FALLBACK)
+            )
+            has_listening_cfg = False
+
         settings = SlskSettings(
             credentials=CredentialsSettings(
                 username=self.username, password=self.password
             ),
             shares=SharesSettings(download=self.download_path),
-            network=NetworkSettings(
-                peer=PeerSettings(connect_mode=PeerConnectMode.FALLBACK)
-            ),
+            network=network_cfg,
             searches=SearchSettings(max_results=200),
         )
 
         self.client = SoulSeekClient(settings)
-        await self.client.start()
+        # Retry starting the client in case listening port binding hits Windows TCP TIME_WAIT
+        _start_attempts = 3
+        for _attempt in range(_start_attempts):
+            try:
+                await self.client.start()
+                break
+            except Exception as _start_err:
+                if (
+                    has_listening_cfg
+                    and "listening port" in str(_start_err).lower()
+                    and _attempt < _start_attempts - 1
+                ):
+                    _new_port = _random.randint(50000, 59999)
+                    print(
+                        f"Soulseek: Listening port conflict ({_start_err}), retrying on {_new_port}..."
+                    )
+                    settings.network.listening.port = _new_port
+                    settings.network.listening.obfuscated_port = _new_port + 1
+                    self.client = SoulSeekClient(settings)
+                    await asyncio.sleep(2)
+                else:
+                    raise
         try:
             await self.client.login()
             self.is_connected = True

@@ -71,5 +71,11 @@ Visit the **Performance Metrics** tab to compare implementation speeds. Enter a 
 - **System Tray Integration:** System tray monitor supporting background health polling, activity event streams, and menu actions to open web UI, restart server, shut down server, or exit.
 - **Comprehensive Backend Controls:** Integrated controls for MusicBrainz metadata cache statistics and expiration cleanup, autonomous agent cycle triggering, and single-artist library organization.
 
+### 7. Multi-Branch Reliability, Cooldown Blacklisting & Credential Isolation (v2.3.0)
+- **24-Hour Peer Cooldown Blacklisting:** Stalled or dead Soulseek peers (`QUEUED`/`INITIALIZING` timeouts or zero byte-progress stalls) are automatically placed in a 24-hour expiring cooldown rather than permanently lost, while active transfers cleanly invoke `transfer.abort()`.
+- **Windows Port-Conflict Resilience:** `SoulseekService` selects an ephemeral listening port (`50000-59999`) with automatic retry across TCP `TIME_WAIT` collisions.
+- **Strict `.env` Secret Isolation:** Sensitive credentials (`SLSK_PASS`, `SLSK_BOOST_PASS`, `GENIUS_API_KEY`) are loaded from and synced exclusively to `discography_webapp/.env` and stripped before writing `user_configs` to SQLite (`data/app.db`).
+- **Unified `psutil` Watchdog:** `watchdog.py` combines multi-retry `/api/status` HTTP health probes, 500 MB RSS memory-leak restarts, exponential backoff, PID locking, and an optional `--with-filler` daemon mode.
+
 ---
-*Version: v2.2.0 · Maintained by Jules AI*
+*Version: v2.3.0 · Maintained by Antigravity & Jules AI*

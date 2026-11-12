@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.3.0]
+- **Multi-Branch & Stash Intelligent Reconciliation**: Reconciled dropped production commit `d7d9c53` (`Protocol #277`), `stash@{0}`, `stash@{2}`, and divergent `watchdog.py` histories (`22ce030` + `1ae8d35`) into `main`, and synchronized `jules-57044827041196387-8ad75250` with `main`.
+- **Expanded Psytrance Whitelist & Seed Roster**: Merged union of 88 curated psytrance artists in `_artist_names.json` and restored 36 whitelisted psytrance acts (including `Eskimo`) in `Orchestrator`.
+- **Playlist & Transfer Stall Recovery**: Fixed `NameError` regression in `Orchestrator.download_playlist`, added `QUEUED`/`INITIALIZING` stall detection alongside byte-progress monitoring in `_wait_for_transfer` with `transfer.abort()` cleanup, and introduced 24-hour expiring `_CooldownBlacklist` for stalled peers.
+- **Soulseek Windows Port Resilience & Health API**: Added random listening port selection (`50000-59999`) with 3-attempt TCP `TIME_WAIT` port-conflict retry in `SoulseekService`, plus `/api/health` and `/api/v1/collections` compatibility endpoints in `main.py`.
+- **Enhanced Track Matching & Cross-Platform Roadmap Extraction**: Added stripped-prefix and exact track-number (`+0.35`) bonus scoring in `PostProcessor._match_files_to_tracks`, `max_api_calls` cap + configurable `cache_db_path` in `MusicBrainzService`, and cross-platform pure-Python `TODO` scanning in `ProtocolService.extract_roadmap`.
+- **Unified Watchdog & Batch Launchers**: Merged `psutil` process tree management, 500 MB RAM-leak protection, PID lock, and opt-in `--with-filler` 93-artist DB monitor with multi-retry HTTP health checks in `watchdog.py`; added root `start.bat` and modernized `build_rust.bat`, `discography_webapp/start.bat`, `start_watchdog.bat`, and `launch_watchdog.py` without deprecated `wmic` calls.
+- **Credential Isolation & Persistent State Tracking**: Migrated live secrets exclusively to gitignored `discography_webapp/.env`, scrubbed plaintext secrets from `discography_webapp/data/app.db` (`VACUUM`ed while preserving all 93 managed artists), enabled SQLite WAL mode, isolated all `pytest` suites with `tmp_path`, and tracked `.memory/`, `.jules/`, `.pi/`, and non-sensitive SQLite/JSON state databases in Git.
+
 ## [2.2.0]
 - **Consolidated Dashboard Architecture**: Redesigned UI into a unified view categorized by high-value hierarchy (Primary workflows on top, consolidated artist discography and playlist tabs, organized library actions).
 - **Interactive Guidance & Tooltips**: Deployed `[data-tooltip]` hover markers and help badges (`?`) across all inputs, action triggers, switches, and metrics.

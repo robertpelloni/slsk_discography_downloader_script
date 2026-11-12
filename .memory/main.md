@@ -1,81 +1,38 @@
 # Discography Downloader
 
 ## Project Purpose
-Automated Soulseek-based discography downloader with MusicBrainz integration. Downloads complete discographies of psytrance/electronic artists by searching Soulseek, ranking candidates, downloading, and post-processing (tagging, renaming, cover art).
+Automated Soulseek-based discography downloader with MusicBrainz integration. Downloads complete discographies of psytrance/electronic artists by searching Soulseek (Python `aioslsk` + Rust `bob_soulseek_rs` PyO3 bridge), ranking candidates, auditing lossless spectral quality, downloading, and post-processing (tagging, renaming, cover art).
 
-## Current State (June 22, 2026)
+## Current State (November 12, 2026 — v2.3.0)
 
-### Running
-- **Watchdog** (`watchdog.py`) — monitors server health every 15s, auto-restarts on crash, captures stderr to `server_crash.log`, exponential backoff on rapid cycling
-- **Web Server** (FastAPI/uvicorn) — HTTP 200 on `http://127.0.0.1:8000`
-- **Port Registration** — `discography-downloader 8000/tcp` added to `C:\Windows\System32\drivers\etc\services`
+### Running & Verified
+- **Version**: `2.3.0` (governed centrally in `VERSION.md`; never hardcoded in UI).
+- **Web Server** (`discography_webapp/main.py`, FastAPI/uvicorn) — serves consolidated dashboard on `http://127.0.0.1:8000` with `/api/status` and `/api/health` probes.
+- **Watchdog** (`discography_webapp/watchdog.py`) — unified `psutil` process manager with multi-retry HTTP health checks, 500 MB RAM-leak auto-restart threshold, PID lock, exponential backoff, crash stderr logging, and opt-in `--with-filler` daemon mode.
+- **Persistent State (`discography_webapp/data/`)** — tracked in Git with SQLite WAL mode enabled (`app.db` preserving 93 `managed_artists`, `mb_cache.db`, `completed_downloads.json`, `artist_blacklist.json`).
+- **Test & Lint Suite** — `ruff check` passes with 0 errors; `pytest` passes 39 unit tests (3 live-server tests skipped when offline) with `tmp_path` SQLite isolation so test runs never touch live `data/app.db`.
 
 ### Key Decisions Made
-1. **Watchdog architecture**: Python-based, not bash — handles Windows paths properly, does real HTTP health checks (not just port binding)
-2. **Process persistence**: Use `wmic process call create` to launch truly independent Windows processes (not `start /B` or `nohup` which die when shell exits)
-3. **Crash capture**: Server stderr redirected to `server_crash.log` instead of `DEVNULL` to diagnose crashes
-4. **Log noise suppression**: `aioslsk` loggers set to WARNING to suppress ~500+ lines of `ConnectToPeer` and `search reply ticket` noise
-5. **Download retries**: 2 retry attempts (3 total) on transient `ConnectionError`/`OSError` in `soulseek.py`'s `download_file()`
-6. **Startup dependency check**: `main.py` validates 10 critical modules on startup and exits with clear error if missing
-7. **Autonomous filler disabled**: commented out in `main.py` lifespan — triggered via API, not auto-start
-8. **Rust bridge disabled**: `bob_soulseek_rs.pyd` causes segfaults — `orchestrator.py` explicitly sets `self.rust_slsk = None`
-
-### Known Issues
-1. **Server crash cycle**: Server dies ~5-8 min after autonomous filler triggers. Crash at `Fetching releases for <artist>...` with no Python traceback. Possible causes: stack overflow from `depth=2` recursion in `get_related_artists`, or orphan `asyncio.to_thread` threads accumulating after timeout cancellations.
-2. **Soulseek credentials set**: `.env` has `SLSK_USER=mgaijin` / `SLSK_PASS=korn5984` but not tested with actual download job
-3. **51 albums already downloaded** from previous sessions — some have "Unmatched file" post-processing issues
-4. **`.env` has real credentials** — should not be committed to git
+1. **Strict Credential Isolation**: Live Soulseek and API secrets (`SLSK_PASS`, `SLSK_BOOST_PASS`, `GENIUS_API_KEY`) reside **only** in gitignored `discography_webapp/.env`. `ConfigService` strips secret keys before persisting `user_configs` to `data/app.db` and syncs secret updates back to `discography_webapp/.env`. Root `.env` remains a harmless placeholder template.
+2. **Multi-Branch & Stash Reconciliation (v2.3.0)**:
+   - Recovered dropped production commit `d7d9c53` (`Protocol #277`: 88-artist `_artist_names.json`, 36 whitelisted psytrance acts including `Eskimo`, `download_playlist` `transfer` fix).
+   - Merged `stash@{0}` (`tmp_path` test DB isolation, `max_api_calls=30` cap in `MusicBrainzService.get_related_artists`, cross-platform pure-Python `ProtocolService.extract_roadmap`, SQLite WAL mode).
+   - Merged `stash@{2}` (`/api/health`, 24-hour expiring `_CooldownBlacklist`, `QUEUED`/`INITIALIZING` transfer stall detection + `transfer.abort()`, stripped-prefix + exact track-number matching in `PostProcessor`, random port `50000-59999` + Windows TCP `TIME_WAIT` retry in `SoulseekService`).
+   - Synchronized `main` and active feature branch `jules-57044827041196387-8ad75250`.
+3. **Python 3.14 Windows Execution**: `venv\Scripts\python.exe` on Python 3.14 spawns stub child processes; batch launchers and `watchdog.py` prefer `C:\Python314\python.exe` with `PYTHONPATH` pointing to `discography_webapp\venv\Lib\site-packages` when available, eliminating deprecated `wmic` calls.
+4. **Watchdog & Filler Isolation**: Autonomous filler runs in an isolated subprocess (`filler_worker.py`) or opt-in `--with-filler` watchdog mode so heavy scans cannot block FastAPI's event loop.
 
 ### Milestones
-- **[x]** Basic web UI with dark/light theme
-- **[x]** Soulseek connection and search
-- **[x]** Candidate ranking with format preference
-- **[x]** Sequential download with circuit breaker
-- **[x]** MusicBrainz metadata tagging (post-processing)
-- **[x]** Cover art download
-- **[x]** 51 albums downloaded successfully
-- **[x]** Autonomous filler for unattended collection building
-- **[x]** Startup dependency check
-- **[x]** Log noise suppression
-- **[x]** Download retry logic
-- **[x]** Watchdog with health checks
-- **[x]** Crash log capture
-- **[x]** Exponential backoff on rapid restarts
-- **[x]** Port registration in Windows services config
-- **[ ]** Fix server crash during autonomous filler scan
-- **[ ]]** Test actual Soulseek download with real credentials
-- **[ ]]** Add `.env` to `.gitignore` (contains credentials)
-- **[ ]]** Limit related artist depth or cap to prevent explosion
+- **[x]** Consolidated single-page web UI with dark/light theme & tooltips (`v2.2.0`–`v2.3.0`)
+- **[x]** Soulseek connection, rate limiting, random port `TIME_WAIT` retry, and Rust P2P bridge
+- **[x]** Candidate ranking with format preference & 24-hour peer cooldown blacklisting
+- **[x]** MusicBrainz SQLite cache (`mb_cache.db`) with TTL and `max_api_calls=30` depth cap
+- **[x]** Neural Sentinel (`ffmpeg` spectral fake-FLAC check) & AcoustID fingerprinting
+- **[x]** Ajja FLAC discography run & 93 managed artists persisted in `data/app.db`
+- **[x]** Strict `.env` credential isolation (`SLSK_USER=mgaijin` / `SLSK_PASS=[REDACTED_IN_ENV]` stored only in gitignored `discography_webapp/.env`)
+- **[x]** Unified `psutil` watchdog with multi-retry health probes and 500 MB RAM guard
+- **[x]** Persistent tracking of `.memory/`, `.jules/`, `.pi/`, and non-sensitive databases in Git
 
-### Architecture Overview
-- `discography_webapp/` — FastAPI web application
-  - `main.py` — App entry, lifespan, dependency check, route registration
-  - `services/`
-    - `soulseek.py` — Soulseek client wrapper (connect, search, download with retry)
-    - `musicbrainz.py` — MusicBrainz API wrapper (artist search, discography, related artists)
-    - `orchestrator.py` — Core download engine (scan, rank candidates, download, post-process)
-    - `post_processor.py` — Tagging, renaming, cover art
-    - `logger.py` — WebSocket-connected logging infrastructure
-    - `queue.py` — State persistence (completed albums, managed artists)
-    - `config.py` — User configuration
-  - `routers/` — FastAPI route modules
-    - `core.py` — Main API endpoints (status, scan, download, config)
-    - `library.py` — Library management
-    - `protocol.py` — Autonomous protocol execution
-    - `agent.py` — Agent cycle endpoints
-    - `benchmark.py` — Performance benchmarks
-  - `watchdog.py` — Health monitor and auto-restart
-  - `static/` — Frontend assets
-  - `templates/` — Jinja2 HTML templates
-
-## Ajja FLAC Discography Run (latest)
-
-Completed a full download pass for **Ajja** (MB `6e6e3359-1291-4a71-83d2-181c5ece4acd`) in FLAC only (preferred_format=flac, depth=0).
-
-- Server: FastAPI/uvicorn running from `discography_webapp/` on http://127.0.0.1:8000 (venv: `discography_webapp/venv`, Python 3.12).
-- Credentials live only in `discography_webapp/.env` (gitignored). Top-level `.env` stays placeholder (tracked).
-- Library: `discography_webapp/downloads/` — flat naming `Ajja - YYYY - Album - NN - Title.flac`. 76 FLAC files, ~4.1 GB.
-- 15 of 16 MusicBrainz release groups fully present. **Only gap: Ultrasonic (2025) track 6 "Time Reactor"** — not shared on Soulseek in FLAC (searched repeatedly; the other 8 tracks were fetched individually from peers AndyBoPandy / web-graffiti compilations).
-- "The Other Side" 2017 has 2 copies (VA "The Psychedelic Astronaut" appears twice).
-- Removed an MP3-only Maze of Mirrors copy after obtaining FLAC.
-- Leftover failed-candidate partials moved to `downloads/_stray_orphans/` (review/delete at leisure).
+## Ajja FLAC Discography Run (Historical Reference)
+Completed a full download pass for **Ajja** (MB `6e6e3359-1291-4a71-83d2-181c5ece4acd`) in FLAC only (`preferred_format=flac`, `depth=0`):
+- 76 FLAC files (~4.1 GB), 15 of 16 MusicBrainz release groups complete (only missing *Ultrasonic* (2025) track 6 "Time Reactor", unshared in FLAC on Soulseek at run time).

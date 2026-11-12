@@ -131,6 +131,7 @@ AMBIGUOUS_NAMES = {
     "solstice",
     "magik",
     "bionix",
+    "eskimo",
 }
 
 # Artists known to be in the psytrance/electronic scene, even if MB tags are sparse
@@ -274,6 +275,44 @@ _KNOWN_PSYTRANCE_NAMES = [
     "Nerso",
     "Zyce",
     "Aquafeel",
+    # --- Reconciled 2026-09-14 / v2.3.0: legitimate psytrance acts missing
+    # MusicBrainz genre tags; DISALLOWED_TAGS still filters non-electronic homonyms.
+    "Arma",
+    "ARMA",
+    "Ashtar Command",
+    "Avan7",
+    "Basic Element",
+    "Beat Hackers",
+    "Bionix",
+    "ClayHeadz",
+    "Cronyx",
+    "Crop Circles",
+    "Epsylon 9",
+    "Eskimo",
+    "Fungus Funk",
+    "Jumpstreet",
+    "Lunatica",
+    "Madnetic",
+    "Magik",
+    "Solitary Shell",
+    "Synkronic",
+    "Transient Disorder",
+    "Zephirus Kane",
+    "Zeridium",
+    "Chicago",
+    "1300 Micrograms",
+    "Shanti V Deedrah",
+    "Tyler Jack",
+    "Spectra Sonics",
+    "Galactic Explorers",
+    "Sonic Entity",
+    "Man With No Name",
+    "Ital",
+    "Andrea Braggio",
+    "Abomination",
+    "DJ KETAFLUSH",
+    "Mosq Intelligence",
+    "Kraftwek Orange",
 ]
 
 
@@ -361,6 +400,32 @@ def is_psytrance_artist(artist_data):
     return has_positive
 
 
+class _CooldownBlacklist(dict):
+    """Set-compatible peer blacklist with automatic 24-hour cooldown expiry."""
+
+    def __init__(self, cooldown_seconds: float = 24 * 60 * 60, logger=None):
+        super().__init__()
+        self.cooldown_seconds = cooldown_seconds
+        self._logger = logger
+
+    def add(self, username: str) -> None:
+        self[username] = time.time()
+
+    def discard(self, username: str) -> None:
+        self.pop(username, None)
+
+    def __contains__(self, username: object) -> bool:
+        if not super().__contains__(username):
+            return False
+        ts = super().__getitem__(username)
+        if time.time() - ts > self.cooldown_seconds:
+            super().pop(username, None)
+            if self._logger:
+                self._logger.info(f"  ↻ Blacklist cooldown expired for {username}")
+            return False
+        return True
+
+
 class Orchestrator:
     def __init__(
         self,
@@ -386,7 +451,10 @@ class Orchestrator:
         self.active_downloads = {}
         self.album_tracker = {}
         self.completed_albums = self.queue_service.get_completed()
-        self.blacklisted_users = set()
+        self.BLACKLIST_COOLDOWN = 24 * 60 * 60
+        self.blacklisted_users = _CooldownBlacklist(
+            cooldown_seconds=self.BLACKLIST_COOLDOWN, logger=self.logger
+        )
         self._existing_cache = None
         self._attempted_albums = set()  # Track (artist_norm, album_norm) to skip dupes
         self.rust_slsk = None
@@ -420,7 +488,14 @@ class Orchestrator:
         """Load the artist blacklist from data/artist_blacklist.json"""
         import json
 
-        blacklist_file = "data/artist_blacklist.json"
+        blacklist_file = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..",
+            "data",
+            "artist_blacklist.json",
+        )
+        if not os.path.exists(blacklist_file):
+            blacklist_file = "data/artist_blacklist.json"
         if os.path.exists(blacklist_file):
             try:
                 with open(blacklist_file, "r", encoding="utf-8") as f:
@@ -1539,6 +1614,17 @@ class Orchestrator:
 
                     self.logger.info(f"  Downloading from {user}...")
                     try:
+                        transfer = await self.slsk_service.download_file(
+                            user,
+                            remote_path,
+                            size=cand.get("size", 0),
+                            download_directory=target_dir,
+                        )
+                    except Exception as e:
+                        self.logger.warning(f"  Queue failed: {e}")
+                        continue
+
+                    try:
                         done = await self._wait_for_transfer(transfer, timeout=120)
                         if done == "complete":
                             local_path = getattr(transfer, "local_path", None)
@@ -1546,7 +1632,10 @@ class Orchestrator:
                                 shutil.move(local_path, local_target)
                                 self.logger.info(f"  ✓ Done: {final_filename}")
                                 success = True
-                            self.logger.warning("  ✗ Transfer failed")
+                            else:
+                                self.logger.warning(
+                                    f"  ✗ Transfer complete but file missing: {final_filename}"
+                                )
                         else:
                             self.logger.warning("  ⏱ Timeout")
                     except Exception as e:
@@ -1933,7 +2022,9 @@ class Orchestrator:
             parts = [p.strip() for p in title.split("/") if p.strip()]
             title_parts = parts + [title]  # Try each half first, then full
 
-        clean = lambda t: re.sub(r"[^a-zA-Z0-9 ]", "", t)
+        def clean(t: str) -> str:
+            return re.sub(r"[^a-zA-Z0-9 ]", "", t)
+
         queries = []
 
         for t in title_parts:
@@ -2270,11 +2361,15 @@ class Orchestrator:
 
     async def _wait_for_transfer(self, transfer, timeout=180, stall_threshold=45):
         """Wait for a transfer to complete, detecting stalled progress or peer hangs."""
-        from aioslsk.transfer.state import TransferState
+        try:
+            from aioslsk.transfer.state import TransferState
+        except ImportError:
+            TransferState = None
 
         waited = 0
         last_bytes = -1
         stalled_seconds = 0
+        queued_seconds = 0
 
         while waited < timeout:
             if self.should_stop:
@@ -2288,19 +2383,34 @@ class Orchestrator:
                     return "complete"
 
             # Check actual aioslsk transfer state
-            try:
-                state_val = transfer.state.VALUE
-                if state_val == TransferState.COMPLETE:
-                    return "complete"
-                if state_val in (TransferState.FAILED, TransferState.ABORTED):
-                    return "failed"
-            except Exception:
-                pass
+            if TransferState is not None:
+                try:
+                    state_val = transfer.state.VALUE
+                    if state_val == TransferState.COMPLETE:
+                        return "complete"
+                    if state_val in (TransferState.FAILED, TransferState.ABORTED):
+                        return "failed"
+                    if state_val in (
+                        getattr(TransferState, "QUEUED", None),
+                        getattr(TransferState, "INITIALIZING", None),
+                    ):
+                        queued_seconds += 1
+                        if queued_seconds >= stall_threshold:
+                            try:
+                                if hasattr(transfer, "abort"):
+                                    transfer.abort()
+                            except Exception:
+                                pass
+                            return "stalled"
+                    else:
+                        queued_seconds = 0
+                except Exception:
+                    pass
 
             # Also check if complete_time was set
             if getattr(transfer, "complete_time", None):
-                state_val = getattr(transfer.state, "VALUE", None)
-                if state_val == TransferState.COMPLETE:
+                state_val = getattr(getattr(transfer, "state", None), "VALUE", None)
+                if TransferState is not None and state_val == TransferState.COMPLETE:
                     return "complete"
                 return "failed"
 
@@ -2317,6 +2427,11 @@ class Orchestrator:
                         self.logger.warning(
                             f"Transfer stalled at {current_bytes} bytes for {stalled_seconds}s. Aborting wait."
                         )
+                        try:
+                            if hasattr(transfer, "abort"):
+                                transfer.abort()
+                        except Exception:
+                            pass
                         return "stalled"
                 else:
                     stalled_seconds = 0
@@ -2366,32 +2481,11 @@ class Orchestrator:
             if target_dir in self.album_tracker:
                 del self.album_tracker[target_dir]
 
-    # ─── Legacy Monitor ───────────────────────────────────────────
+    # ─── Legacy Monitor (deprecated — transfers tracked via _wait_for_transfer) ───
 
     async def monitor_downloads(self):
-        while self.is_running or self.active_downloads:
-            if self.should_stop and not self.active_downloads:
-                break
-            finished = []
-            failed = []
-            for remote_path, info in list(self.active_downloads.items()):
-                if local_path and os.path.exists(local_path):
-                    target_path = os.path.join(info["target_dir"], info["filename"])
-                    try:
-                        shutil.move(local_path, target_path)
-                    except Exception as e:
-                        self.logger.error(f"Move error: {e}")
-                finished.append(remote_path)
-                failed.append(remote_path)
-
-            for key in finished + failed:
-                if key in self.active_downloads:
-                    info = self.active_downloads.pop(key)
-                    td = info["target_dir"]
-                    if td in self.album_tracker:
-                        self.album_tracker[td]["done"] += 1
-                    await self._finalize_album(td)
-            await asyncio.sleep(1)
+        """Deprecated legacy monitor kept as safe compatibility stub."""
+        return
 
     async def check_album_completion(self, target_dir):
         await self._finalize_album(target_dir)

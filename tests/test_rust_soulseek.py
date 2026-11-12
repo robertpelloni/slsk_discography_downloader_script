@@ -1,18 +1,17 @@
 import pytest
 import asyncio
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
 
 # Attempt to load the rust module for type patching, but don't fail if it's missing (should use sys.modules mock if missing)
 import sys
 
 # We need to mock bob_soulseek_rs if we want to run tests without compiling the Rust bridge in this environment
 mock_rust = MagicMock()
-mock_rust.connect_to_soulseek_async = MagicMock(return_value=asyncio.Future())
-mock_rust.connect_to_soulseek_async.return_value.set_result(True)
+mock_rust.connect_to_soulseek_async = AsyncMock(return_value=True)
 
 sys.modules['bob_soulseek_rs'] = mock_rust
 
-from discography_webapp.services.rust_soulseek import RustSoulseekService
+from discography_webapp.services.rust_soulseek import RustSoulseekService  # noqa: E402
 
 class MockTransfer:
     def __init__(self, filename, is_finished=True, error=None):

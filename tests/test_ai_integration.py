@@ -10,13 +10,15 @@ from discography_webapp.services.event_bus import EventBus
 
 @pytest.mark.asyncio
 async def test_full_ai_cycle_integration(tmp_path):
-    # Setup
-    event_bus = EventBus()
-    logger = get_logger(event_bus, 1)
-    config = ConfigService(user_id=1)
-    config.set('sentinel_enabled', True)
-    config.set('acoustid_enabled', True)
-    config.set('acoustid_api_key', 'test_key')
+    # Setup isolated test DB so live data/app.db is never modified
+    test_db = str(tmp_path / "ai_cycle_app.db")
+    with patch("discography_webapp.services.config.DB_PATH", test_db):
+        event_bus = EventBus()
+        logger = get_logger(event_bus, 1)
+        config = ConfigService(user_id=1)
+        config.set('sentinel_enabled', True)
+        config.set('acoustid_enabled', True)
+        config.set('acoustid_api_key', 'test_key')
 
     mb_service = MagicMock()
     slsk_service = MagicMock()
@@ -24,11 +26,12 @@ async def test_full_ai_cycle_integration(tmp_path):
 
     post_processor = PostProcessor(mb_service, config, logger)
 
-    orchestrator = Orchestrator(
+    _orchestrator = Orchestrator(
         logger=logger, mb_service=mb_service, slsk_service=slsk_service,
         config_service=config, post_processor=post_processor,
         queue_service=queue_service, user_id=1
     )
+    assert _orchestrator is not None
 
     # Simulate a download directory
     download_dir = tmp_path / "downloads"

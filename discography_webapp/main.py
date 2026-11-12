@@ -1,20 +1,27 @@
-import faulthandler
-
-faulthandler.enable()
-import sys
+import asyncio
 from contextlib import asynccontextmanager
+import faulthandler
+import json
+import os
+import sys
+import time
+
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import uvicorn
-import asyncio
-import os
-import json
+
+faulthandler.enable()
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 try:
     from dotenv import load_dotenv
 
+    env_path = os.path.join(BASE_DIR, ".env")
+    if os.path.exists(env_path):
+        load_dotenv(env_path)
     load_dotenv()
 except ImportError:
     pass
@@ -28,18 +35,17 @@ if sys.platform == "win32":
         pass
 
 # Add local bin to PATH for fpcalc
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 bin_path = os.path.join(BASE_DIR, "bin")
 os.environ["PATH"] = bin_path + os.pathsep + os.environ["PATH"]
 
-from services.logger import manager
-from services.event_bus import EventBus
-from dependencies import orchestrators, get_orchestrator as deps_get_orchestrator
-from routers.core import router as core_router
-from routers.library import router as library_router
-from routers.protocol import router as protocol_router
-from routers.benchmark import router as benchmark_router
-from routers.agent import router as agent_router
+from services.logger import manager  # noqa: E402
+from services.event_bus import EventBus  # noqa: E402
+from dependencies import orchestrators, get_orchestrator as deps_get_orchestrator  # noqa: E402
+from routers.core import router as core_router  # noqa: E402
+from routers.library import router as library_router  # noqa: E402
+from routers.protocol import router as protocol_router  # noqa: E402
+from routers.benchmark import router as benchmark_router  # noqa: E402
+from routers.agent import router as agent_router  # noqa: E402
 
 # Event bus
 event_bus = EventBus()
@@ -181,6 +187,24 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int):
         manager.disconnect(websocket, user_id)
     except Exception:
         manager.disconnect(websocket, user_id)
+
+
+# ─── Health & Compatibility Endpoints ───────────────────────────
+
+
+@app.get("/api/health")
+async def health_check():
+    """Health check endpoint for monitoring."""
+    return {"status": "healthy", "timestamp": time.time()}
+
+
+@app.get("/api/v1/collections")
+async def collections_compat():
+    """Compatibility endpoint - redirects to library API."""
+    return {
+        "message": "This endpoint is deprecated. Use /api/library instead.",
+        "data": {},
+    }
 
 
 if __name__ == "__main__":

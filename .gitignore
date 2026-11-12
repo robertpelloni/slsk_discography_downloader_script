@@ -1,54 +1,47 @@
+# Secrets (never commit real credentials; root .env holds placeholder defaults only)
 .env
+discography_webapp/.env
+
+# Downloaded & review audio files (large media binaries)
 downloads/
+discography_webapp/downloads/
+delete_review/
+discography_webapp/delete_review/
+converted_mp3s/
+discography_webapp/converted_mp3s/
+
+# Python / Rust build & virtualenv artifacts
 __pycache__/
 venv/
-*.db
-*.log
-.pi/
-.pi-lens/
-bin/
+discography_webapp/venv/
 *.pyc
+*.pyd
 *.exe
 *.dll
-
-# Jules AI session logs (auto-generated, not needed in repo)
-.jules/sessions/
-# AI tool artifacts
-.borg_startup_marker
-.pi/
-.jules/
-metamcp.db
-*.db
-.borg_startup_marker
+bin/
+discography_webapp/bin/
 discography_webapp/rust_bridge/target/
 discography_webapp/rust_bridge/bob_soulseek_rs/target/
+.ruff_cache/
+.pytest_cache/
 
-# Hypercode AI artifacts
-.hypercode/
-.hypercode-session.json
+# Transient runtime logs, SQLite WAL/SHM journals, and vector fragment caches
+*.log
+*.out
+*.db-wal
+*.db-shm
+*.db-journal
+data/lancedb/
+.pi-lens/cache/
+discography_webapp/.pi-lens/cache/
+
+# Ephemeral startup markers, PIDs, and transient runtime scripts
+.borg_startup_marker
 .hypercode_startup_marker
-
-# Data directory (databases, logs, etc)
-data/
-audit-*.jsonl
-
-# Rust compiled binary
-*.pyd
-
-.memory/branches/*/log.md
-
-# Runtime PID files
 filler.pid
 launch.pid
 watchdog.pid
 server.pid
-
-# Runtime status
 filler_status.json
-filler_output.log
-
-# Runtime scripts (not committed)
 restart.ps1
-
-# Review audio files (large FLACs, not for git)
-delete_review/
+discography_webapp/restart.ps1

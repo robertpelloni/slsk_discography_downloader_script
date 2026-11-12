@@ -16,9 +16,12 @@ class QueueService:
         self.load()
 
     def get_db(self):
-        conn = sqlite3.connect(DB_PATH)
+        os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+        conn = sqlite3.connect(DB_PATH, timeout=10)
         conn.row_factory = sqlite3.Row
-        
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=10000")
+
         # Ensure tables exist
         cursor = conn.cursor()
         cursor.execute("""

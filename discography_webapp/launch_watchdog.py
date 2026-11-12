@@ -1,9 +1,4 @@
-"""Launch watchdog.py as a fully detached background process.
-
-Uses C:\Python314\python.exe (system Python) because it does NOT
-have the venv Python 3.14.6 stub-process bug that spawns a child
-for every launched process, causing duplicates.
-"""
+"""Launch watchdog.py as a detached background process without deprecated wmic calls."""
 
 import os
 import subprocess
@@ -12,23 +7,40 @@ import sys
 base = os.path.dirname(os.path.abspath(__file__))
 watchdog = os.path.join(base, "watchdog.py")
 system_python = r"C:\Python314\python.exe"
+venv_python = os.path.join(base, "venv", "Scripts", "python.exe")
+venv_site = os.path.join(base, "venv", "Lib", "site-packages")
 
-# Use wmic process call create for reliable independent process creation
-cmd = f'"{system_python}" "{watchdog}"'
-result = subprocess.run(
-    ["wmic", "process", "call", "create", cmd],
-    capture_output=True,
-    text=True,
-    timeout=15,
-)
-# Parse ProcessId from output
-for line in result.stdout.splitlines():
-    if "ProcessId" in line:
-        pid = line.split("=")[-1].strip().strip(";")
-        print(f"Watchdog launched with PID {pid}")
-        break
+if sys.platform == "win32" and os.path.isfile(system_python):
+    python_exe = system_python
+elif os.path.isfile(venv_python):
+    python_exe = venv_python
 else:
-    print("Failed to launch watchdog")
-    print(result.stdout)
-    print(result.stderr)
-    sys.exit(1)
+    python_exe = sys.executable
+
+env = os.environ.copy()
+sep = ";" if sys.platform == "win32" else ":"
+paths = [base, os.path.dirname(base)]
+if os.path.isdir(venv_site):
+    paths.insert(0, venv_site)
+if env.get("PYTHONPATH"):
+    paths.append(env["PYTHONPATH"])
+env["PYTHONPATH"] = sep.join(paths)
+
+flags = 0
+if sys.platform == "win32":
+    flags = (
+        getattr(subprocess, "DETACHED_PROCESS", 0)
+        | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+        | getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    )
+
+proc = subprocess.Popen(
+    [python_exe, watchdog] + sys.argv[1:],
+    cwd=base,
+    stdout=subprocess.DEVNULL,
+    stderr=subprocess.DEVNULL,
+    env=env,
+    creationflags=flags,
+    start_new_session=(sys.platform != "win32"),
+)
+print(f"Watchdog launched with PID {proc.pid}")

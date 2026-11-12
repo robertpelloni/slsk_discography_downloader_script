@@ -173,8 +173,10 @@ async def organize_root_files(orch=Depends(get_orch)):
                 return alias_orig
         for short, full in ARTIST_ALIASES.items():
             if raw_lower == short.lower() or raw_lower == full.lower():
-                if full.lower() in artist_aliases: return artist_aliases[full.lower()]
-                if short.lower() in artist_aliases: return artist_aliases[short.lower()]
+                if full.lower() in artist_aliases:
+                    return artist_aliases[full.lower()]
+                if short.lower() in artist_aliases:
+                    return artist_aliases[short.lower()]
         return re.sub(r'[<>:"|?*]', '', raw_name)
 
     for (artist_raw, album_key), files in sorted(album_groups.items()):
@@ -189,10 +191,13 @@ async def organize_root_files(orch=Depends(get_orch)):
             fp_src = os.path.join(root, f)
             dest = os.path.join(album_dir, re.sub(r'\s+\(\d+\)\.', '.', f))
             try:
-                if os.path.exists(dest): os.remove(fp_src)
-                else: shutil.move(fp_src, dest)
+                if os.path.exists(dest):
+                    os.remove(fp_src)
+                else:
+                    shutil.move(fp_src, dest)
                 moved += 1
-            except: errors += 1
+            except Exception:
+                errors += 1
         created.append(f"{artist_folder}/{safe_key}")
 
     orch.invalidate_cache()
@@ -217,8 +222,10 @@ async def organize_artist_files(request: Request, orch=Depends(get_orch)):
     album_groups = {}
     for f in sorted(os.listdir(artist_path)):
         fp = os.path.join(artist_path, f)
-        if not os.path.isfile(fp): continue
-        if os.path.splitext(f)[1].lower() not in AUDIO_EXT: continue
+        if not os.path.isfile(fp):
+            continue
+        if os.path.splitext(f)[1].lower() not in AUDIO_EXT:
+            continue
 
         name = os.path.splitext(f)[0]
         name = re.sub(r'\s+\(\d+\)$', '', name)
@@ -242,7 +249,7 @@ async def organize_artist_files(request: Request, orch=Depends(get_orch)):
             try:
                 shutil.move(os.path.join(artist_path, f), os.path.join(album_dir, f))
                 moved += 1
-            except:
+            except Exception:
                 errors += 1
         created.append(album_key)
 
@@ -264,9 +271,8 @@ async def organize_by_tags(orch=Depends(get_orch)):
         return {"moved": 0}
 
     try:
-        import mutagen
-        import mutagen.easyid3
-        import mutagen.flac
+        from mutagen.easyid3 import EasyID3
+        from mutagen.flac import FLAC
     except ImportError:
         return {"moved": 0, "error": "mutagen not installed"}
 
@@ -289,8 +295,6 @@ async def organize_by_tags(orch=Depends(get_orch)):
 
     for fp in files_to_check:
         try:
-            from mutagen.easyid3 import EasyID3
-            from mutagen.flac import FLAC
             artist = None
             album = None
 
@@ -331,7 +335,7 @@ async def organize_by_tags(orch=Depends(get_orch)):
             if not os.path.exists(os.path.join(dest_dir, '.organized')):
                 open(os.path.join(dest_dir, '.organized'), 'w').close()
                 created.append(f"{safe_artist}/{safe_album}")
-        except:
+        except Exception:
             errors += 1
 
     orch.invalidate_cache()
@@ -342,7 +346,8 @@ async def cleanup_empty_folders():
     """Remove empty artist folders and Unsorted folders with no audio files."""
     root = "downloads"
     removed = []
-    if not os.path.isdir(root): return {"removed": 0}
+    if not os.path.isdir(root):
+        return {"removed": 0}
 
     for dirpath, dirnames, filenames in os.walk(root, topdown=False):
         dirname = os.path.basename(dirpath)
@@ -352,11 +357,13 @@ async def cleanup_empty_folders():
                 try:
                     shutil.rmtree(dirpath)
                     removed.append(dirpath)
-                except: pass
+                except Exception:
+                    pass
 
     for d in sorted(os.listdir(root)):
         dp = os.path.join(root, d)
-        if not os.path.isdir(dp): continue
+        if not os.path.isdir(dp):
+            continue
         has_files = False
         for dirpath, dirnames, filenames in os.walk(dp):
             if any(f.lower().endswith(tuple(AUDIO_EXT)) for f in filenames):
@@ -366,7 +373,8 @@ async def cleanup_empty_folders():
             try:
                 shutil.rmtree(dp)
                 removed.append(d)
-            except: pass
+            except Exception:
+                pass
     return {"removed": len(removed), "folders": removed}
 
 @router.post("/api/tidy")
@@ -374,7 +382,8 @@ async def tidy_library(orch=Depends(get_orch)):
     """Move flat audio files from downloads/ root into organized subfolders."""
     root = "downloads"
     moved = skipped = errors = 0
-    if not os.path.isdir(root): return {"moved": 0}
+    if not os.path.isdir(root):
+        return {"moved": 0}
 
     artist_dirs = {}
     for d in os.listdir(root):
@@ -385,19 +394,24 @@ async def tidy_library(orch=Depends(get_orch)):
 
     for f in os.listdir(root):
         fp = os.path.join(root, f)
-        if not os.path.isfile(fp): continue
-        if os.path.splitext(f)[1].lower() not in AUDIO_EXT: continue
+        if not os.path.isfile(fp):
+            continue
+        if os.path.splitext(f)[1].lower() not in AUDIO_EXT:
+            continue
 
         name = os.path.splitext(f)[0]
         artist = None
         m = re.match(r'^\d+\s*[-.]\s*(.+?)\s*[-.]\s*(.+)$', name)
-        if m: artist = m.group(1).strip()
+        if m:
+            artist = m.group(1).strip()
         else:
             m = re.match(r'^\(\d+\)\s*\[(.+?)\]\s*(.+)$', name)
-            if m: artist = m.group(1).strip()
+            if m:
+                artist = m.group(1).strip()
             else:
                 parts = name.split(' - ', 1)
-                if len(parts) == 2: artist = parts[0].strip()
+                if len(parts) == 2:
+                    artist = parts[0].strip()
 
         if not artist:
             skipped += 1
@@ -414,8 +428,10 @@ async def tidy_library(orch=Depends(get_orch)):
                 f_norm = re.sub(r'[^a-z0-9]', '', full.lower())
                 if artist_norm == s_norm or artist_norm == f_norm:
                     # Check if either variant exists as a folder
-                    if s_norm in artist_dirs: matched_dir = artist_dirs[s_norm]
-                    elif f_norm in artist_dirs: matched_dir = artist_dirs[f_norm]
+                    if s_norm in artist_dirs:
+                        matched_dir = artist_dirs[s_norm]
+                    elif f_norm in artist_dirs:
+                        matched_dir = artist_dirs[f_norm]
                     break
 
         if not matched_dir:
@@ -432,9 +448,12 @@ async def tidy_library(orch=Depends(get_orch)):
                 try:
                     shutil.move(fp, dest)
                     moved += 1
-                except: errors += 1
-            else: skipped += 1
-        else: skipped += 1
+                except Exception:
+                    errors += 1
+            else:
+                skipped += 1
+        else:
+            skipped += 1
 
     orch.invalidate_cache()
     return {"moved": moved, "skipped": skipped, "errors": errors}
@@ -445,14 +464,17 @@ async def cleanup_incomplete():
     root = "downloads"
     cleaned = 0
     freed_mb = 0
-    if not os.path.isdir(root): return {"cleaned": 0}
+    if not os.path.isdir(root):
+        return {"cleaned": 0}
 
     for artist_name in os.listdir(root):
         artist_path = os.path.join(root, artist_name)
-        if not os.path.isdir(artist_path): continue
+        if not os.path.isdir(artist_path):
+            continue
         for album_name in os.listdir(artist_path):
             album_path = os.path.join(artist_path, album_name)
-            if not os.path.isdir(album_path): continue
+            if not os.path.isdir(album_path):
+                continue
             audio = [f for f in os.listdir(album_path) if f.lower().endswith(tuple(AUDIO_EXT))]
             if 0 < len(audio) < 3:
                 total_size = sum(os.path.getsize(os.path.join(album_path, f)) for f in os.listdir(album_path) if os.path.isfile(os.path.join(album_path, f)))
@@ -467,17 +489,20 @@ async def deduplicate_library():
     root = "downloads"
     removed = 0
     freed_mb = 0
-    if not os.path.isdir(root): return {"removed": 0}
+    if not os.path.isdir(root):
+        return {"removed": 0}
 
     # Simplified implementation based on original pass 1 & 2
     for artist_name in os.listdir(root):
         artist_path = os.path.join(root, artist_name)
-        if not os.path.isdir(artist_path): continue
+        if not os.path.isdir(artist_path):
+            continue
         album_files = set()
         for album_name in os.listdir(artist_path):
             album_path = os.path.join(artist_path, album_name)
             if os.path.isdir(album_path):
-                for f in os.listdir(album_path): album_files.add(f.lower())
+                for f in os.listdir(album_path):
+                    album_files.add(f.lower())
 
         for f in list(os.listdir(artist_path)):
             fp = os.path.join(artist_path, f)
@@ -558,7 +583,7 @@ async def batch_delete_albums(request: Request, orch=Depends(get_orch)):
             try:
                 shutil.rmtree(path)
                 deleted += 1
-            except:
+            except Exception:
                 errors += 1
         else:
             errors += 1
@@ -596,7 +621,7 @@ async def batch_rename_albums(request: Request, orch=Depends(get_orch)):
             try:
                 os.rename(old_path, new_path)
                 renamed += 1
-            except:
+            except Exception:
                 errors += 1
         else:
             errors += 1

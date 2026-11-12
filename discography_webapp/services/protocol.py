@@ -100,33 +100,57 @@ class ProtocolService:
     async def extract_roadmap(self):
         """Step 3: Workspace Cleanup & Roadmap Extraction.
 
-        Scans source code for TODO comments.  Does NOT overwrite TODO.md.
+        Scans source code for TODO comments using pure Python (cross-platform)
+        and preserves existing manual TODO.md sections when updating.
         """
         self.logger.info("Extracting Roadmap and TODOs...")
+        todos = []
+        target_dir = os.path.join(self.root_dir, "discography_webapp")
+        exclude_dirs = {"data", "__pycache__", ".git", "venv", "downloads", "delete_review", "target", ".pi", ".pi-lens", ".ruff_cache"}
+        exclude_extensions = {".pyc", ".pyd", ".db", ".log", ".exe", ".dll"}
+
         try:
-            result = subprocess.run(
-                ["grep", "-rI",
-                 "--exclude-dir=data", "--exclude-dir=__pycache__",
-                 "--exclude-dir=.git", "--exclude-dir=venv",
-                 "--exclude=*.pyc", "--exclude=*.pyd",
-                 "TODO", os.path.join(self.root_dir, "discography_webapp")],
-                capture_output=True, text=True, timeout=10
-            )
-            todos = [t for t in result.stdout.split("\n") if t.strip()]
-        except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
-            todos = []
+            for root, dirs, files in os.walk(target_dir):
+                dirs[:] = [d for d in dirs if d not in exclude_dirs]
+                for file in files:
+                    if any(file.endswith(ext) for ext in exclude_extensions):
+                        continue
+                    file_path = os.path.join(root, file)
+                    try:
+                        with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                            for line_num, line in enumerate(f, 1):
+                                if "TODO" in line:
+                                    relative_path = os.path.relpath(file_path, self.root_dir)
+                                    todos.append(f"{relative_path}:{line_num}: {line.strip()}")
+                    except Exception:
+                        pass
+        except Exception as e:
+            self.logger.error(f"Error extracting roadmap: {e}")
 
         self.logger.info(
-            f"Roadmap extraction complete. Found {len(todos)} TODO comments.")
+            f"Roadmap extraction complete. Found {len(todos)} TODO comments."
+        )
 
-        # Write to TODO.md
+        # Write or merge into TODO.md without clobbering manual sections
         if todos:
             todo_path = os.path.join(self.root_dir, "TODO.md")
-            # Try to write it, but catch the error if we are in a read-only environment
+            section_header = "## Extracted Source TODOs"
+            extracted_block = "\n".join(f"- {t}" for t in todos) + "\n"
             try:
-                with open(todo_path, "w") as f:
-                    f.write("# TODOs\n")
-                    for t in todos:
-                        f.write(f"- {t}\n")
+                if os.path.exists(todo_path):
+                    with open(todo_path, "r", encoding="utf-8") as f:
+                        existing = f.read()
+                    if section_header in existing:
+                        prefix = existing.split(section_header, 1)[0].rstrip()
+                        updated = f"{prefix}\n\n{section_header}\n\n{extracted_block}"
+                    else:
+                        updated = f"{existing.rstrip()}\n\n{section_header}\n\n{extracted_block}"
+                    with open(todo_path, "w", encoding="utf-8") as f:
+                        f.write(updated)
+                else:
+                    with open(todo_path, "w", encoding="utf-8") as f:
+                        f.write("# TODOs\n")
+                        for t in todos:
+                            f.write(f"- {t}\n")
             except OSError as e:
                 self.logger.warning(f"Could not write to TODO.md: {e}")

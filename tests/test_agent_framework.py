@@ -105,13 +105,19 @@ async def test_agent_learning_loop(mock_orch, mock_protocol, mock_logger, tmp_pa
     assert objectives[0]['type'] == 'docs'
 
 @pytest.mark.asyncio
-async def test_agent_telemetry_endpoint():
+async def test_agent_telemetry_endpoint(tmp_path):
     mock_orch = MagicMock()
     mock_orch.get_managed_artists = AsyncMock(return_value={"active": [{"name": "Infected Mushroom", "artist_id": "123"}]})
     mock_orch.scan_artists = AsyncMock(return_value=[{"title": "Converting Vegetarians"}])
     mock_proto = MagicMock()
     mock_logger = MagicMock()
-    agent = AgentService(orchestrator=mock_orch, protocol_service=mock_proto, logger=mock_logger)
+    agent = AgentService(
+        orchestrator=mock_orch,
+        protocol_service=mock_proto,
+        logger=mock_logger,
+        db_path=str(tmp_path / "telemetry.db"),
+        root_dir=str(tmp_path),
+    )
     telemetry = agent.get_session_telemetry()
     assert "is_busy" in telemetry
     assert "cycles_completed" in telemetry
@@ -123,7 +129,7 @@ async def test_agent_telemetry_endpoint():
     assert telemetry["cycles_completed"] == 0
 
 @pytest.mark.asyncio
-async def test_agent_proactive_download_planning():
+async def test_agent_proactive_download_planning(tmp_path):
     mock_orch = MagicMock()
     mock_orch.get_managed_artists = AsyncMock(return_value={"active": [{"name": "Astral Projection", "artist_id": "ap1"}]})
     mock_orch.scan_artists = AsyncMock(return_value=[{"title": "Trust in Trance"}])
@@ -132,7 +138,13 @@ async def test_agent_proactive_download_planning():
     mock_proto.extract_roadmap = AsyncMock()
     mock_logger = MagicMock()
 
-    agent = AgentService(orchestrator=mock_orch, protocol_service=mock_proto, logger=mock_logger)
+    agent = AgentService(
+        orchestrator=mock_orch,
+        protocol_service=mock_proto,
+        logger=mock_logger,
+        db_path=str(tmp_path / "proactive.db"),
+        root_dir=str(tmp_path),
+    )
     await agent.run_cycle()
 
     assert agent.cycles_completed == 1

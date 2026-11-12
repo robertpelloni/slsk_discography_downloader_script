@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 from fastapi import WebSocket
 
@@ -67,8 +68,6 @@ class WebSocketHandler(logging.Handler):
             # Silently drop if event bus fails — don't crash logging
             pass
 
-
-import os
 
 loggers = {}
 

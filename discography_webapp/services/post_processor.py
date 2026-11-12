@@ -110,7 +110,7 @@ class PostProcessor:
                                 f"AcoustID matched {f} to MB track: {mb_track['title']}"
                             )
                             matched.append((f, mb_track))
-                        elif self.config_service.get("acoustid_verify", False) == False:
+                        elif not self.config_service.get("acoustid_verify", False):
                             # If not strict, use AcoustID metadata even if not in this specific release
                             self.logger.info(
                                 f"AcoustID identified {f} as {ac_match['title']} (not in current MB release)"
@@ -263,20 +263,44 @@ class PostProcessor:
             self._flatten_to_root(target_dir)
 
     def _match_files_to_tracks(self, local_files, tracks, target_dir):
-        """Match downloaded files to MusicBrainz tracks using fuzzy matching."""
+        """Match downloaded files to MusicBrainz tracks using fuzzy & stripped-prefix matching."""
         matched = []
+
+        track_info = []
+        for t in tracks:
+            title_clean = t["title"].lower()
+            num_str = str(t.get("number", ""))
+            num_match = re.search(r"\d+", num_str)
+            track_num = int(num_match.group()) if num_match else None
+            track_info.append((t, title_clean, track_num))
 
         for f in local_files:
             best_match = None
             best_ratio = 0
 
-            name_clean = f.lower().replace("-", " ").replace("_", " ")
+            name_clean = f.lower().replace("_", " ").replace("-", " ")
+            name_base = os.path.splitext(name_clean)[0]
 
-            for t in tracks:
-                title_clean = t["title"].lower()
-                ratio = difflib.SequenceMatcher(None, name_clean, title_clean).ratio()
+            file_track_num = None
+            for pat in (r"^(\d{1,3})[\s.\-_]", r"[_\s.-](\d{1,3})[_\s.-]"):
+                m = re.search(pat, name_base)
+                if m:
+                    file_track_num = int(m.group(1))
+                    break
 
-                # Boost if track number appears in filename
+            stripped = re.sub(r"^\d{1,3}\s*[-._ ]\s*", "", name_base)
+            stripped = re.sub(r".*?\b\d{1,3}\s*[-._ ]\s*", "", stripped, count=1)
+            if len(stripped) < 3:
+                stripped = name_base
+
+            for t, title_clean, track_num in track_info:
+                ratio_full = difflib.SequenceMatcher(None, name_base, title_clean).ratio()
+                ratio_stripped = difflib.SequenceMatcher(None, stripped, title_clean).ratio()
+                ratio = max(ratio_full, ratio_stripped)
+
+                if file_track_num is not None and track_num is not None and file_track_num == track_num:
+                    ratio += 0.35
+
                 try:
                     num = re.escape(str(t["number"]))
                     if re.search(r"\b0?" + num + r"\b", f):
@@ -292,7 +316,9 @@ class PostProcessor:
                 matched.append((f, best_match))
             else:
                 # Keep unmatched files — they'll just stay with their original names
-                self.logger.info(f"Unmatched file (will keep original name): {f}")
+                self.logger.info(
+                    f"Unmatched file (will keep original name): {f} (best_ratio={best_ratio:.2f})"
+                )
 
         return matched
 

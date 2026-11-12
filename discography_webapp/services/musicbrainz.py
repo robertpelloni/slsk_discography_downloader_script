@@ -19,15 +19,16 @@ MB_CACHE_DB = os.path.join(BASE_DIR, "data", "mb_cache.db")
 
 
 class MusicBrainzService:
-    def __init__(self):
+    def __init__(self, cache_db_path: Optional[str] = None):
+        self.cache_db_path = cache_db_path or MB_CACHE_DB
         self._init_cache()
         self._cache_hits = 0
         self._cache_misses = 0
 
     def _init_cache(self):
         """Create the cache table if it doesn't exist."""
-        os.makedirs(os.path.dirname(MB_CACHE_DB), exist_ok=True)
-        conn = sqlite3.connect(MB_CACHE_DB, timeout=10)
+        os.makedirs(os.path.dirname(self.cache_db_path), exist_ok=True)
+        conn = sqlite3.connect(self.cache_db_path, timeout=10)
         conn.execute("PRAGMA journal_mode=WAL")
         conn.execute("PRAGMA busy_timeout=5000")
         conn.execute("""
@@ -48,7 +49,7 @@ class MusicBrainzService:
     def _cache_get(self, key: str) -> Optional[Any]:
         """Get a cached value if it exists and hasn't expired."""
         try:
-            conn = sqlite3.connect(MB_CACHE_DB, timeout=10)
+            conn = sqlite3.connect(self.cache_db_path, timeout=10)
             conn.execute("PRAGMA busy_timeout=5000")
             row = conn.execute(
                 "SELECT value FROM cache WHERE key = ? AND expires_at > ?",
@@ -66,7 +67,7 @@ class MusicBrainzService:
     def _cache_set(self, key: str, value: Any, ttl_seconds: float):
         """Store a value in the cache with expiration."""
         try:
-            conn = sqlite3.connect(MB_CACHE_DB, timeout=10)
+            conn = sqlite3.connect(self.cache_db_path, timeout=10)
             conn.execute("PRAGMA busy_timeout=5000")
             now = time.time()
             conn.execute(
@@ -83,7 +84,7 @@ class MusicBrainzService:
         total = self._cache_hits + self._cache_misses
         hit_rate = (self._cache_hits / total * 100) if total > 0 else 0
         try:
-            conn = sqlite3.connect(MB_CACHE_DB, timeout=10)
+            conn = sqlite3.connect(self.cache_db_path, timeout=10)
             count = conn.execute("SELECT COUNT(*) FROM cache").fetchone()[0]
             expired = conn.execute(
                 "SELECT COUNT(*) FROM cache WHERE expires_at < ?", (time.time(),)
@@ -103,7 +104,7 @@ class MusicBrainzService:
     def clear_expired(self):
         """Remove expired entries from the cache."""
         try:
-            conn = sqlite3.connect(MB_CACHE_DB, timeout=10)
+            conn = sqlite3.connect(self.cache_db_path, timeout=10)
             cur = conn.execute("DELETE FROM cache WHERE expires_at < ?", (time.time(),))
             conn.commit()
             deleted = cur.rowcount
@@ -252,9 +253,9 @@ class MusicBrainzService:
             return None
 
     def get_related_artists(
-        self, artist_id: str, depth: int = 1
+        self, artist_id: str, depth: int = 1, max_api_calls: int = 30
     ) -> List[Dict[str, Any]]:
-        """Find related artists recursively (cached 14 days)."""
+        """Find related artists recursively (cached 14 days, bounded by max_api_calls)."""
         cache_key = f"get_related_artists:{artist_id}:d{depth}"
         cached = self._cache_get(cache_key)
         if cached is not None:
@@ -265,10 +266,15 @@ class MusicBrainzService:
 
         found_artists = {}
         visited = set([artist_id])
+        api_calls_made = 0
 
         def add_artist(artist_data, relation_desc):
+            nonlocal api_calls_made
+            if api_calls_made >= max_api_calls:
+                return
             aid = artist_data.get("id")
             if aid and aid not in found_artists and aid not in visited:
+                api_calls_made += 1
                 full_info = self.get_artist_by_id(aid, includes=["tags"])
                 tags = []
                 if full_info:
@@ -283,10 +289,12 @@ class MusicBrainzService:
                 }
 
         def traverse(current_id, current_depth, is_member_of_original_band=False):
-            if current_depth > depth:
+            nonlocal api_calls_made
+            if current_depth > depth or api_calls_made >= max_api_calls:
                 return
 
             visited.add(current_id)
+            api_calls_made += 1
             artist_info = self.get_artist_by_id(current_id, includes=["artist-rels"])
             if not artist_info:
                 return
@@ -310,6 +318,8 @@ class MusicBrainzService:
                 members_to_check.append((artist_info, False))
 
             for person, is_member in members_to_check:
+                if api_calls_made >= max_api_calls:
+                    break
                 pid = person.get("id")
                 pname = person.get("name")
 
@@ -317,11 +327,14 @@ class MusicBrainzService:
                 if pid == current_id:
                     person_rels = relations
                 else:
+                    api_calls_made += 1
                     p_details = self.get_artist_by_id(pid, includes=["artist-rels"])
                     if p_details:
                         person_rels = p_details.get("artist-relation-list", [])
 
                 for rel in person_rels:
+                    if api_calls_made >= max_api_calls:
+                        break
                     if (
                         rel.get("type") == "member of band"
                         and rel.get("direction") != "backward"
