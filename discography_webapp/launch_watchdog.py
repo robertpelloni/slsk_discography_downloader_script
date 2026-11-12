@@ -29,8 +29,7 @@ env["PYTHONPATH"] = sep.join(paths)
 flags = 0
 if sys.platform == "win32":
     flags = (
-        getattr(subprocess, "DETACHED_PROCESS", 0)
-        | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+        getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
         | getattr(subprocess, "CREATE_NO_WINDOW", 0)
     )
 
