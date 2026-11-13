@@ -1,6 +1,10 @@
 # slsk_discography_downloader_script
 
-A personal tool (`v2.3.0`, version governed centrally in `VERSION.md`) that builds complete artist discographies from the Soulseek P2P network, driven by MusicBrainz metadata: search Soulseek for an artist's releases, rank and queue candidates, verify lossless spectral integrity, download and tag releases, and organize the results into a local library.
+A personal tool (v2.3.0, version governed centrally in `VERSION.md`) that builds complete artist discographies from the Soulseek P2P network, driven by MusicBrainz metadata: search Soulseek for an artist's releases, rank and queue candidates, verify lossless spectral integrity, download and tag releases, and organize the results into a local library.
+
+## Status
+
+**Active personal tool.** Last significant activity: **2026-11-12** — v2.3.0: branch/stash reconciliation, credential isolation, persistent memory/DB tracking. The v2.2.0 dashboard consolidation, systray integration, and P2P resilience work landed 2026-11-07.
 
 ## Layout
 
@@ -17,9 +21,10 @@ A personal tool (`v2.3.0`, version governed centrally in `VERSION.md`) that buil
 - `Dockerfile` + `docker-compose.yml` for containerized deployment
 - `tests/` — isolated `pytest` unit and integration test suite (39 unit tests + 3 live-server integration tests)
 
-## Configuration & Secrets
+## Configuration & secrets
 
 Configuration templates are documented in `.env.example`.
+
 - Top-level `.env` contains non-sensitive placeholder defaults only (`your_username` / `your_password`).
 - Live credentials (`SLSK_USER`, `SLSK_PASS`, `SLSK_BOOST_USER`, `SLSK_BOOST_PASS`, `GENIUS_API_KEY`) must be stored exclusively in `discography_webapp/.env` (gitignored). `ConfigService` automatically strips secret keys before writing `user_configs` to `discography_webapp/data/app.db`.
 
@@ -49,12 +54,3 @@ pip install -r discography_webapp/requirements.txt
 cd discography_webapp/rust_bridge && maturin develop --release && cd ../..
 python discography_webapp/main.py
 ```
-
-## Repository & Submodule Structural Map
-
-| Layer / Path | Type | Remote Source URL | Fork / Upstream Parent | Active Branches | Submodules | Notes |
-|---|---|---|---|---|---|---|
-| `.` (Root Repository) | Primary Git Repository (gitdir linked via parent workspace `.git/modules/slsk_discography_downloader_script`) | `https://github.com/robertpelloni/slsk_discography_downloader_script.git` | Standalone (`isFork: false`, `parent: null`) | `main` (default), `jules-57044827041196387-8ad75250` (synced), `master` (legacy ancestor `7054eea`) | **0 nested submodules** (`.gitmodules` absent; `submodules/` empty) | Centralized version in `VERSION.md` (`2.3.0`) |
-| `discography_webapp/` | FastAPI Backend + UI | Tracked in root repo | N/A | Tracked on `main` | None | Serves UI on `:8000`; SQLite WAL state in `discography_webapp/data/` |
-| `discography_webapp/rust_bridge/` | Rust Crate (`bob_soulseek_rs` `0.1.0`) | Tracked in root repo | N/A | Tracked on `main` | None | Built via Cargo/Maturin into `discography_webapp/bob_soulseek_rs.pyd` |
-| `.memory/`, `.jules/`, `.pi/` | Agent Memory & Session Logs | Tracked in root repo | N/A | Tracked on `main` | None | Persistent Brain memory and development session history (secrets redacted) |
